@@ -25,8 +25,20 @@ for_object: "for" " "+ VARIABLE_NAME " "+ "as" " "+ VARIABLE_NAME " "* ":" " "* 
 for_statement: "for" " "+ statement " "* ";" " "* statement " "* ";" " "* statement
 for: for_array | for_object | for_statement
 
+while: "while" " "+ condition
+
+class: "class" " "+ VARIABLE_NAME (" "+ "extends" " "+ VARIABLE_NAME)?
+
+param: "," " "* VARIABLE_NAME " "*
+first_param: " "* (VARIABLE_NAME " "*)
+function_name: " "+ VARIABLE_NAME
+function_definition: "function" function_name? " "* "(" first_param? param* " "* ")"
+call_function: VARIABLE_NAME " "* "("
+end_call_function: ")"
+
 SPACE: " "
-statement: SPACE* (VARIABLE_NAME | variable_assignment | string | NUMBER | condition | if | for | variable_increment | variable_coercion)
+spaces: SPACE
+statement: spaces* (VARIABLE_NAME | variable_assignment | string | NUMBER | condition | if | for | variable_increment | variable_coercion | while | class | function_definition | call_function | end_call_function)
 NEWLINE: "\\n"
 """
 
