@@ -96,3 +96,28 @@ Special function `constructor` for creating new instances.
 class Name extends OtherClass
     function constructor(a,b,c)
         <statements>
+```
+
+Creating an instance of a method is done just like a function:
+
+```
+instance = Name(a, b, c)
+```
+
+Chaining instances is done as normal:
+
+```
+class Class1
+    function hello()
+        print("hello")
+
+class Class2
+    function constructor()
+        this.inst_of_class1 = Class1()
+
+inst_of_class2 = Class2()
+
+inst_of_class2.inst_of_class1.hello()
+```
+
+This code prints "hello"
