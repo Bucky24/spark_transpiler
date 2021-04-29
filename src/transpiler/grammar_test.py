@@ -35,7 +35,7 @@ class TestGrammar(unittest.TestCase):
             ]),
         ]))
 
-        result = parse_statement("foo = \"bar\"\nbar = 'baz'")
+        result = parse_statement("foo = \"bar\"\nbar = 'baz'\n")
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
@@ -59,6 +59,7 @@ class TestGrammar(unittest.TestCase):
                         ]),
                     ]),
                 ]),
+                Token("NEWLINE", "\n"),
             ]),
         ]))
 
@@ -134,7 +135,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('if', [
+                    Tree('if_stat', [
                         Tree('condition', [
                             Tree('statement', [
                                 Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
@@ -174,12 +175,67 @@ class TestGrammar(unittest.TestCase):
             Token('EQUALITY', '!='),
         )
 
+        # fixing a complex little bug where the system was treating "if" as a variable name
+        # only if there were statements before it
+        result = parse_statement("""foo = \"bar\"
+if foo == \"bar\"
+    bar = foo
+""")
+        self.assertEqual(result, Tree('start', [
+            Tree('statements', [
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "foo"),
+                        ]),
+                        Tree("statement", [
+                            Tree("string", [
+                                Token("STRING_CONTENTS_DOUBLE", "bar"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree('statement', [
+                    Tree('if_stat', [
+                        Tree('condition', [
+                            Tree('statement', [
+                                Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
+                            ]),
+                            Token('EQUALITY', '=='),
+                            Tree('statement', [
+                                Tree("string", [Token('STRING_CONTENTS_DOUBLE', 'bar')]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("variable_assignment", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "bar"),
+                        ]),
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "foo"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
+
     def test_for(self):
         result = parse_statement("for foo as bar")
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('for', [
+                    Tree('for_stat', [
                         Tree('for_array', [
                             Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
                             Tree("variable", [Token('VARIABLE_NAME', 'bar')]),
@@ -195,7 +251,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('for', [
+                    Tree('for_stat', [
                         Tree('for_object', [
                             Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
                             Tree("variable", [Token('VARIABLE_NAME', 'bar')]),
@@ -218,7 +274,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('for', [
+                    Tree('for_stat', [
                         Tree('for_statement', [
                             Tree('statement_no_space', [
                                 Tree("variable", [Token('VARIABLE_NAME', 'foo')]),  
@@ -242,7 +298,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('while', [
+                    Tree('while_stat', [
                         Tree('condition', [
                             Tree('statement', [
                                 Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
@@ -262,7 +318,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('class', [
+                    Tree('class_stat', [
                         Tree("variable", [Token('VARIABLE_NAME', 'Foo')]),
                     ]),
                 ]),
@@ -273,7 +329,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
-                    Tree('class', [
+                    Tree('class_stat', [
                         Tree("variable", [Token('VARIABLE_NAME', 'Foo')]),
                         Tree("variable", [Token("VARIABLE_NAME", "Bar")]),
                     ]),
@@ -284,7 +340,6 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result, result2)
 
         result = parse_statement("bar.baz.foo = bin")
-        print(result)
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
@@ -374,7 +429,7 @@ class TestGrammar(unittest.TestCase):
         result2 = parse_statement("function  foo  (  a  ,  b  ,  c )")
         self.assertEqual(result, result2)
 
-        result = parse_statement("foo(\n  a\n  b\n)")
+        result = parse_statement("foo(\n  a\n  b\n)\n")
         self.assertEqual(result, Tree("start", [
             Tree("statements", [
                 Tree("statement", [
@@ -406,11 +461,12 @@ class TestGrammar(unittest.TestCase):
                 Tree("statement", [
                     Tree("end_call_function", []),
                 ]),
+                Token("NEWLINE", "\n"),
             ]),
         ]))
 
     def test_nesting(self):
-        result = parse_statement("foo = bar\n      foo = bar")
+        result = parse_statement("foo = bar\n      foo = bar\n")
         self.assertEqual(result, Tree("start", [
             Tree("statements", [
                 Tree("statement", [
@@ -448,6 +504,7 @@ class TestGrammar(unittest.TestCase):
                         ]),
                     ]),
                 ]),
+                Token("NEWLINE", "\n"),
             ]),
         ]))
 

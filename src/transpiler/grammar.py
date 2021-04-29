@@ -2,7 +2,7 @@ from lark import Lark
 
 grammar = """
 start: statements
-statements: (statement NEWLINE? | NEWLINE)+
+statements: statement | (statement NEWLINE | NEWLINE)+
 
 VARIABLE_NAME: ("a".."z" | "A".."Z" | "_")+
 TYPE: ("a".."z" | "A".."Z" | "_")+
@@ -20,16 +20,16 @@ NUMBER: "0".."9"+ ("." "0".."9"+)?
 
 EQUALITY: "==" | ">=" |"<=" | "<" | ">" |"!="
 condition: statement " "* EQUALITY " "* statement
-if: "if" " "+ condition
+if_stat: "if" " "+ condition
 
 for_array: "for" " "+ variable " "+ "as" " "+ variable
 for_object: "for" " "+ variable " "+ "as" " "+ variable " "* ":" " "* variable 
 for_statement: "for" " "+ statement_no_space " "* ";" " "* statement_no_space " "* ";" " "* statement_no_space
-for: for_array | for_object | for_statement
+for_stat: for_array | for_object | for_statement
 
-while: "while" " "+ condition
+while_stat: "while" " "+ condition
 
-class: "class" " "+ variable (" "+ "extends" " "+ variable)?
+class_stat: "class" " "+ variable (" "+ "extends" " "+ variable)?
 
 param: "," " "* variable " "*
 first_param: " "* (variable " "*)
@@ -40,8 +40,8 @@ end_call_function: ")"
 
 SPACE: " "
 spaces: SPACE
-statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if | for | variable_increment | variable_coercion | while | class | function_definition | call_function | end_call_function)
-statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if | for | variable_increment | variable_coercion | while | class | function_definition | call_function | end_call_function)
+statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function)
+statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function)
 NEWLINE: "\\n"
 """
 
