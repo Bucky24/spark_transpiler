@@ -27,7 +27,11 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(processed, "js")
         self.assertEqual(result, "var foo = 5;\nfoo = foo++;\n");
 
-    
+    def test_conditionals(self):
+        tree = parse_statement("foo = 10\nif foo == bar\n    foo = bar\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "var foo = 10;\nif (foo == bar) {\n    foo = bar;\n}\n");
 
 if __name__ == "__main__":
     unittest.main()
