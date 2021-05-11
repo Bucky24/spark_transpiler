@@ -101,7 +101,11 @@ class Name extends OtherClass
 Creating an instance of a method is done just like a function:
 
 ```
-instance = Name(a, b, c)
+instance = Name(
+    a
+    b
+    c
+)
 ```
 
 Chaining instances is done as normal:
