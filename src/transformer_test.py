@@ -48,9 +48,12 @@ if foo == "string"
             }, 0),
             statement({
                 "type": TYPES["IF"],
-                "left_hand": statement("foo", 0),
-                "condition": "==",
-                "right_hand": statement("\"string\"", 0),
+                "condition": {
+                    "type": TYPES["CONDITION"],
+                    "left_hand": statement("foo", 0),
+                    "condition": "==",
+                    "right_hand": statement("\"string\"", 0),
+                },
             }, 0),
             statement({
                 "type": TYPES["CALL_FUNC"],
@@ -103,11 +106,12 @@ while foo == bar
                         "name": "i",
                         "value": statement(0, 0),
                     }, 0),
-                    statement([
-                        statement("i", 0),
-                        "<",
-                        statement(5, 0),
-                    ], 0),
+                    statement({
+                        "type": TYPES["CONDITION"],
+                        "left_hand": statement("i", 0),
+                        "condition": "<",
+                        "right_hand": statement(5, 0),
+                    }, 0),
                     statement({
                         "type": TYPES["INCREMENT"],
                         "variable": "i",
@@ -121,11 +125,12 @@ while foo == bar
             }, 4),
             statement({
                 "type": TYPES["WHILE"],
-                "condition": [
-                    statement("foo", 0),
-                    "==",
-                    statement("bar", 0),
-                ],
+                "condition": {
+                    "type": TYPES["CONDITION"],
+                    "left_hand": statement("foo", 0),
+                    "condition": "==",
+                    "right_hand": statement("bar", 0),
+                },
             }, 0),
             statement({
                 "type": TYPES["VARIABLE_ASSIGNMENT"],

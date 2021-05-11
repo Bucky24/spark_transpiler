@@ -13,7 +13,6 @@ variable_name += <value or variable>
 
 The following types of variables exist:
 
-| --- | --- |
 | Name | Example |
 | ---| --- |
 | String | "Double quotes" 'single quotes' |

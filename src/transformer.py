@@ -19,6 +19,7 @@ TYPES = {
     "FUNCTION": "types/function",
     "CLASS": "types/class",
     "VARIABLE_CHAIN": "types/variable_chain",
+    "CONDITION": "types/condition",
 }
 
 class SparkTransformer(Transformer):
@@ -94,16 +95,18 @@ class SparkTransformer(Transformer):
         return str(value)
 
     def condition(self, values):
-        # passthrough for now
-        return values
+        # we expect 3 values
+        return {
+            "type": TYPES["CONDITION"],
+            "left_hand": values[0],
+            "condition": values[1],
+            "right_hand": values[2],
+        }
 
     def if_stat(self, values):
-        # right now can only have 3 children
         return {
             "type": TYPES["IF"],
-            "left_hand": values[0][0],
-            "condition": values[0][1],
-            "right_hand": values[0][2],
+            "condition": values[0],
         }
 
     def call_function(self, name):
