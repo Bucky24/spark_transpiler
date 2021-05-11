@@ -50,6 +50,46 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         self.assertEqual(result, "for (var i = 0;i < 5;i++) {\n    var foo = i;\n}\n");
+        
+    def test_while(self):
+        tree = parse_statement("foo = 5\nwhile foo > bar\n    foo = bar\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "var foo = 5;\nwhile (foo > bar) {\n    foo = bar;\n}\n");
+
+    def test_function_definition(self):
+        tree = parse_statement("function foo()\n    bar = baz\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "function foo() {\n    var bar = baz;\n}\n");
+        
+        tree = parse_statement("function()\n    bar = baz\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "function() {\n    var bar = baz;\n}\n");
+        
+        tree = parse_statement("function foo(bar, baz)\n    bar = baz\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "function foo(bar, baz) {\n    var bar = baz;\n}\n");
+        
+    def test_function_call(self):
+        tree = parse_statement("func(\n    foo\n    bar\n    baz\n)\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "func(\n    foo,\n    bar,\n    baz,\n)\n");
+        
+    def test_function_call_in_assignment(self):
+        tree = parse_statement("foo = func(\n    foo\n    bar\n    baz\n)\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "var foo = func(\n    foo,\n    bar,\n    baz,\n)\n");
+        
+    def test_nested_function_call(self):
+        tree = parse_statement("func(\n    foo(\n        bar\n    )\n    baz\n)\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "func(\n    foo(\n        bar,\n    ),\n    baz,\n)\n");
 
 if __name__ == "__main__":
     unittest.main()
