@@ -112,7 +112,9 @@ Chaining instances is done as normal:
 ```
 class Class1
     function hello()
-        print("hello")
+        print(
+			"hello"
+		)
 
 class Class2
     function constructor()

@@ -113,6 +113,29 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         self.assertEqual(result, "class Foo {\n    constructor(a, b, c) {\n        print(\n        \n        );\n    }\n    foo() {\n    }\n}\n");
+        
+    def test_new_instance(self):
+        tree = parse_statement("class Foo\nbar = Foo(\n)\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "class Foo {\n}\nvar bar = new Foo(\n\n);\n");
+        
+    def test_class_variables(self):
+        tree = parse_statement("foo = bar.baz.biz")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "var foo = bar.baz.biz;\n");
+        
+    def test_class_method_call(self):
+        tree = parse_statement("foo = bar.baz(\n\n)\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "var foo = bar.baz(\n\n);\n");
+        
+        tree = parse_statement("foo = bar.baz.biz.buzz(\n\n)\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "var foo = bar.baz.biz.buzz(\n\n);\n");
 
 if __name__ == "__main__":
     unittest.main()

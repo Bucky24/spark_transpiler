@@ -24,6 +24,7 @@ def generate_js(transformed_tree):
         }
     ]
     next_statement_starts_block = False
+    classes = []
     
     def _end_block(current_block, code):
         # block ends
@@ -76,7 +77,7 @@ def generate_js(transformed_tree):
                 #print("ending block 2")
                 current_block, code = _end_block(current_block, code)
 
-            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"])
+            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], classes)
             if result:
                 statement_code = result["statement"]
                 
@@ -88,6 +89,8 @@ def generate_js(transformed_tree):
                 code += _add_spaces(spaces)
                 code += statement_code
                 start_block = result.get("start_block", False)
+                
+                classes += result.get("new_classes", [])
                 
                 #print(statement_code, start_block)
 
@@ -137,16 +140,17 @@ def generate_js(transformed_tree):
 
     return code
 
-def process_statement(statement, variables_generated, spaces, is_class):
+def process_statement(statement, variables_generated, spaces, is_class, classes):
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
         return {
             "statement": statement,
         }
 
     if statement["type"] == TYPES["STATEMENT"]:
-        return process_statement(statement["statement"], variables_generated, spaces, is_class)
+        return process_statement(statement["statement"], variables_generated, spaces, is_class, classes)
     elif statement["type"] == TYPES["VARIABLE_ASSIGNMENT"]:
-        value = process_statement(statement["value"], variables_generated, spaces, is_class)
+        #print("processing ", statement["value"])
+        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes)
         str_value = value["statement"]
         start_block = value.get("start_block", None)
         if statement["name"] in variables_generated:
@@ -165,7 +169,7 @@ def process_statement(statement, variables_generated, spaces, is_class):
             "statement": "{}++".format(statement["variable"]),
         }
     elif statement["type"] == TYPES["IF"]:
-        conditional = process_statement(statement["condition"], variables_generated, spaces, is_class)
+        conditional = process_statement(statement["condition"], variables_generated, spaces, is_class, classes)
         conditional = conditional["statement"]
 
         return {
@@ -188,13 +192,13 @@ def process_statement(statement, variables_generated, spaces, is_class):
     elif statement["type"] == TYPES["FOR"]:
         variables = []
         # we expect 3 conditions, no more, no less
-        result = process_statement(statement["conditions"][0], variables_generated, spaces, is_class)
+        result = process_statement(statement["conditions"][0], variables_generated, spaces, is_class, classes)
         variables += result.get("new_variables", [])
         cond1 = result["statement"]
-        result = process_statement(statement["conditions"][1], variables_generated, spaces, is_class)
+        result = process_statement(statement["conditions"][1], variables_generated, spaces, is_class, classes)
         variables += result.get("new_variables", [])
         cond2 = result["statement"]
-        result = process_statement(statement["conditions"][2], variables_generated, spaces, is_class)
+        result = process_statement(statement["conditions"][2], variables_generated, spaces, is_class, classes)
         variables += result.get("new_variables", [])
         cond3 = result["statement"]
         
@@ -204,16 +208,16 @@ def process_statement(statement, variables_generated, spaces, is_class):
             "new_variables": variables,
         }
     elif statement["type"] == TYPES["CONDITION"]:
-        left_hand = process_statement(statement["left_hand"], variables_generated, spaces, is_class)
+        left_hand = process_statement(statement["left_hand"], variables_generated, spaces, is_class, classes)
         left_hand = left_hand["statement"]
-        right_hand = process_statement(statement["right_hand"], variables_generated, spaces, is_class)
+        right_hand = process_statement(statement["right_hand"], variables_generated, spaces, is_class, classes)
         right_hand = right_hand["statement"]
         
         return {
             "statement": "{} {} {}".format(left_hand, statement["condition"], right_hand),
         }
     elif statement["type"] == TYPES["WHILE"]:
-        condition = process_statement(statement["condition"], variables_generated, spaces, is_class)
+        condition = process_statement(statement["condition"], variables_generated, spaces, is_class, classes)
         return {
             "statement": "while ({})".format(condition["statement"]) + " {",
             "start_block": "while",
@@ -239,8 +243,15 @@ def process_statement(statement, variables_generated, spaces, is_class):
             "start_block": "function",
         }
     elif statement["type"] == TYPES["CALL_FUNC"]:
+        name = process_statement(statement["function"], variables_generated, spaces, is_class, classes)
+        name = name["statement"]
+        if name in classes:
+            return {
+                "statement": "new {}(".format(name),
+                "start_block": "function_call",
+            }
         return {
-            "statement": "{}(".format(statement["function"]),
+            "statement": "{}(".format(name),
             "start_block": "function_call",
         }
     elif statement["type"] == TYPES["CALL_FUNC_END"]:
@@ -253,9 +264,15 @@ def process_statement(statement, variables_generated, spaces, is_class):
             return {
                 "statement": "class {}".format(statement["name"]) + " {",
                 "start_block": "class",
+                "new_classes": [statement["name"]],
             }
         else:
             return {
                 "statement": "class {} extends {}".format(statement["name"], extends) + " {",
                 "start_block": "class",
+                "new_classes": [statement["name"]],
             }
+    elif statement["type"] == TYPES["VARIABLE_CHAIN"]:
+        return {
+            "statement": ".".join(statement["chain"]),
+        }
