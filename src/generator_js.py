@@ -18,23 +18,52 @@ def generate_js(transformed_tree):
         {
             "variables_generated": [],
             "spaces": 0,
+            "pervious_spaces": 0,
             "is_function_call": False,
+            "is_class": False,
         }
     ]
     next_statement_starts_block = False
+    
+    def _end_block(current_block, code):
+        # block ends
+        old_block = current_block
+        blocks.pop(-1)
+        current_block = blocks[-1]
+        code += _add_spaces(spaces)
+        #print("ending block", old_block)
+        if old_block["is_function_call"]:
+            pass
+        else:
+            code += "}"
+        code += "\n"
+        return current_block, code
+        
+    
     for statement in transformed_tree:
         if statement["type"] == TYPES["STATEMENT"]:
             spaces = statement["spaces"]
+            
+            #print('statement is', statement)
+
+            current_block = blocks[-1]
 
             if next_statement_starts_block:
+                old_block = current_block
                 blocks.append({
                     "variables_generated": [],
                     "spaces": spaces,
                     "is_function_call": next_statement_starts_block == "function_call",
+                    "previous_spaces": old_block["spaces"],
+                    "is_class": next_statement_starts_block == "class",
                 })
+                current_block = blocks[-1]
                 next_statement_starts_block = False
-            
-            #print(statement)
+                
+                # now we have to deal with the possibility that we're actually ending the previous block and starting a new one in the same go
+                if current_block["spaces"] == old_block["spaces"]:
+                    current_block, code = _end_block(current_block, code)
+                    
             current_block = blocks[-1]
 
             # at this point we need to figure out ALL the variables that have been generated up until
@@ -44,23 +73,10 @@ def generate_js(transformed_tree):
                 child_variables += block["variables_generated"]
 
             if current_block["spaces"] > spaces and len(blocks) > 1:
-                # block ends
-                old_block = current_block
-                blocks.pop(-1)
-                current_block = blocks[-1]
-                code += _add_spaces(spaces)
-                if old_block["is_function_call"]:
-                    code += ")"
-                else:
-                    code += "}"
-                    
-                if current_block["is_function_call"]:
-                    # this situation can happen with nested function calls
-                    code += ","
-                    
-                code += "\n"
+                #print("ending block 2")
+                current_block, code = _end_block(current_block, code)
 
-            result = process_statement(statement["statement"], child_variables, spaces)
+            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"])
             if result:
                 statement_code = result["statement"]
                 
@@ -76,9 +92,10 @@ def generate_js(transformed_tree):
                 #print(statement_code, start_block)
 
                 if start_block:
+                    # print("starts block?", start_block)
                     next_statement_starts_block = start_block
                 else:
-                    if block["is_function_call"]:
+                    if current_block["is_function_call"]:
                         # we're in the middle of calling a function so we need to separate the params by commas
                         code += ","
                     else:
@@ -94,33 +111,42 @@ def generate_js(transformed_tree):
     # and the closing brace is actually at the level of the PREVIOUS block, we need to loop through
     # and on each level, close the previous level.
     
-    prev_spaces = -1
+    prev_spaces = None
+    #print("next statement", next_statement_starts_block)
     if next_statement_starts_block:
         # we will get here when a block was opened but was empty,
-        # and we never had anything inside it
-        # in this case just set prev_spaces to SOMETHING, since we
-        # don't actually use the value other than a flag it doesn't
-        # matter what
-        prev_spaces = 0
+        # and we never had anything inside it, so we need to make up
+        # the block based on what type of statement we were dealing with
+        prev_spaces = {
+            "spaces": 0,
+            "is_function_call": next_statement_starts_block == "function_call",
+        }
+        
+    #print("blocks are", blocks)
     
     for block in blocks:
-        if prev_spaces != -1:
-            code += _add_spaces(block["spaces"]) + "}\n"
-        prev_spaces = block["spaces"]
+        if prev_spaces is not None:
+            # print("here", prev_spaces)
+            code += _add_spaces(block["spaces"])
+            if prev_spaces["is_function_call"]:
+                code += ")\n"
+            else:
+                code += "}\n"
+        prev_spaces = block
 
 
     return code
 
-def process_statement(statement, variables_generated, spaces):
+def process_statement(statement, variables_generated, spaces, is_class):
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
         return {
             "statement": statement,
         }
 
     if statement["type"] == TYPES["STATEMENT"]:
-        return process_statement(statement["statement"], variables_generated, spaces)
+        return process_statement(statement["statement"], variables_generated, spaces, is_class)
     elif statement["type"] == TYPES["VARIABLE_ASSIGNMENT"]:
-        value = process_statement(statement["value"], variables_generated, spaces)
+        value = process_statement(statement["value"], variables_generated, spaces, is_class)
         str_value = value["statement"]
         start_block = value.get("start_block", None)
         if statement["name"] in variables_generated:
@@ -139,7 +165,7 @@ def process_statement(statement, variables_generated, spaces):
             "statement": "{}++".format(statement["variable"]),
         }
     elif statement["type"] == TYPES["IF"]:
-        conditional = process_statement(statement["condition"], variables_generated, spaces)
+        conditional = process_statement(statement["condition"], variables_generated, spaces, is_class)
         conditional = conditional["statement"]
 
         return {
@@ -162,13 +188,13 @@ def process_statement(statement, variables_generated, spaces):
     elif statement["type"] == TYPES["FOR"]:
         variables = []
         # we expect 3 conditions, no more, no less
-        result = process_statement(statement["conditions"][0], variables_generated, spaces)
+        result = process_statement(statement["conditions"][0], variables_generated, spaces, is_class)
         variables += result.get("new_variables", [])
         cond1 = result["statement"]
-        result = process_statement(statement["conditions"][1], variables_generated, spaces)
+        result = process_statement(statement["conditions"][1], variables_generated, spaces, is_class)
         variables += result.get("new_variables", [])
         cond2 = result["statement"]
-        result = process_statement(statement["conditions"][2], variables_generated, spaces)
+        result = process_statement(statement["conditions"][2], variables_generated, spaces, is_class)
         variables += result.get("new_variables", [])
         cond3 = result["statement"]
         
@@ -178,16 +204,16 @@ def process_statement(statement, variables_generated, spaces):
             "new_variables": variables,
         }
     elif statement["type"] == TYPES["CONDITION"]:
-        left_hand = process_statement(statement["left_hand"], variables_generated, spaces)
+        left_hand = process_statement(statement["left_hand"], variables_generated, spaces, is_class)
         left_hand = left_hand["statement"]
-        right_hand = process_statement(statement["right_hand"], variables_generated, spaces)
+        right_hand = process_statement(statement["right_hand"], variables_generated, spaces, is_class)
         right_hand = right_hand["statement"]
         
         return {
             "statement": "{} {} {}".format(left_hand, statement["condition"], right_hand),
         }
     elif statement["type"] == TYPES["WHILE"]:
-        condition = process_statement(statement["condition"], variables_generated, spaces)
+        condition = process_statement(statement["condition"], variables_generated, spaces, is_class)
         return {
             "statement": "while ({})".format(condition["statement"]) + " {",
             "start_block": "while",
@@ -196,10 +222,17 @@ def process_statement(statement, variables_generated, spaces):
         name = statement.get("name", "")
         if name is None:
             name = ""
-        else:
+        elif not is_class:
             name = " {}".format(name)
             
         param_str = ", ".join(statement["params"])
+        
+        if is_class:
+            return {
+                "statement": "{}({})".format(name, param_str) + " {",
+                "start_block": "function",
+            }
+        
 
         return {
             "statement": "function{}({})".format(name, param_str) + " {",
@@ -212,5 +245,17 @@ def process_statement(statement, variables_generated, spaces):
         }
     elif statement["type"] == TYPES["CALL_FUNC_END"]:
         return {
-            "statement": None,
+            "statement": ")",
         }
+    elif statement["type"] == TYPES["CLASS"]:
+        extends = statement.get("extends", None)
+        if not extends:
+            return {
+                "statement": "class {}".format(statement["name"]) + " {",
+                "start_block": "class",
+            }
+        else:
+            return {
+                "statement": "class {} extends {}".format(statement["name"], extends) + " {",
+                "start_block": "class",
+            }

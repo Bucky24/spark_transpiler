@@ -77,19 +77,42 @@ class TestGeneratorJs(unittest.TestCase):
         tree = parse_statement("func(\n    foo\n    bar\n    baz\n)\n")
         processed = process_tree(tree)
         result = generate(processed, "js")
-        self.assertEqual(result, "func(\n    foo,\n    bar,\n    baz,\n)\n");
+        self.assertEqual(result, "func(\n    foo,\n    bar,\n    baz,\n\n);\n");
         
     def test_function_call_in_assignment(self):
         tree = parse_statement("foo = func(\n    foo\n    bar\n    baz\n)\n")
         processed = process_tree(tree)
         result = generate(processed, "js")
-        self.assertEqual(result, "var foo = func(\n    foo,\n    bar,\n    baz,\n)\n");
+        self.assertEqual(result, "var foo = func(\n    foo,\n    bar,\n    baz,\n\n);\n");
         
     def test_nested_function_call(self):
         tree = parse_statement("func(\n    foo(\n        bar\n    )\n    baz\n)\n")
         processed = process_tree(tree)
         result = generate(processed, "js")
-        self.assertEqual(result, "func(\n    foo(\n        bar,\n    ),\n    baz,\n)\n");
+        self.assertEqual(result, "func(\n    foo(\n        bar,\n    \n    ),\n    baz,\n\n);\n");
+        
+    def test_function_with_function_call(self):
+        tree = parse_statement("function foo()\n    print(\n    )\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "function foo() {\n    print(\n    \n    );\n}\n");
+
+    def test_class_definition(self):
+        tree = parse_statement("class Foo")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "class Foo {\n}\n");
+        
+        tree = parse_statement("class Foo extends Bar")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "class Foo extends Bar {\n}\n");
+        
+    def test_class_functions(self):
+        tree = parse_statement("class Foo\n    function constructor(a, b, c)\n        print(\n        )\n\n    function foo()\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        self.assertEqual(result, "class Foo {\n    constructor(a, b, c) {\n        print(\n        \n        );\n    }\n    foo() {\n    }\n}\n");
 
 if __name__ == "__main__":
     unittest.main()
