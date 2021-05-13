@@ -1,10 +1,11 @@
 // This is a js based runner for spark, because Python is unbelievely stupid with how it deals with subprocesses
 
 const { spawn } = require("child_process");
+const path = require("path");
 
 const args = process.argv.slice(2);
 
-let proc = spawn("python", ["./spark.py", ...args]);
+let proc = spawn("python", [path.resolve(__dirname, "./spark.py"), ...args]);
 
 proc.stdout.on("data", (data) => {
     const str = data.toString();
@@ -20,6 +21,10 @@ proc.stdout.on("data", (data) => {
     } else {
         process.stdout.write(str);
     }
+});
+
+proc.stderr.on("data", (data) => {
+	process.stderr.write(data.toString());
 });
 
 function executeFile(file) {

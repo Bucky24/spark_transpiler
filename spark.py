@@ -5,6 +5,9 @@ import subprocess
 import time
 import shutil
 
+script_dir = path.dirname(path.realpath(__file__))
+
+
 from src import generator, grammar, transformer
 
 parser = argparse.ArgumentParser(description='Spark CLI')
@@ -53,14 +56,14 @@ for file in args.files:
     sys.stdout.write("Generating files... ")
     sys.stdout.flush()
     
-    cacheDir = path.realpath("./cache")
+    cacheDir = path.realpath(script_dir + "/cache")
 
     if not path.exists(cacheDir):
         mkdir(cacheDir)
         
     # copy over any required imports
     for importFile in imports:
-        libPath = path.realpath("./" + importFile["type"] + "/" + importFile["lang"] + "/" + importFile["library"] + "/" + importFile["library"] + "." + importFile["extension"])
+        libPath = path.realpath(script_dir + "/" + importFile["type"] + "/" + importFile["lang"] + "/" + importFile["library"] + "/" + importFile["library"] + "." + importFile["extension"])
         newLibFile = importFile["type"] + "_" + importFile["lang"] + "_" + importFile["library"] + "." + importFile["extension"]
         newLibPath = path.realpath(cacheDir + "/" + newLibFile)
         shutil.copyfile(libPath, newLibPath)
