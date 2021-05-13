@@ -1,0 +1,7 @@
+foo = "5"
+bar = foo
+
+console.log(
+    "foo is"
+    foo
+)
