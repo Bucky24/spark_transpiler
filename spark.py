@@ -17,7 +17,7 @@ for file in args.files:
         print("Cannot find input file {}".format(fullPath))
         sys.exit(1)
         
-    print("Reading... ", end='')
+    sys.stdout.write("Reading... ")
     sys.stdout.flush()
     handle = open(fullPath)
     contents = handle.read()
@@ -27,7 +27,7 @@ for file in args.files:
     sys.stdout.flush()
     time.sleep(0.01)
 
-    print("Generating code... ", end='')
+    sys.stdout.write("Generating code... ")
     sys.stdout.flush()
     
     # the grammar requires a newline at the end of the file
@@ -40,7 +40,7 @@ for file in args.files:
     print("Done")
     sys.stdout.flush()
     time.sleep(0.01)
-    print("Generating files... ", end="")
+    sys.stdout.write("Generating files... ")
     sys.stdout.flush()
     
     cacheDir = path.realpath("./cache")
@@ -55,4 +55,3 @@ for file in args.files:
     sys.stdout.flush()
     time.sleep(0.01)
     print(">>>{}".format(outFile))
-    
