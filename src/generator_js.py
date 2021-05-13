@@ -2,6 +2,10 @@ from transformer import TYPES
 
 _DEFAULT_SPACES = 4
 
+_COMMON_FUNCS = [
+    "print",
+]
+
 def _add_spaces(spaces):
     code = ""
     # I hate for loops in Python
@@ -25,6 +29,7 @@ def generate_js(transformed_tree):
     ]
     next_statement_starts_block = False
     classes = []
+    function_calls = []
     
     def _end_block(current_block, code):
         # block ends
@@ -91,6 +96,7 @@ def generate_js(transformed_tree):
                 start_block = result.get("start_block", False)
                 
                 classes += result.get("new_classes", [])
+                function_calls += result.get("new_function_calls", [])
                 
                 #print(statement_code, start_block)
 
@@ -137,6 +143,31 @@ def generate_js(transformed_tree):
                 code += "}\n"
         prev_spaces = block
 
+    # add in the required imports based on what has been called
+    #print(function_calls, classes)
+    
+    required_common = []
+    for function_call in function_calls:
+        if function_call in _COMMON_FUNCS:
+            required_common.append(function_call)
+
+    requirements = ""
+    requirement_files = []
+
+    if required_common:
+        requirements += "const {\n    " + ",\n    ".join(required_common) + "\n} = require(\"./stdlib_js_common.js\");\n";
+        requirement_files.append({
+            "type": "stdlib",
+            "lang": "js",
+            "library": "common",
+            "extension": "js",
+        })
+
+    if requirements != "":
+        code = requirements + "\n" + code
+
+    if requirement_files:
+        return code, requirement_files
 
     return code
 
@@ -157,12 +188,14 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
             return {
                 "statement": "{} = {}".format(statement["name"], str_value),
                 "start_block": start_block,
+                "new_function_calls": value.get("new_function_calls", []), 
             }
         else:
             return {
                 "statement": "var {} = {}".format(statement["name"], str_value),
                 "new_variables": [statement["name"]],
                 "start_block": start_block,
+                "new_function_calls": value.get("new_function_calls", []), 
             }
     elif statement["type"] == TYPES["INCREMENT"]:
         return {
@@ -253,6 +286,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
         return {
             "statement": "{}(".format(name),
             "start_block": "function_call",
+            "new_function_calls": [name],
         }
     elif statement["type"] == TYPES["CALL_FUNC_END"]:
         return {

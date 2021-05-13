@@ -1,7 +1,7 @@
 foo = "5"
 bar = foo
 
-console.log(
+print(
     "foo is"
     foo
 )

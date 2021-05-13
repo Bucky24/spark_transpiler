@@ -92,10 +92,10 @@ class TestGeneratorJs(unittest.TestCase):
         self.assertEqual(result, "func(\n    foo(\n        bar,\n    \n    ),\n    baz,\n\n);\n");
         
     def test_function_with_function_call(self):
-        tree = parse_statement("function foo()\n    print(\n    )\n")
+        tree = parse_statement("function foo()\n    printt(\n    )\n")
         processed = process_tree(tree)
         result = generate(processed, "js")
-        self.assertEqual(result, "function foo() {\n    print(\n    \n    );\n}\n");
+        self.assertEqual(result, "function foo() {\n    printt(\n    \n    );\n}\n");
 
     def test_class_definition(self):
         tree = parse_statement("class Foo")
@@ -109,10 +109,10 @@ class TestGeneratorJs(unittest.TestCase):
         self.assertEqual(result, "class Foo extends Bar {\n}\n");
         
     def test_class_functions(self):
-        tree = parse_statement("class Foo\n    function constructor(a, b, c)\n        print(\n        )\n\n    function foo()\n")
+        tree = parse_statement("class Foo\n    function constructor(a, b, c)\n        printt(\n        )\n\n    function foo()\n")
         processed = process_tree(tree)
         result = generate(processed, "js")
-        self.assertEqual(result, "class Foo {\n    constructor(a, b, c) {\n        print(\n        \n        );\n    }\n    foo() {\n    }\n}\n");
+        self.assertEqual(result, "class Foo {\n    constructor(a, b, c) {\n        printt(\n        \n        );\n    }\n    foo() {\n    }\n}\n");
         
     def test_new_instance(self):
         tree = parse_statement("class Foo\nbar = Foo(\n)\n")
@@ -136,6 +136,17 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         self.assertEqual(result, "var foo = bar.baz.biz.buzz(\n\n);\n");
+        
+    def test_imports(self):
+        tree = parse_statement("print(\n    foo\n)\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        self.assertEqual(result, "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
+        self.assertEqual(imports, [{
+            "type": "stdlib",
+            "lang": "js",
+            "library": "common",
+        }])
 
 if __name__ == "__main__":
     unittest.main()

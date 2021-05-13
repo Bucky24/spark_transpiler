@@ -3,6 +3,7 @@ from os import path, mkdir
 import sys
 import subprocess
 import time
+import shutil
 
 from src import generator, grammar, transformer
 
@@ -37,6 +38,15 @@ for file in args.files:
     tree = grammar.parse_statement(contents)
     processed = transformer.process_tree(tree)
     result = generator.generate(processed, "js")
+    
+    code = ""
+    imports = []
+    
+    if type(result) is tuple:
+        code = result[0]
+        imports = result[1]
+    else:
+        code = result
     print("Done")
     sys.stdout.flush()
     time.sleep(0.01)
@@ -47,10 +57,18 @@ for file in args.files:
 
     if not path.exists(cacheDir):
         mkdir(cacheDir)
+        
+    # copy over any required imports
+    for importFile in imports:
+        libPath = path.realpath("./" + importFile["type"] + "/" + importFile["lang"] + "/" + importFile["library"] + "/" + importFile["library"] + "." + importFile["extension"])
+        newLibFile = importFile["type"] + "_" + importFile["lang"] + "_" + importFile["library"] + "." + importFile["extension"]
+        newLibPath = path.realpath(cacheDir + "/" + newLibFile)
+        shutil.copyfile(libPath, newLibPath)
+        
 
     outFile = path.realpath(cacheDir + "/output.js")
     handle = open(outFile, "w")
-    handle.write(result)
+    handle.write(code)
     print("Done")
     sys.stdout.flush()
     time.sleep(0.01)
