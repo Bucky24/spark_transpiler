@@ -25,7 +25,7 @@ def generate_js(transformed_tree):
         {
             "variables_generated": [],
             "spaces": 0,
-            "pervious_spaces": 0,
+            "previous_spaces": 0,
             "is_function_call": False,
             "is_class": False,
         }
@@ -45,7 +45,7 @@ def generate_js(transformed_tree):
         old_block = current_block
         blocks.pop(-1)
         current_block = blocks[-1]
-        code[current_platform] += _add_spaces(spaces)
+        code[current_platform] += _add_spaces(current_block["spaces"])
         #print("ending block", old_block)
         if old_block["is_function_call"]:
             pass
@@ -58,6 +58,7 @@ def generate_js(transformed_tree):
     # and the closing brace is actually at the level of the PREVIOUS block, we need to loop through
     # and on each level, close the previous level.
     def _unwind_blocks():
+        blocks.reverse()
         prev_spaces = None
         #print("next statement", next_statement_starts_block)
         if next_statement_starts_block:
@@ -71,19 +72,25 @@ def generate_js(transformed_tree):
 
         for block in blocks:
             if prev_spaces is not None:
-                # print("here", prev_spaces)
                 code[current_platform] += _add_spaces(block["spaces"])
                 if prev_spaces["is_function_call"]:
                     code[current_platform] += ")\n"
                 else:
                     code[current_platform] += "}\n"
             prev_spaces = block
+
+        # pop all but the last block to reset the stack
+        blocks.reverse()
+        while len(blocks) > 1:
+            blocks.pop()
     
     for statement in transformed_tree:
         if statement["type"] == TYPES["STATEMENT"]:
             spaces = statement["spaces"]
             
             #print('statement is', statement)
+            #print(current_platform)
+            #print(code[current_platform])
 
             current_block = blocks[-1]
 
@@ -118,6 +125,11 @@ def generate_js(transformed_tree):
             result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], classes[current_platform])
             if result:
                 statement_code = result["statement"]
+
+                if result.get("new_platform", None):
+                    # first close all blocks
+                    _unwind_blocks()
+                    current_platform = result.get("new_platform")
                 
                 if statement_code is None:
                     continue
@@ -148,7 +160,6 @@ def generate_js(transformed_tree):
                 print("Error processing statement: no generator output", statement)
         else:
             raise RuntimeError("Unexpected top level statement {}".format(statement.type))
-    blocks.reverse()
 
     # finally unwind all blocks for whatever platform we are currently on
     _unwind_blocks()

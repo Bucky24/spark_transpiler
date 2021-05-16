@@ -51,11 +51,14 @@ for file in args.files:
 
     outFiles = {}
     for platform in code:
-        sys.stdout.write("Generating files... ")
-        sys.stdout.flush()
-
         platform_code = code[platform]
         platform_imports = imports[platform]
+
+        if platform_code == "":
+            continue
+
+        sys.stdout.write("Generating files for {}... ".format(platform))
+        sys.stdout.flush()
         
         cacheDir = path.realpath(script_dir + "/cache")
 

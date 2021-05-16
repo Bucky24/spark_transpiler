@@ -149,5 +149,32 @@ class TestGeneratorJs(unittest.TestCase):
             "library": "common",
         }])
 
+    def test_platforms_and_imports(self):
+        tree = parse_statement("#frontend\nprint(\n    foo\n)\n#backend\nprint(\n    foo\n)\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        print(result, imports)
+        self.assertEqual(result["backend"], "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
+        self.assertEqual(imports["backend"], [{
+            "extension": "js",
+            "type": "stdlib",
+            "lang": "js",
+            "library": "common",
+        }])
+        self.assertEqual(result["frontend"], "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
+        self.assertEqual(imports["frontend"], [{
+            "extension": "js",
+            "type": "stdlib",
+            "lang": "js",
+            "library": "common",
+        }])
+
+    def test_platform_unwind_blocks(self):
+        tree = parse_statement("if foo == bar\n    if bar == baz\n        baz(\n            bin\n        )\n#frontend\nfoo = bar\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "if (foo == bar) {\n    if (bar == baz) {\n        baz(\n            bin,\n        \n        );\n    }\n}\n")
+        self.assertEqual(result["frontend"], "var foo = bar;\n")
+
 if __name__ == "__main__":
     unittest.main()

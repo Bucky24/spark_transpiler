@@ -1,0 +1,7 @@
+print(
+    "foo"
+)
+#frontend
+print(
+    "bar"
+)
