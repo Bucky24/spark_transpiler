@@ -508,5 +508,39 @@ if foo == \"bar\"
             ]),
         ]))
 
+    def test_pragma(self):
+        result = parse_statement("#foobar")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("pragma", [
+                        Token("PRAGMA_NAME", "foobar"),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        result = parse_statement("#  FOOBAR")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("pragma", [
+                        Token("PRAGMA_NAME", "FOOBAR"),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        result = parse_statement("#  FOObar")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("pragma", [
+                        Token("PRAGMA_NAME", "FOObar"),
+                    ]),
+                ]),
+            ]),
+        ]))
+
 if __name__ == "__main__":
     unittest.main()

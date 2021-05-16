@@ -251,5 +251,14 @@ class bar
             }, 0),
         ])
 
+    def test_pragma(self):
+        tree = parse_statement("#FRONTEND")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["PRAGMA"],
+                "pragma": "FRONTEND",
+            }, 0),
+        ])
 if __name__ == "__main__":
     unittest.main()

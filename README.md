@@ -24,13 +24,6 @@ The following operators exist for numeric variables:
 ```
 variable ++
 ```
-
-Variables can also be coerced:
-
-```
-variable2 = variable as String
-```
-
 #### Conditionals
 
 Conditionals are of the format:

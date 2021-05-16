@@ -17,7 +17,10 @@ def _add_spaces(spaces):
     return code
 
 def generate_js(transformed_tree):
-    code = ""
+    code = {
+        "backend": "",
+        "frontend": "",
+    }
     blocks = [
         {
             "variables_generated": [],
@@ -28,23 +31,53 @@ def generate_js(transformed_tree):
         }
     ]
     next_statement_starts_block = False
-    classes = []
-    function_calls = []
-    
-    def _end_block(current_block, code):
+    classes = {
+        "backend": [],
+        "frontend": [],
+    }
+    function_calls = {
+        "backend": [],
+        "frontend": [],
+    }
+    current_platform = "backend"
+    def _end_block(current_block):
         # block ends
         old_block = current_block
         blocks.pop(-1)
         current_block = blocks[-1]
-        code += _add_spaces(spaces)
+        code[current_platform] += _add_spaces(spaces)
         #print("ending block", old_block)
         if old_block["is_function_call"]:
             pass
         else:
-            code += "}"
-        code += "\n"
-        return current_block, code
+            code[current_platform] += "}"
+        code[current_platform] += "\n"
+        return current_block
         
+    # close all the blocks that need to be closed. Because blocks know how much they were indented,
+    # and the closing brace is actually at the level of the PREVIOUS block, we need to loop through
+    # and on each level, close the previous level.
+    def _unwind_blocks():
+        prev_spaces = None
+        #print("next statement", next_statement_starts_block)
+        if next_statement_starts_block:
+            # we will get here when a block was opened but was empty,
+            # and we never had anything inside it, so we need to make up
+            # the block based on what type of statement we were dealing with
+            prev_spaces = {
+                "spaces": 0,
+                "is_function_call": next_statement_starts_block == "function_call",
+            }
+
+        for block in blocks:
+            if prev_spaces is not None:
+                # print("here", prev_spaces)
+                code[current_platform] += _add_spaces(block["spaces"])
+                if prev_spaces["is_function_call"]:
+                    code[current_platform] += ")\n"
+                else:
+                    code[current_platform] += "}\n"
+            prev_spaces = block
     
     for statement in transformed_tree:
         if statement["type"] == TYPES["STATEMENT"]:
@@ -68,7 +101,7 @@ def generate_js(transformed_tree):
                 
                 # now we have to deal with the possibility that we're actually ending the previous block and starting a new one in the same go
                 if current_block["spaces"] == old_block["spaces"]:
-                    current_block, code = _end_block(current_block, code)
+                    current_block = _end_block(current_block)
                     
             current_block = blocks[-1]
 
@@ -80,9 +113,9 @@ def generate_js(transformed_tree):
 
             if current_block["spaces"] > spaces and len(blocks) > 1:
                 #print("ending block 2")
-                current_block, code = _end_block(current_block, code)
+                current_block = _end_block(current_block)
 
-            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], classes)
+            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], classes[current_platform])
             if result:
                 statement_code = result["statement"]
                 
@@ -91,12 +124,12 @@ def generate_js(transformed_tree):
                 
                 current_block["variables_generated"] += result.get("new_variables", [])
 
-                code += _add_spaces(spaces)
-                code += statement_code
+                code[current_platform] += _add_spaces(spaces)
+                code[current_platform] += statement_code
                 start_block = result.get("start_block", False)
                 
-                classes += result.get("new_classes", [])
-                function_calls += result.get("new_function_calls", [])
+                classes[current_platform] += result.get("new_classes", [])
+                function_calls[current_platform] += result.get("new_function_calls", [])
                 
                 #print(statement_code, start_block)
 
@@ -106,70 +139,46 @@ def generate_js(transformed_tree):
                 else:
                     if current_block["is_function_call"]:
                         # we're in the middle of calling a function so we need to separate the params by commas
-                        code += ","
+                        code[current_platform] += ","
                     else:
-                        code += ";"
+                        code[current_platform] += ";"
                 
-                code += "\n"
+                code[current_platform] += "\n"
             else:
                 print("Error processing statement: no generator output", statement)
         else:
             raise RuntimeError("Unexpected top level statement {}".format(statement.type))
     blocks.reverse()
-    # close all the blocks that need to be closed. Because blocks know how much they were indented,
-    # and the closing brace is actually at the level of the PREVIOUS block, we need to loop through
-    # and on each level, close the previous level.
-    
-    prev_spaces = None
-    #print("next statement", next_statement_starts_block)
-    if next_statement_starts_block:
-        # we will get here when a block was opened but was empty,
-        # and we never had anything inside it, so we need to make up
-        # the block based on what type of statement we were dealing with
-        prev_spaces = {
-            "spaces": 0,
-            "is_function_call": next_statement_starts_block == "function_call",
-        }
-        
-    #print("blocks are", blocks)
-    
-    for block in blocks:
-        if prev_spaces is not None:
-            # print("here", prev_spaces)
-            code += _add_spaces(block["spaces"])
-            if prev_spaces["is_function_call"]:
-                code += ")\n"
-            else:
-                code += "}\n"
-        prev_spaces = block
+
+    # finally unwind all blocks for whatever platform we are currently on
+    _unwind_blocks()
 
     # add in the required imports based on what has been called
-    #print(function_calls, classes)
-    
-    required_common = []
-    for function_call in function_calls:
-        if function_call in _COMMON_FUNCS:
-            required_common.append(function_call)
+    requirement_files = {
+        "backend": [],
+        "frontend": [],
+    }
+    for platform in function_calls.keys():
+        required_common = []
+        for function_call in function_calls[platform]:
+            if function_call in _COMMON_FUNCS:
+                required_common.append(function_call)
 
-    requirements = ""
-    requirement_files = []
+        requirements = ""
 
-    if required_common:
-        requirements += "const {\n    " + ",\n    ".join(required_common) + "\n} = require(\"./stdlib_js_common.js\");\n";
-        requirement_files.append({
-            "type": "stdlib",
-            "lang": "js",
-            "library": "common",
-            "extension": "js",
-        })
+        if required_common:
+            requirements += "const {\n    " + ",\n    ".join(required_common) + "\n} = require(\"./stdlib_js_common.js\");\n";
+            requirement_files[platform].append({
+                "type": "stdlib",
+                "lang": "js",
+                "library": "common",
+                "extension": "js",
+            })
 
-    if requirements != "":
-        code = requirements + "\n" + code
+        if requirements != "":
+            code[platform] = requirements + "\n" + code[platform]
 
-    if requirement_files:
-        return code, requirement_files
-
-    return code
+    return code, requirement_files
 
 def process_statement(statement, variables_generated, spaces, is_class, classes):
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
@@ -309,4 +318,9 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
     elif statement["type"] == TYPES["VARIABLE_CHAIN"]:
         return {
             "statement": ".".join(statement["chain"]),
+        }
+    elif statement["type"] == TYPES["PRAGMA"]:
+        return {
+            "statement": None,
+            "new_platform": statement["pragma"].lower(),
         }

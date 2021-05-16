@@ -20,6 +20,7 @@ TYPES = {
     "CLASS": "types/class",
     "VARIABLE_CHAIN": "types/variable_chain",
     "CONDITION": "types/condition",
+    "PRAGMA": "types/pragma"
 }
 
 class SparkTransformer(Transformer):
@@ -204,6 +205,15 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["VARIABLE_CHAIN"],
             "chain": variables,
+        }
+
+    def PRAGMA_NAME(self, value):
+        return str(value)
+
+    def pragma(self, values):
+        return {
+            "type": TYPES["PRAGMA"],
+            "pragma": values[0],
         }
             
 

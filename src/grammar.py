@@ -38,10 +38,13 @@ function_definition: "function" function_name? " "* "(" first_param? param* " "*
 call_function: variable " "* "("
 end_call_function: ")"
 
+PRAGMA_NAME: ("a".."z" | "A".."Z")+
+pragma: "#" " "* PRAGMA_NAME
+
 SPACE: " "
 spaces: SPACE
 statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function)
-statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function)
+statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function) | pragma
 NEWLINE: "\\n"
 """
 
