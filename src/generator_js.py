@@ -184,9 +184,11 @@ def generate_js(transformed_tree):
                 "lang": "js",
                 "library": "common",
                 "extension": "js",
+                "category": platform,
             })
 
-        if requirements != "":
+        # frontend imports are handled later on
+        if requirements != "" and platform == "backend":
             code[platform] = requirements + "\n" + code[platform]
 
     return code, requirement_files

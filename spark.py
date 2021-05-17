@@ -1,12 +1,13 @@
 import argparse
-from os import path, mkdir
+from os import path, mkdir, remove
 import sys
 import subprocess
 import time
 import shutil
+import glob
 
 script_dir = path.dirname(path.realpath(__file__))
-
+cacheDir = path.realpath(script_dir + "/cache")
 
 from src import generator, grammar, transformer
 
@@ -15,6 +16,40 @@ parser.add_argument('files', metavar='File', type=str, nargs='+', help='A file t
 
 args = parser.parse_args()
 
+def _get_library(libType, lang, category, library, extension):
+    libPath = path.realpath(script_dir + "/" + libType + "/" + lang + "/" + category + "/" + library + "." + extension)
+    handle = open(libPath)
+    contents = handle.read()
+    handle.close()
+    return contents
+
+def _get_new_lib_path(libType, lang, category, library, extension):
+    newLibFile = libType + "_" + lang + "_" + category + "_" + library + "." + extension
+    newLibPath = path.realpath(cacheDir + "/" + newLibFile)
+    return newLibPath
+
+def _write_library(libType, lang, category, library, extension, contents):
+    newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
+    handle = open(newLibPath, "w")
+    contents = handle.write(contents)
+    handle.close()
+    return newLibPath
+
+def _copy_library(libType, lang, category, library, extension):
+    libPath = path.realpath(script_dir + "/" + libType + "/" + lang + "/" + category + "/" + library + "." + extension)
+    newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
+    shutil.copyfile(libPath, newLibPath)
+
+lang = "js"
+
+if not path.exists(cacheDir):
+    mkdir(cacheDir)
+
+files = glob.glob(path.realpath(cacheDir + "/*"))
+for f in files:
+    remove(f)
+
+# right now we're assuming we only have 1 file
 for file in args.files:
     fullPath = path.realpath(file)
     if not path.exists(fullPath):
@@ -40,7 +75,7 @@ for file in args.files:
     
     tree = grammar.parse_statement(contents)
     processed = transformer.process_tree(tree)
-    result = generator.generate(processed, "js")
+    result = generator.generate(processed, lang)
     
     code = result[0]
     imports = result[1]
@@ -59,19 +94,17 @@ for file in args.files:
 
         sys.stdout.write("Generating files for {}... ".format(platform))
         sys.stdout.flush()
-        
-        cacheDir = path.realpath(script_dir + "/cache")
-
-        if not path.exists(cacheDir):
-            mkdir(cacheDir)
             
         # copy over any required imports
         for importFile in platform_imports:
-            libPath = path.realpath(script_dir + "/" + importFile["type"] + "/" + importFile["lang"] + "/" + importFile["library"] + "/" + importFile["library"] + "." + importFile["extension"])
-            newLibFile = importFile["type"] + "_" + importFile["lang"] + "_" + importFile["library"] + "." + importFile["extension"]
-            newLibPath = path.realpath(cacheDir + "/" + newLibFile)
-            shutil.copyfile(libPath, newLibPath)
-            
+            _copy_library(
+                importFile["type"],
+                importFile["lang"],
+                importFile["category"],
+                importFile["library"],
+                importFile["extension"],
+            )
+        
         outFile = path.realpath(cacheDir + "/output_{}.js".format(platform))
         handle = open(outFile, "w")
         handle.write(platform_code)
@@ -79,5 +112,77 @@ for file in args.files:
         sys.stdout.flush()
         time.sleep(0.01)
         outFiles[platform] = outFile
+
+    # this all needs to be moved to a utility method so we can unit test it
+    if outFiles.get("frontend", None):
+        # if we have ANY frontend code, our backend needs to contain the initial setup code to display said frontend
+        app_contents = _get_library(
+            "stdlib",
+            lang,
+            "backend",
+            "webapp",
+            "tmpl.js",
+        )
+
+        # TODO: Also import the backend common code (in a separate section of the template)
+
+        frontend_imports = []
+
+        # first, load up all the frontend imports. These should have already been copied over by the previous step
+        for platform_import in imports["frontend"]:
+            lib_path = _get_new_lib_path(
+                platform_import["type"],
+                platform_import["lang"],
+                platform_import["category"],
+                platform_import["library"],
+                platform_import["extension"],
+            )
+            frontend_imports.append(lib_path)
+
+        frontend_imports.append(outFiles["frontend"])
+
+        import_code_list = []
+        for import_file in frontend_imports:
+            filename = path.basename(import_file)
+            import_code_list.append("\t\"{}\": \"{}\",".format(filename, import_file.replace("\\", "\\\\")))
+
+        import_string = "\n".join(import_code_list)
+
+        final_content = app_contents.replace("//<FRONTEND_IMPORTS>", import_string)
+        file_path = _write_library(
+            "stdlib",
+            lang,
+            "backend",
+            "webapp",
+            "js",
+            final_content,
+        )
+        outFiles["backend"] = file_path
+
+        # then we need to generate the frontend index template
+
+        index_contents = _get_library(
+            "stdlib",
+            lang,
+            "frontend",
+            "index",
+            "tmpl.html",
+        )
+
+        scripts = []
+
+        for import_file in frontend_imports:
+            filename = path.basename(import_file)
+            scripts.append("<script src=\"" + filename + "\"></script>")
+
+        final_index_content = index_contents.replace("<!-- FRONTEND_SCRIPTS -->", format("\n".join(scripts)))
+        _write_library(
+            "stdlib",
+            lang,
+            "frontend",
+            "index",
+            "html",
+            final_index_content,
+        )
 
     print(">>>{}".format(outFiles["backend"]))

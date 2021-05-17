@@ -36,6 +36,11 @@ function executeFile(file) {
             process.stdout.write(str);
         });
 
+        proc.stderr.on("data", (data) => {
+            const str = data.toString();
+            process.stderr.write(str);
+        })
+
         proc.on('close', () => {
             resolve();
         });
