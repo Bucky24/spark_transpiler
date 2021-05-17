@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo node $(dirname $0)/spark.js $@
+node $(dirname $0)/spark.js $@
