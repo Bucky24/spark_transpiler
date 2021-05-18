@@ -175,6 +175,21 @@ class TestGeneratorJs(unittest.TestCase):
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "if (foo == bar) {\n    if (bar == baz) {\n        baz(\n            bin,\n        \n        );\n    }\n}\n")
         self.assertEqual(result["frontend"], "var foo = bar;\n")
+        
+    def test_platform_class_imports(self):
+        tree = parse_statement("#frontend\nfoo = Component(\n\t\"div\"\n)\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        self.assertEqual(result["frontend"], "var foo = new Component(\n    \"div\",\n\n);\n")
+        self.assertEqual(imports["frontend"], [
+            {
+                "lang": "js",
+                "category": "frontend",
+                "type": "stdlib",
+                "extension": "js",
+                "library": "frontend",
+            },
+        ])
 
 if __name__ == "__main__":
     unittest.main()

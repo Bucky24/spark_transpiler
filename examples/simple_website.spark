@@ -2,3 +2,7 @@
 app = Component(
 	"div"
 )
+
+render(
+	app
+)

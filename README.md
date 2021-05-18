@@ -119,3 +119,13 @@ inst_of_class2.inst_of_class1.hello()
 ```
 
 This code prints "hello"
+
+### Standard Library
+
+#### Common
+
+These methods are available to both backend and frontend:
+
+| Method | Description | Signature |
+| --- | --- | --- |
+| print | Prints text to the console | Can take in any number of params. Params must be castable to a string |

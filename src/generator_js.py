@@ -6,6 +6,14 @@ _COMMON_FUNCS = [
     "print",
 ]
 
+_FRONTEND_CLASSES = [
+    "Component",
+]
+
+_FRONTEND_FUNCS = [
+    "render",
+]
+
 def _add_spaces(spaces):
     code = ""
     # I hate for loops in Python
@@ -36,6 +44,10 @@ def generate_js(transformed_tree):
         "frontend": [],
     }
     function_calls = {
+        "backend": [],
+        "frontend": [],
+    }
+    class_calls = {
         "backend": [],
         "frontend": [],
     }
@@ -121,8 +133,10 @@ def generate_js(transformed_tree):
             if current_block["spaces"] > spaces and len(blocks) > 1:
                 #print("ending block 2")
                 current_block = _end_block(current_block)
+                
+            all_classes = _FRONTEND_CLASSES + classes[current_platform]
 
-            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], classes[current_platform])
+            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], all_classes)
             if result:
                 statement_code = result["statement"]
 
@@ -142,6 +156,7 @@ def generate_js(transformed_tree):
                 
                 classes[current_platform] += result.get("new_classes", [])
                 function_calls[current_platform] += result.get("new_function_calls", [])
+                class_calls[current_platform] += result.get("new_class_calls", [])
                 
                 #print(statement_code, start_block)
 
@@ -171,9 +186,17 @@ def generate_js(transformed_tree):
     }
     for platform in function_calls.keys():
         required_common = []
+        required_frontend = []
+        # figure out what libraries we need to load based on what we called
         for function_call in function_calls[platform]:
             if function_call in _COMMON_FUNCS:
                 required_common.append(function_call)
+            elif function_call in _FRONTEND_FUNCS:
+                required_frontend.append(function_call)
+
+        for class_call in class_calls[platform]:
+            if class_call in _FRONTEND_CLASSES:
+                required_frontend.append(class_call)
 
         requirements = ""
 
@@ -183,6 +206,16 @@ def generate_js(transformed_tree):
                 "type": "stdlib",
                 "lang": "js",
                 "library": "common",
+                "extension": "js",
+                "category": platform,
+            })
+            
+        if required_frontend:
+            requirements += "const {\n    " + ",\n    ".join(required_frontend) + "\n} = require(\"./stdlib_js_common.js\");\n";
+            requirement_files[platform].append({
+                "type": "stdlib",
+                "lang": "js",
+                "library": "frontend",
                 "extension": "js",
                 "category": platform,
             })
@@ -211,6 +244,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
                 "statement": "{} = {}".format(statement["name"], str_value),
                 "start_block": start_block,
                 "new_function_calls": value.get("new_function_calls", []), 
+                "new_class_calls": value.get("new_class_calls", []), 
             }
         else:
             return {
@@ -218,6 +252,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
                 "new_variables": [statement["name"]],
                 "start_block": start_block,
                 "new_function_calls": value.get("new_function_calls", []), 
+                "new_class_calls": value.get("new_class_calls", []), 
             }
     elif statement["type"] == TYPES["INCREMENT"]:
         return {
@@ -304,6 +339,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
             return {
                 "statement": "new {}(".format(name),
                 "start_block": "function_call",
+                "new_class_calls": [name],
             }
         return {
             "statement": "{}(".format(name),
