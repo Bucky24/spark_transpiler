@@ -36,6 +36,7 @@ def generate_js(transformed_tree):
             "previous_spaces": 0,
             "is_function_call": False,
             "is_class": False,
+            "is_array": False,
         }
     ]
     next_statement_starts_block = False
@@ -59,7 +60,7 @@ def generate_js(transformed_tree):
         current_block = blocks[-1]
         code[current_platform] += _add_spaces(current_block["spaces"])
         #print("ending block", old_block)
-        if old_block["is_function_call"]:
+        if old_block["is_function_call"] or old_block["is_array"]:
             pass
         else:
             code[current_platform] += "}"
@@ -80,6 +81,7 @@ def generate_js(transformed_tree):
             prev_spaces = {
                 "spaces": 0,
                 "is_function_call": next_statement_starts_block == "function_call",
+                "is_array": next_statement_starts_block == "array",
             }
 
         for block in blocks:
@@ -114,6 +116,7 @@ def generate_js(transformed_tree):
                     "is_function_call": next_statement_starts_block == "function_call",
                     "previous_spaces": old_block["spaces"],
                     "is_class": next_statement_starts_block == "class",
+                    "is_array": next_statement_starts_block == "array",
                 })
                 current_block = blocks[-1]
                 next_statement_starts_block = False
@@ -164,8 +167,8 @@ def generate_js(transformed_tree):
                     # print("starts block?", start_block)
                     next_statement_starts_block = start_block
                 else:
-                    if current_block["is_function_call"]:
-                        # we're in the middle of calling a function so we need to separate the params by commas
+                    if current_block["is_function_call"] or current_block["is_array"]:
+                        # we're in the middle of something that takes multiple params so we need to separate the params by commas
                         code[current_platform] += ","
                     else:
                         code[current_platform] += ";"
@@ -372,4 +375,13 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
         return {
             "statement": None,
             "new_platform": statement["pragma"].lower(),
+        }
+    elif statement["type"] == TYPES["ARRAY"]:
+        return {
+            "statement": "[",
+            "start_block": "array",
+        }
+    elif statement["type"] == TYPES["ARRAY_END"]:
+        return {
+            "statement": "]",
         }

@@ -41,11 +41,14 @@ end_call_function: ")"
 PRAGMA_NAME: ("a".."z" | "A".."Z")+
 pragma: "#" " "* PRAGMA_NAME
 
+array_start: "["
+array_end: "]"
+
 SPACE: " "
 TAB: "\\t"
 spaces: SPACE | TAB
 statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function)
-statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function) | pragma
+statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | pragma | array_start | array_end)
 NEWLINE: "\\n"
 """
 

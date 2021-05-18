@@ -120,6 +120,19 @@ inst_of_class2.inst_of_class1.hello()
 
 This code prints "hello"
 
+#### Arrays
+
+Arrays can be defined in the following way:
+```
+foo = [
+    "bar"
+	baz
+	[
+	    "foo"
+	]
+]
+```
+
 ### Standard Library
 
 #### Common

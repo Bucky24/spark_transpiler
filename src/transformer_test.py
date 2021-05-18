@@ -282,5 +282,23 @@ class bar
             }, 4),
         ])
         
+    def test_arrays(self):
+        tree = parse_statement("foo = [\n\t'bar'\n\t'baz'\n]\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement({
+                    "type": TYPES["ARRAY"],
+                }, 0),
+            }, 0),
+            statement("\"bar\"", 4),
+            statement("\"baz\"", 4),
+            statement({
+                "type": TYPES["ARRAY_END"],
+            }, 0),
+        ])
+        
 if __name__ == "__main__":
     unittest.main()

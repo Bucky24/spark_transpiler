@@ -190,6 +190,12 @@ class TestGeneratorJs(unittest.TestCase):
                 "library": "frontend",
             },
         ])
+    
+    def test_arrays(self):
+        tree = parse_statement("foo = [\n\t'bar'\n\t'baz'\n]\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "var foo = [\n    \"bar\",\n    \"baz\",\n\n];\n")
 
 if __name__ == "__main__":
     unittest.main()

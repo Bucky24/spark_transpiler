@@ -582,6 +582,36 @@ if foo == \"bar\"
                 Token("NEWLINE", "\n"),
             ]),
         ]))
+        
+    def test_arrays(self):
+        result = parse_statement("foo = [\n\t'bar'\n\t'baz'\n]\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("array_start", []),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("string", [Token("STRING_CONTENTS_SINGLE", "bar")])
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("string", [Token("STRING_CONTENTS_SINGLE", "baz")])
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("array_end", []),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
 
 if __name__ == "__main__":
     unittest.main()

@@ -22,6 +22,8 @@ TYPES = {
     "CONDITION": "types/condition",
     "PRAGMA": "types/pragma",
     "TAB": "types/tab",
+    "ARRAY": "types/array",
+    "ARRAY_END": "types/array_end",
 }
 
 class SparkTransformer(Transformer):
@@ -221,7 +223,16 @@ class SparkTransformer(Transformer):
             "type": TYPES["PRAGMA"],
             "pragma": values[0],
         }
-            
+        
+    def array_start(self, _):
+        return {
+            "type": TYPES["ARRAY"],
+        }
+        
+    def array_end(self, _):
+        return {
+            "type": TYPES["ARRAY_END"],
+        }     
 
 _spark_transformer = SparkTransformer()
 
