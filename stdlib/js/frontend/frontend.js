@@ -10,7 +10,7 @@ class Component {
 		if (this.children) {
 			for (const child of this.children) {
 				if (typeof child == "string") {
-					elem.appendChild(child);
+					elem.innerHTML += child;
 				}
 			}
 		}

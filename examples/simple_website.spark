@@ -1,6 +1,9 @@
 #frontend
 app = Component(
 	"div"
+	[
+		"foo"
+	]
 )
 
 render(
