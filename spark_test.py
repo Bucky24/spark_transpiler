@@ -58,6 +58,6 @@ class TestGenerateCode(unittest.TestCase):
             "library": "common",
             "type": "stdlib",
         }])
-        
+
 if __name__ == "__main__":
     unittest.main()

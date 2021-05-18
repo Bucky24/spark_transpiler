@@ -260,5 +260,27 @@ class bar
                 "pragma": "FRONTEND",
             }, 0),
         ])
+        
+    def test_tabs_and_spaces(self):
+        tree = parse_statement("foo = bar\n    foo = bar\n\tfoo = bar\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement("bar", 0),
+            }, 0),
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement("bar", 0),
+            }, 4),
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement("bar", 0),
+            }, 4),
+        ])
+        
 if __name__ == "__main__":
     unittest.main()

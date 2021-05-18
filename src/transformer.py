@@ -20,7 +20,8 @@ TYPES = {
     "CLASS": "types/class",
     "VARIABLE_CHAIN": "types/variable_chain",
     "CONDITION": "types/condition",
-    "PRAGMA": "types/pragma"
+    "PRAGMA": "types/pragma",
+    "TAB": "types/tab",
 }
 
 class SparkTransformer(Transformer):
@@ -30,6 +31,8 @@ class SparkTransformer(Transformer):
         for token in tokens:
             if token == TYPES["SPACE"]:
                 spaces += 1
+            elif token == TYPES["TAB"]:
+                spaces += 4
 
         return {
             "type": TYPES["STATEMENT"],
@@ -91,6 +94,9 @@ class SparkTransformer(Transformer):
 
     def spaces(self, value):
         return value[0]
+        
+    def TAB(self, _):
+        return TYPES["TAB"]
 
     def EQUALITY(self, value): 
         return str(value)

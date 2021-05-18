@@ -541,6 +541,47 @@ if foo == \"bar\"
                 ]),
             ]),
         ]))
+        
+    def test_tabs_and_spaces(self):
+        result = parse_statement("foo = bar\n    foo = bar\n\tfoo = bar\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("spaces", [Token("SPACE", " ")]),
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [
+                        Token("TAB", "\t"),
+                    ]),
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
 
 if __name__ == "__main__":
     unittest.main()

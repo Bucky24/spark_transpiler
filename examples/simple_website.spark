@@ -1,4 +1,4 @@
 #frontend
-print(
-    "foo"
+app = Component(
+	"div"
 )
