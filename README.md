@@ -125,10 +125,10 @@ This code prints "hello"
 Arrays can be defined in the following way:
 ```
 foo = [
-    "bar"
+	"bar"
 	baz
 	[
-	    "foo"
+		"foo"
 	]
 ]
 ```
