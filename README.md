@@ -106,8 +106,8 @@ Chaining instances is done as normal:
 class Class1
     function hello()
         print(
-			"hello"
-		)
+            "hello"
+        )
 
 class Class2
     function constructor()
@@ -125,11 +125,11 @@ This code prints "hello"
 Arrays can be defined in the following way:
 ```
 foo = [
-	"bar"
-	baz
-	[
-		"foo"
-	]
+    "bar"
+    baz
+    [
+        "foo"
+    ]
 ]
 ```
 
