@@ -37,6 +37,7 @@ def generate_js(transformed_tree):
             "is_function_call": False,
             "is_class": False,
             "is_array": False,
+            "is_map": False,
         }
     ]
     next_statement_starts_block = False
@@ -82,6 +83,7 @@ def generate_js(transformed_tree):
                 "spaces": 0,
                 "is_function_call": next_statement_starts_block == "function_call",
                 "is_array": next_statement_starts_block == "array",
+                "is_map": next_statement_starts_block == "map",
             }
 
         for block in blocks:
@@ -117,6 +119,7 @@ def generate_js(transformed_tree):
                     "previous_spaces": old_block["spaces"],
                     "is_class": next_statement_starts_block == "class",
                     "is_array": next_statement_starts_block == "array",
+                    "is_map": next_statement_starts_block == "map",
                 })
                 current_block = blocks[-1]
                 next_statement_starts_block = False
@@ -167,7 +170,7 @@ def generate_js(transformed_tree):
                     # print("starts block?", start_block)
                     next_statement_starts_block = start_block
                 else:
-                    if current_block["is_function_call"] or current_block["is_array"]:
+                    if current_block["is_function_call"] or current_block["is_array"] or current_block["is_map"]:
                         # we're in the middle of something that takes multiple params so we need to separate the params by commas
                         code[current_platform] += ","
                     else:
@@ -240,6 +243,9 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
     elif statement["type"] == TYPES["VARIABLE_ASSIGNMENT"]:
         #print("processing ", statement["value"])
         value = process_statement(statement["value"], variables_generated, spaces, is_class, classes)
+        # if we got nothing good from our recursive process, just give up on this line
+        if value is None:
+            return None
         str_value = value["statement"]
         start_block = value.get("start_block", None)
         if statement["name"] in variables_generated:
@@ -384,4 +390,23 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
     elif statement["type"] == TYPES["ARRAY_END"]:
         return {
             "statement": "]",
+        }
+    elif statement["type"] == TYPES["MAP"]:
+        return {
+            "statement": "{",
+            "start_block": "map",
+        }
+    elif statement["type"] == TYPES["MAP_END"]:
+        return {
+            # default is to close a block with } anyway which will be fine here
+            "statement": None,
+        }
+    elif statement["type"] == TYPES["MAP_ROW"]:
+        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes)
+        
+        return {
+            "statement": "\"{}\": {}".format(statement["key"], value["statement"]),
+            "start_block": value.get("start_block", None),
+            "new_function_calls": value.get("new_function_calls", []), 
+            "new_class_calls": value.get("new_class_calls", []),
         }

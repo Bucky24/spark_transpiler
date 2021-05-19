@@ -300,5 +300,26 @@ class bar
             }, 0),
         ])
         
+    def test_maps(self):
+        tree = parse_statement("foo = {\n\tabcd: 'foo'\n}\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement({
+                    "type": TYPES["MAP"],
+                }, 0),
+            }, 0),
+            statement({
+                "type": TYPES["MAP_ROW"],
+                "key": "abcd",
+                "value": statement("\"foo\"", 0),
+            }, 4),
+            statement({
+                "type": TYPES["MAP_END"],
+            }, 0),
+        ])
+        
 if __name__ == "__main__":
     unittest.main()

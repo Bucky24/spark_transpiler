@@ -133,6 +133,15 @@ foo = [
 ]
 ```
 
+#### Maps
+
+Maps can be defined in the following way:
+```
+foo = {
+	key: "value"
+}
+```
+
 ### Standard Library
 
 #### Common

@@ -147,26 +147,28 @@ class TestGeneratorJs(unittest.TestCase):
             "type": "stdlib",
             "lang": "js",
             "library": "common",
+            "category": "backend",
         }])
 
     def test_platforms_and_imports(self):
         tree = parse_statement("#frontend\nprint(\n    foo\n)\n#backend\nprint(\n    foo\n)\n")
         processed = process_tree(tree)
         result, imports = generate(processed, "js")
-        print(result, imports)
         self.assertEqual(result["backend"], "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
         self.assertEqual(imports["backend"], [{
+            "category": "backend",
             "extension": "js",
             "type": "stdlib",
             "lang": "js",
             "library": "common",
         }])
-        self.assertEqual(result["frontend"], "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
+        self.assertEqual(result["frontend"], "print(\n    foo,\n\n);\n");
         self.assertEqual(imports["frontend"], [{
             "extension": "js",
             "type": "stdlib",
             "lang": "js",
             "library": "common",
+            "category": "frontend",
         }])
 
     def test_platform_unwind_blocks(self):
@@ -196,6 +198,18 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "var foo = [\n    \"bar\",\n    \"baz\",\n\n];\n")
+        
+    def test_maps(self):
+        tree = parse_statement("foo = {\n\tabcd: 'foo'\n}\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "var foo = {\n    \"abcd\": \"foo\",\n}\n")
+        
+    def test_nested_map_array(self):
+        tree = parse_statement("foo = {\n\t[\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "var foo = {\n    [\n        {\n            \"foo\": \"bar\",\n        }\n    \n    ],\n}\n")
 
 if __name__ == "__main__":
     unittest.main()

@@ -612,6 +612,94 @@ if foo == \"bar\"
                 Token("NEWLINE", "\n"),
             ]),
         ]))
+        
+    def test_maps(self):
+        result = parse_statement("foo = {\n\tabcd: 'foo'\n}\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("map_start", [])
+                        ])
+                    ])
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("map_row", [
+                        Token("VARIABLE_NAME", "abcd"),
+                        Tree("statement_no_space", [
+                            Tree("string", [
+                                Token("STRING_CONTENTS_SINGLE", "foo"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("map_end", []),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
+        
+    def test_nested_map_array(self):
+        result = parse_statement("foo = {\n\t[\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("map_start", [])
+                        ])
+                    ])
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("array_start", []),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("map_start", []),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("map_row", [
+                        Token("VARIABLE_NAME", "foo"),
+                        Tree("statement_no_space", [
+                            Tree("string", [
+                                Token("STRING_CONTENTS_SINGLE", "bar"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("map_end", []),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("array_end", []),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("map_end", []),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,6 +24,9 @@ TYPES = {
     "TAB": "types/tab",
     "ARRAY": "types/array",
     "ARRAY_END": "types/array_end",
+    "MAP": "types/map_start",
+    "MAP_END": "types/map_end",
+    "MAP_ROW": "types/map_row",
 }
 
 class SparkTransformer(Transformer):
@@ -232,7 +235,24 @@ class SparkTransformer(Transformer):
     def array_end(self, _):
         return {
             "type": TYPES["ARRAY_END"],
-        }     
+        }    
+        
+    def map_start(self, _):
+        return {
+            "type": TYPES["MAP"],
+        }
+        
+    def map_row(self, values):
+        return {
+            "type": TYPES["MAP_ROW"],
+            "key": values[0],
+            "value": values[1],
+        }
+        
+    def map_end(self, _):
+        return {
+            "type": TYPES["MAP_END"],
+        }
 
 _spark_transformer = SparkTransformer()
 
