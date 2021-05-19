@@ -1,6 +1,17 @@
 #frontend
+
+style = Style(
+	{
+		backgroundColor: "#00f"
+		color: "#fff"
+	}
+)
+
 app = Component(
 	"div"
+	{
+		style: style
+	}
 	[
 		"foo"
 	]

@@ -8,6 +8,7 @@ _COMMON_FUNCS = [
 
 _FRONTEND_CLASSES = [
     "Component",
+    "Style",
 ]
 
 _FRONTEND_FUNCS = [
@@ -61,7 +62,7 @@ def generate_js(transformed_tree):
         current_block = blocks[-1]
         code[current_platform] += _add_spaces(current_block["spaces"])
         #print("ending block", old_block)
-        if old_block["is_function_call"] or old_block["is_array"]:
+        if old_block["is_function_call"] or old_block["is_array"] or old_block["is_map"]:
             pass
         else:
             code[current_platform] += "}"
@@ -104,13 +105,14 @@ def generate_js(transformed_tree):
         if statement["type"] == TYPES["STATEMENT"]:
             spaces = statement["spaces"]
             
-            #print('statement is', statement)
+            print('statement is', statement)
             #print(current_platform)
             #print(code[current_platform])
 
             current_block = blocks[-1]
 
             if next_statement_starts_block:
+                print("starting a new block!")
                 old_block = current_block
                 blocks.append({
                     "variables_generated": [],
@@ -164,7 +166,7 @@ def generate_js(transformed_tree):
                 function_calls[current_platform] += result.get("new_function_calls", [])
                 class_calls[current_platform] += result.get("new_class_calls", [])
                 
-                #print(statement_code, start_block)
+                print(statement_code, start_block)
 
                 if start_block:
                     # print("starts block?", start_block)
@@ -398,8 +400,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes)
         }
     elif statement["type"] == TYPES["MAP_END"]:
         return {
-            # default is to close a block with } anyway which will be fine here
-            "statement": None,
+            "statement": "}",
         }
     elif statement["type"] == TYPES["MAP_ROW"]:
         value = process_statement(statement["value"], variables_generated, spaces, is_class, classes)

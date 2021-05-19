@@ -210,6 +210,12 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "var foo = {\n    [\n        {\n            \"foo\": \"bar\",\n        }\n    \n    ],\n}\n")
+        
+    def test_function_call_with_maps_and_arrays(self):
+        tree = parse_statement("foo(\n\t{\n\t\tbar: baz\n\t}\n\t[\n\t\tbaz\n\t]\n)\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "foo(\n    {\n        \"bar\": baz,\n    \n    },\n    [\n        baz,\n    \n    ],\n\n);\n")
 
 if __name__ == "__main__":
     unittest.main()

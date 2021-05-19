@@ -1,14 +1,20 @@
-## Spark Transpiler
+# Spark Transpiler
 
-### Language Details
+## What is it?
 
-#### Variables
+This project defines a language, Spark, that is meant to be a very simple to use language, but also flexible. Somewhat of a combination between Python and JavaScript, with a powerful and extensive standard library.
+
+I created this project to serve as a rapid prototyping language and system, so that I can try out ideas quickly without needing to setup a lot of boilerplate. To that end, it will eventually have a very powerful and extensive standard library, geared towards rapid prototyping of web apps.
+
+## Language Details
+
+### Variables
 
 Variables are typeless, and can be defined like so:
 
 ```
-variable_name = <value or variable>
-variable_name += <value or variable>
+variable_name = <statement>
+variable_name += <statement>
 ```
 
 The following types of variables exist:
@@ -24,7 +30,7 @@ The following operators exist for numeric variables:
 ```
 variable ++
 ```
-#### Conditionals
+### Conditionals
 
 Conditionals are of the format:
 
@@ -35,7 +41,7 @@ if <statement> <condition> <statement>
 
 Where a condition can be one of `>`, `<`, `=>`, `=<`, `==`, `!=`
 
-#### Loops
+### Loops
 
 A loop can have the following formats:
 
@@ -53,7 +59,7 @@ while <statement> <condition> <statement>
     <statements>
 ```
 
-#### Functions
+### Functions
 
 Function must be defined with the `function` keyword:
 
@@ -79,7 +85,7 @@ bar(
 )
 ```
 
-#### Classes
+### Classes
 
 Can extend other classes. Can contain functions inside them.
 Special function `constructor` for creating new instances.
@@ -120,7 +126,7 @@ inst_of_class2.inst_of_class1.hello()
 
 This code prints "hello"
 
-#### Arrays
+### Arrays
 
 Arrays can be defined in the following way:
 ```
@@ -133,7 +139,7 @@ foo = [
 ]
 ```
 
-#### Maps
+### Maps
 
 Maps can be defined in the following way:
 ```
@@ -142,9 +148,9 @@ foo = {
 }
 ```
 
-### Standard Library
+## Standard Library
 
-#### Common
+### Common
 
 These methods are available to both backend and frontend:
 
@@ -152,7 +158,7 @@ These methods are available to both backend and frontend:
 | --- | --- | --- |
 | print | Prints text to the console | Can take in any number of params. Params must be castable to a string |
 
-#### Frontend
+### Frontend
 
 These methods are available to the frontend code:
 
@@ -160,18 +166,19 @@ These methods are available to the frontend code:
 | --- | --- | --- |
 | render | Renders a Component to the page | Takes in a single instance of a Component |
 
-##### Component class
+#### Component class
 
 The Component class represents a component and its children, and can be rendered to the page.
 
 The following methods are available:
 
-###### Constructor
+##### Constructor
 
 Signature:
 ```
 new Component(
     tag
+	attributes
     children
 )
 ```
@@ -179,4 +186,18 @@ new Component(
 | Param | Type | Description |
 | --- | --- | --- |
 | tag | string | The tag to render |
+| attributes | map | Attributes to attach to the element |
 | children | array of strings | Children to render in the component |
+
+##### Style
+
+The style object allows encoding of CSS and attaching it to a component
+
+Signature:
+```
+new Style(
+	{
+		color: "#fff"
+	}
+)
+```
