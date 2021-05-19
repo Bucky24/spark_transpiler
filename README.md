@@ -151,3 +151,32 @@ These methods are available to both backend and frontend:
 | Method | Description | Signature |
 | --- | --- | --- |
 | print | Prints text to the console | Can take in any number of params. Params must be castable to a string |
+
+#### Frontend
+
+These methods are available to the frontend code:
+
+| Method | Description | Signature |
+| --- | --- | --- |
+| render | Renders a Component to the page | Takes in a single instance of a Component |
+
+##### Component class
+
+The Component class represents a component and its children, and can be rendered to the page.
+
+The following methods are available:
+
+###### Constructor
+
+Signature:
+```
+new Component(
+    tag
+    children
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| tag | string | The tag to render |
+| children | array of strings | Children to render in the component |
