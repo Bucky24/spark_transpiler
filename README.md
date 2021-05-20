@@ -187,17 +187,19 @@ new Component(
 | --- | --- | --- |
 | tag | string | The tag to render |
 | attributes | map | Attributes to attach to the element |
-| children | array of strings | Children to render in the component |
+| children | array of strings | Children to render in the component. Can be strings, or other Components |
 
-##### Style
+#### Style
 
 The style object allows encoding of CSS and attaching it to a component
+
+##### Constructor
 
 Signature:
 ```
 new Style(
-	{
-		color: "#fff"
-	}
+    {
+        color: "#fff"
+    }
 )
 ```

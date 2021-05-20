@@ -3,8 +3,25 @@
 style = Style(
 	{
 		backgroundColor: "#00f"
-		color: "#fff"
+		padding: "10px"
 	}
+)
+
+styletwo = Style(
+	{
+		backgroundColor: "#0f0"
+		padding: "9px"
+	}
+)
+
+content = Component(
+	"div"
+	{
+		style: styletwo
+	}
+	[
+		"foo"
+	]
 )
 
 app = Component(
@@ -13,7 +30,7 @@ app = Component(
 		style: style
 	}
 	[
-		"foo"
+		content
 	]
 )
 

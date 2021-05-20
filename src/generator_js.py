@@ -105,14 +105,13 @@ def generate_js(transformed_tree):
         if statement["type"] == TYPES["STATEMENT"]:
             spaces = statement["spaces"]
             
-            print('statement is', statement)
+            #print('statement is', statement)
             #print(current_platform)
             #print(code[current_platform])
 
             current_block = blocks[-1]
 
             if next_statement_starts_block:
-                print("starting a new block!")
                 old_block = current_block
                 blocks.append({
                     "variables_generated": [],
@@ -165,8 +164,6 @@ def generate_js(transformed_tree):
                 classes[current_platform] += result.get("new_classes", [])
                 function_calls[current_platform] += result.get("new_function_calls", [])
                 class_calls[current_platform] += result.get("new_class_calls", [])
-                
-                print(statement_code, start_block)
 
                 if start_block:
                     # print("starts block?", start_block)
@@ -209,7 +206,7 @@ def generate_js(transformed_tree):
         requirements = ""
 
         if required_common:
-            requirements += "const {\n    " + ",\n    ".join(required_common) + "\n} = require(\"./stdlib_js_common.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(required_common) + "\n} = require(\"./stdlib_js_" + platform + "_common.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",
@@ -219,7 +216,7 @@ def generate_js(transformed_tree):
             })
             
         if required_frontend:
-            requirements += "const {\n    " + ",\n    ".join(required_frontend) + "\n} = require(\"./stdlib_js_common.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(required_frontend) + "\n} = require(\"./stdlib_js_frontend_frontend.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",

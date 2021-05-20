@@ -38,6 +38,8 @@ class Component {
 			for (const child of this.children) {
 				if (typeof child == "string") {
 					elem.innerHTML += child;
+				} else if (typeof child == "object") {
+					elem.appendChild(child.render());
 				}
 			}
 		}
