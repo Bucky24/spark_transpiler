@@ -140,7 +140,7 @@ def generate_js(transformed_tree):
             for block in blocks:
                 child_variables += block["variables_generated"]
 
-            if current_block["spaces"] > spaces and len(blocks) > 1:
+            while current_block["spaces"] > spaces and len(blocks) > 1:
                 #print("ending block 2")
                 current_block = _end_block(current_block)
                 
@@ -420,24 +420,27 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "new_class_calls": value.get("new_class_calls", []),
         }
     elif statement["type"] == TYPES["JSX_START_TAG"]:
-        code = "new Component(\"{}\"".format(statement["tag"])
-        classes = ["Component"]
+        code = "new Component(\"{}\", ".format(statement["tag"])
+        if statement["tag"] in classes:
+            code = "new {}(".format(statement["tag"])
+
+        new_classes = ["Component"]
         if statement["self_closes"]:
             return {
-                "statement": code + ", {}, [])",
-                "new_class_calls": classes,
+                "statement": code + "{}, [])",
+                "new_class_calls": new_classes,
             }
         elif statement["tag_ends"]:
             return {
-                "statement": code + ", {}, [",
+                "statement": code + "{}, [",
                 "start_block": "jsx_children",
-                "new_class_calls": classes,
+                "new_class_calls": new_classes,
             }
         else:
             return {
-                "statement": code + ", {",
+                "statement": code + "{",
                 "start_block": "jsx_attributes",
-                "new_class_calls": classes,
+                "new_class_calls": new_classes,
             }
     elif statement["type"] == TYPES["JSX_END_TAG"]:
         return {
@@ -447,4 +450,12 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
         return {
             "statement": "}, [",
             "start_block": "jsx_children",
+        }
+    elif statement["type"] == TYPES["RETURN"]:
+        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx)
+        return {
+            "statement": "return {}".format(value["statement"]),
+            "start_block": value.get("start_block", None),
+            "new_function_calls": value.get("new_function_calls", []), 
+            "new_class_calls": value.get("new_class_calls", []),
         }

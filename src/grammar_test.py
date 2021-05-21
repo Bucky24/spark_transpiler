@@ -769,6 +769,59 @@ if foo == \"bar\"
                 Token("NEWLINE", "\n"),
             ]),
         ]))
+        
+    def test_return(self):
+        result = parse_statement("function foo()\n\treturn bar\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("function_definition", [
+                        Tree("function_name", [
+                            Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("return_stmt", [
+                        Tree("statement_no_space", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "bar"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
+        
+    def test_return_and_jsx(self):
+        result = parse_statement("return <div\n>\n</div>\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("return_stmt", [
+                        Tree("statement_no_space", [
+                            Tree("jsx_tag_start", [
+                                Token("TAG_NAME", "div"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("jsx_tag_end", []),
+                ]), 
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("jsx_end", [
+                        Token("TAG_NAME", "div")
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
 
 if __name__ == "__main__":
     unittest.main()

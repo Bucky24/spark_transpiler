@@ -371,5 +371,20 @@ class bar
             }, 0),
         ])
         
+    def test_return(self):
+        tree = parse_statement("function foo()\n\treturn bar\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["FUNCTION"],
+                "params": [],
+                "name": "foo",
+            }, 0),
+            statement({
+                "type": TYPES["RETURN"],
+                "value": statement("bar", 0),
+            }, 4),
+        ])
+        
 if __name__ == "__main__":
     unittest.main()

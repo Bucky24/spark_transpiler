@@ -14,21 +14,21 @@ style2 = Style(
 	}
 )
 
-content = <div
-	style=style2
->
-	"foo"
-</div>
+class Container extends Component
+	function render()
+		return <div
+			style=style2
+		>
+			this.children
+		</div>
 
-app = Component(
-	"div"
-	{
-		style: style
-	}
-	[
-		content
-	]
-)
+app = <div
+	style=style
+>
+	<Container>
+		"foo"
+	</Container>
+</div>
 
 render(
 	app

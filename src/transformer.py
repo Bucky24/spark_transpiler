@@ -32,6 +32,7 @@ TYPES = {
     "JSX_END_TAG": "types/jsx_end_tag",
     "JSX_START_TAG": "types/jsx_start_tag",
     "JSX_TAG_SELF_CLOSE": "types/jsx_tag_self_close",
+    "RETURN": "types/return",
 }
 
 class SparkTransformer(Transformer):
@@ -299,6 +300,12 @@ class SparkTransformer(Transformer):
     def TAG_SELF_CLOSE(self, _):
         return {
             "type": TYPES["JSX_TAG_SELF_CLOSE"],
+        }
+        
+    def return_stmt(self, values):
+        return {
+            "type": TYPES["RETURN"],
+            "value": values[0],
         }
 
 _spark_transformer = SparkTransformer()

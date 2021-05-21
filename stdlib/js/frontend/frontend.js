@@ -14,13 +14,26 @@ class Style {
 }
 
 class Component {
-	constructor(tag, attrs, children) {
-		this.tag = tag;
-		this.attrs = attrs;
-		this.children = children;
+	constructor(...args) {
+		if (args.length === 3) {
+			const [ tag, attrs, children ] = args;
+			this.tag = tag;
+			this.attrs = attrs;
+			this.children = children;
+		} else if (args.length === 2) {
+			const [ attrs, children ] = args;
+			this.tag = null;
+			this.attrs = attrs;
+			this.children = children;
+		}
 	}
 	
 	render() {
+		if (!this.tag) {
+			// in this case we're probably rendering a child class. It should have
+			// its own render function, but in case we get here, just don't do anything
+			return;
+		}
 		const elem = document.createElement(this.tag);
 		
 		if (this.attrs) {
@@ -34,12 +47,34 @@ class Component {
 			}
 		}
 		
+		const renderChild = (child) => {
+			if (typeof child == "string") {
+				return document.createTextNode(child);
+			} else if (Array.isArray(child)) {
+				return child.map((child) => {
+					return renderChild(child);
+				});
+			} else if (child instanceof Node) {
+				return child;
+			} else if (typeof child == "object") {
+				// it's probably an instance of a component
+				const result = child.render();
+				// recurse the render
+				return renderChild(result);
+			}
+			
+			return child;
+		}
+		
 		if (this.children) {
 			for (const child of this.children) {
-				if (typeof child == "string") {
-					elem.innerHTML += child;
-				} else if (typeof child == "object") {
-					elem.appendChild(child.render());
+				const childResult = renderChild(child);
+				if (Array.isArray(childResult)) {
+					childResult.forEach((result) => {
+						elem.appendChild(result);
+					})
+				} else {
+					elem.appendChild(childResult);
 				}
 			}
 		}

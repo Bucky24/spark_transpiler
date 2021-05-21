@@ -85,6 +85,12 @@ bar(
 )
 ```
 
+Functions can return any statement:
+```
+function foo(bar)
+	return bar
+```
+
 ### Classes
 
 Can extend other classes. Can contain functions inside them.
@@ -144,7 +150,7 @@ foo = [
 Maps can be defined in the following way:
 ```
 foo = {
-	key: "value"
+    key: "value"
 }
 ```
 
@@ -153,11 +159,11 @@ foo = {
 The system will properly parse JSX format as well:
 ```
 foo = <div>
-	<div
-		id="blah"
-	>
-		"some text"
-	</div>
+    <div
+        id="blah"
+    >
+        "some text"
+    </div>
 </div>
 ```
 
@@ -200,9 +206,35 @@ new Component(
 
 | Param | Type | Description |
 | --- | --- | --- |
-| tag | string | The tag to render |
+| tag | string | The tag to render. Optional |
 | attributes | map | Attributes to attach to the element |
 | children | array of strings | Children to render in the component. Can be strings, or other Components |
+
+If the constructor is called with only 2 parameters, these are expected to be the attributes and the children. This should only be done for classes that extend Component.
+
+##### Extending
+
+Component can be extended in the following way:
+
+```
+class SomeElement extends Component
+    function render()
+        return <div>
+            this.children
+        </div>
+```
+
+And can be incorporated into JSX:
+
+```
+foo = <div>
+    <SomeElement>
+        <span>
+            "foo"
+        </span>
+    </SomeElement>
+</div>
+```
 
 #### Style
 

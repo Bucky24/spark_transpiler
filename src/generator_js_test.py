@@ -141,7 +141,7 @@ class TestGeneratorJs(unittest.TestCase):
         tree = parse_statement("print(\n    foo\n)\n")
         processed = process_tree(tree)
         result, imports = generate(processed, "js")
-        self.assertEqual(result["backend"], "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
+        self.assertEqual(result["backend"], "const {\n    print\n} = require(\"./stdlib_js_backend_common.js\");\n\nprint(\n    foo,\n\n);\n");
         self.assertEqual(imports["backend"], [{
             "extension": "js",
             "type": "stdlib",
@@ -154,7 +154,7 @@ class TestGeneratorJs(unittest.TestCase):
         tree = parse_statement("#frontend\nprint(\n    foo\n)\n#backend\nprint(\n    foo\n)\n")
         processed = process_tree(tree)
         result, imports = generate(processed, "js")
-        self.assertEqual(result["backend"], "const {\n    print\n} = require(\"./stdlib_js_common.js\");\n\nprint(\n    foo,\n\n);\n");
+        self.assertEqual(result["backend"], "const {\n    print\n} = require(\"./stdlib_js_backend_common.js\");\n\nprint(\n    foo,\n\n);\n");
         self.assertEqual(imports["backend"], [{
             "category": "backend",
             "extension": "js",
@@ -203,13 +203,13 @@ class TestGeneratorJs(unittest.TestCase):
         tree = parse_statement("foo = {\n\tabcd: 'foo'\n}\n")
         processed = process_tree(tree)
         result, _ = generate(processed, "js")
-        self.assertEqual(result["backend"], "var foo = {\n    \"abcd\": \"foo\",\n}\n")
+        self.assertEqual(result["backend"], "var foo = {\n    \"abcd\": \"foo\",\n\n};\n")
         
     def test_nested_map_array(self):
         tree = parse_statement("foo = {\n\t[\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
         processed = process_tree(tree)
         result, _ = generate(processed, "js")
-        self.assertEqual(result["backend"], "var foo = {\n    [\n        {\n            \"foo\": \"bar\",\n        }\n    \n    ],\n}\n")
+        self.assertEqual(result["backend"], "var foo = {\n    [\n        {\n            \"foo\": \"bar\",\n        \n        },\n    \n    ],\n\n};\n")
         
     def test_function_call_with_maps_and_arrays(self):
         tree = parse_statement("foo(\n\t{\n\t\tbar: baz\n\t}\n\t[\n\t\tbaz\n\t]\n)\n")
@@ -242,6 +242,29 @@ class TestGeneratorJs(unittest.TestCase):
         result, imports = generate(processed, "js")
         self.assertEqual(result["frontend"], "new Component(\"div\", {\n    foo: \"bar\",\n\n}, [\n\n]);\n")
         self.assertEqual(imports["frontend"], expected_imports)
+        
+    def test_jsx_component(self):
+        tree = parse_statement("#frontend\nclass Foo extends Component\n<Foo>\n</Foo>\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["frontend"], "class Foo extends Component {\n}\nnew Foo({}, [\n\n]);\n")
+        
+    def test_return(self):
+        tree = parse_statement("function foo()\n\treturn bar\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "function foo() {\n    return bar;\n}\n")
+        
+        tree = parse_statement("#frontend\nfunction foo()\n\treturn <div\n\t\tstyle=style\n\t>\n\t</div>\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["frontend"], "function foo() {\n    return new Component(\"div\", {\n        style: style,\n    \n    }, [\n    \n    ]);\n}\n")
+        
+    def test_multiple_block_closures(self):
+        tree = parse_statement("class Foo\n\tfunction bar()\n\t\tif foo == bar\n\t\t\tfoo = bar\n\nfoo(\n\tfoo\n)\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "class Foo {\n    bar() {\n        if (foo == bar) {\n            var foo = bar;\n        }\n    }\n}\nfoo(\n    foo,\n\n);\n")
 
 if __name__ == "__main__":
     unittest.main()
