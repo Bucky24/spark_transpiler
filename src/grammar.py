@@ -4,8 +4,8 @@ grammar = """
 start: statements
 statements: statement | (statement NEWLINE | NEWLINE)+
 
-VARIABLE_NAME: ("a".."z" | "A".."Z" | "_")+
-TYPE: ("a".."z" | "A".."Z" | "_")+
+VARIABLE_NAME: ("a".."z" | "A".."Z" | "_") ("a".."z" | "A".."Z" | "_" | "0".."9")*
+TYPE: ("a".."z" | "A".."Z" | "_") ("a".."z" | "A".."Z" | "_" | "0".."9")*
 instance_variable_chain: VARIABLE_NAME ("." VARIABLE_NAME)+
 variable: VARIABLE_NAME | instance_variable_chain
 variable_assignment: variable " "* ("=" | "+=") " "* statement
@@ -48,11 +48,17 @@ map_start: "{"
 map_end: "}"
 map_row: VARIABLE_NAME " "* ":" " "* statement_no_space
 
+TAG_SELF_CLOSE: "/"
+TAG_NAME: ("a".."z" | "A".."Z")+
+jsx_tag_start: "<" TAG_NAME TAG_SELF_CLOSE? jsx_tag_end?
+jsx_tag_end: ">"
+jsx_end: "</" TAG_NAME ">"
+
 SPACE: " "
 TAB: "\\t"
 spaces: SPACE | TAB
-statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | array_start | array_end | map_start | map_end | map_row)
-statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | pragma | array_start | array_end | map_start | map_end | map_row)
+statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end)
+statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | pragma | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end)
 NEWLINE: "\\n"
 """
 

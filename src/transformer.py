@@ -27,6 +27,11 @@ TYPES = {
     "MAP": "types/map_start",
     "MAP_END": "types/map_end",
     "MAP_ROW": "types/map_row",
+    "JSX_TAG_END": "types/jsx_tag_end",
+    "TAG_NAME": "types/tag_name",
+    "JSX_END_TAG": "types/jsx_end_tag",
+    "JSX_START_TAG": "types/jsx_start_tag",
+    "JSX_TAG_SELF_CLOSE": "types/jsx_tag_self_close",
 }
 
 class SparkTransformer(Transformer):
@@ -252,6 +257,48 @@ class SparkTransformer(Transformer):
     def map_end(self, _):
         return {
             "type": TYPES["MAP_END"],
+        }
+        
+    def jsx_tag_end(self, _):
+        return {
+            "type": TYPES["JSX_TAG_END"],
+        }
+
+    def TAG_NAME(self, value):
+        return {
+            "type": TYPES["TAG_NAME"],
+            "tag": str(value),
+        }
+    
+    def jsx_end(self, value):
+        return {
+            "type": TYPES["JSX_END_TAG"],
+            "tag": value[0]["tag"],
+        }
+        
+    def jsx_tag_start(self, values):
+        tag = None
+        tag_ends = False
+        self_closes = False
+        
+        for value in values:
+            if value["type"] == TYPES["TAG_NAME"]:
+                tag = value["tag"]
+            elif value["type"] == TYPES["JSX_TAG_END"]:
+                tag_ends = True
+            elif value["type"] == TYPES["JSX_TAG_SELF_CLOSE"]:
+                self_closes = True
+        
+        return {
+            "type": TYPES["JSX_START_TAG"],
+            "tag": tag,
+            "tag_ends": tag_ends,
+            "self_closes": self_closes,
+        }
+        
+    def TAG_SELF_CLOSE(self, _):
+        return {
+            "type": TYPES["JSX_TAG_SELF_CLOSE"],
         }
 
 _spark_transformer = SparkTransformer()

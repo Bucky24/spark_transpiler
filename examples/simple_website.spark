@@ -7,22 +7,18 @@ style = Style(
 	}
 )
 
-styletwo = Style(
+style2 = Style(
 	{
 		backgroundColor: "#0f0"
 		padding: "9px"
 	}
 )
 
-content = Component(
-	"div"
-	{
-		style: styletwo
-	}
-	[
-		"foo"
-	]
-)
+content = <div
+	style=style2
+>
+	"foo"
+</div>
 
 app = Component(
 	"div"

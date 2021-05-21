@@ -700,6 +700,75 @@ if foo == \"bar\"
                 Token("NEWLINE", "\n"),
             ]),
         ]))
+        
+    def test_jsx(self):
+        result = parse_statement("<div>\n</div>\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("jsx_tag_start", [
+                        Token("TAG_NAME", "div"),
+                        Tree("jsx_tag_end", []),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("jsx_end", [
+                        Token("TAG_NAME", "div"),
+                    ])
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
+
+        result = parse_statement("<div/>")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("jsx_tag_start", [
+                        Token("TAG_NAME", "div"),
+                        Token("TAG_SELF_CLOSE", "/"),
+                        Tree("jsx_tag_end", []),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        result = parse_statement("<div\n\tfoo=\"bar\"\n>\n</div>\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("jsx_tag_start", [
+                        Token("TAG_NAME", "div"),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("spaces", [Token("TAB", "\t")]),
+                    Tree("variable_assignment", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "foo"),
+                        ]),
+                        Tree("statement", [
+                            Tree("string", [
+                                Token("STRING_CONTENTS_DOUBLE", "bar"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("jsx_tag_end", [])
+                ]),
+                Token("NEWLINE", "\n"),
+                Tree("statement", [
+                    Tree("jsx_end", [
+                        Token("TAG_NAME", "div"),
+                    ])
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
 
 if __name__ == "__main__":
     unittest.main()

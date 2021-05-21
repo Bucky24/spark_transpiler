@@ -321,5 +321,55 @@ class bar
             }, 0),
         ])
         
+    def test_jsx(self):
+        tree = parse_statement("<div>\n</div>\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["JSX_START_TAG"],
+                "tag_ends": True,
+                "tag": "div",
+                "self_closes": False,
+            }, 0),
+            statement({
+                "type": TYPES["JSX_END_TAG"],
+                "tag": "div",
+            }, 0),
+        ])
+        
+        tree = parse_statement("<div/>")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["JSX_START_TAG"],
+                "tag_ends": True,
+                "tag": "div",
+                "self_closes": True,
+            }, 0),
+        ])
+        
+        tree = parse_statement("<div\n\tfoo=\"bar\"\n>\n</div>\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["JSX_START_TAG"],
+                "tag_ends": False,
+                "tag": "div",
+                "self_closes": False,
+            }, 0),
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement("\"bar\"", 0),
+            }, 4),
+            statement({
+                "type": TYPES["JSX_TAG_END"],
+            }, 0),
+            statement({
+                "type": TYPES["JSX_END_TAG"],
+                "tag": "div",
+            }, 0),
+        ])
+        
 if __name__ == "__main__":
     unittest.main()

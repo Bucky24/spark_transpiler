@@ -216,6 +216,32 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "foo(\n    {\n        \"bar\": baz,\n    \n    },\n    [\n        baz,\n    \n    ],\n\n);\n")
+        
+    def test_jsx(self):
+        expected_imports = [{
+            "category": "frontend",
+            "extension": "js",
+            "lang": "js",
+            "library": "frontend",
+            "type": "stdlib",
+        }]
+        tree = parse_statement("#frontend\n<div>\n</div>\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        self.assertEqual(result["frontend"], "new Component(\"div\", {}, [\n\n]);\n")  
+        self.assertEqual(imports["frontend"], expected_imports)
+        
+        tree = parse_statement("#frontend\n<div/>\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        self.assertEqual(result["frontend"], "new Component(\"div\", {}, []);\n")
+        self.assertEqual(imports["frontend"], expected_imports)
+        
+        tree = parse_statement("#frontend\n<div\n\tfoo=\"bar\"\n>\n</div>\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        self.assertEqual(result["frontend"], "new Component(\"div\", {\n    foo: \"bar\",\n\n}, [\n\n]);\n")
+        self.assertEqual(imports["frontend"], expected_imports)
 
 if __name__ == "__main__":
     unittest.main()

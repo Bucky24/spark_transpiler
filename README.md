@@ -148,6 +148,21 @@ foo = {
 }
 ```
 
+### JSX
+
+The system will properly parse JSX format as well:
+```
+foo = <div>
+	<div
+		id="blah"
+	>
+		"some text"
+	</div>
+</div>
+```
+
+Note that this is basically syntactic sugar that does the same thing as making a new instance of a Component.
+
 ## Standard Library
 
 ### Common
@@ -178,7 +193,7 @@ Signature:
 ```
 new Component(
     tag
-	attributes
+    attributes
     children
 )
 ```
