@@ -385,6 +385,48 @@ class bar
                 "value": statement("bar", 0),
             }, 4),
         ])
+
+    def test_value_manipulation(self):
+        tree = parse_statement("bar + baz")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VALUE_MANIPULATION"],
+                "values": [
+                    statement("bar", 0),
+                    "+",
+                    statement("baz", 0),
+                ],
+            }, 0),
+        ])
+
+        tree = parse_statement("bar    -    \"string\"")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VALUE_MANIPULATION"],
+                "values": [
+                    statement("bar", 0),
+                    "-",
+                    statement("\"string\"", 0),
+                ],
+            }, 0),
+        ])
+
+        tree = parse_statement("bar + baz + 'foo'")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VALUE_MANIPULATION"],
+                "values": [
+                    statement("bar", 0),
+                    "+",
+                    statement("baz", 0),
+                    "+",
+                    statement("\"foo\"", 0),
+                ],
+            }, 0),
+        ])
         
 if __name__ == "__main__":
     unittest.main()

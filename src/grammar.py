@@ -1,5 +1,10 @@
 from lark import Lark
 
+
+# Needed:
+# * Need to be able to have statement that is nothing but whitespace
+# * Need to be able to call a function with no params like "foo()" rather than "foo(\n)"
+
 grammar = """
 start: statements
 statements: statement | (statement NEWLINE | NEWLINE)+
@@ -8,9 +13,12 @@ VARIABLE_NAME: /(?!(return)\b)[a-zA-Z_][a-zA-Z0-9]*/
 TYPE: ("a".."z" | "A".."Z" | "_") ("a".."z" | "A".."Z" | "_" | "0".."9")*
 instance_variable_chain: VARIABLE_NAME ("." VARIABLE_NAME)+
 variable: VARIABLE_NAME | instance_variable_chain
-variable_assignment: variable " "* ("=" | "+=") " "* statement
+variable_assignment: variable " "* "=" " "* statement
 variable_increment: variable " "* "++"
 variable_coercion: variable " "+ "as" " "+ TYPE
+
+OPERATOR: ("+" | "-" | "*" | "/")
+value_manipulation: statement_no_space_no_value_manip (" "*  OPERATOR " "* statement_no_space_no_value_manip " "*)+
 
 STRING_CONTENTS_DOUBLE: /([^\"])+/
 STRING_CONTENTS_SINGLE: /([^'])+/
@@ -58,8 +66,9 @@ jsx_end: "</" " "* TAG_NAME " "* ">"
 SPACE: " "
 TAB: "\\t"
 spaces: SPACE | TAB
-statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end)
-statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | pragma | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end | return_stmt)
+statement_no_space: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end | value_manipulation)
+statement_no_space_no_value_manip: (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end)
+statement: spaces* (variable | variable_assignment | string | NUMBER | condition | if_stat | for_stat | variable_increment | variable_coercion | while_stat | class_stat | function_definition | call_function | end_call_function | pragma | array_start | array_end | map_start | map_end | map_row | jsx_tag_start | jsx_tag_end | jsx_end | return_stmt | value_manipulation)
 NEWLINE: "\\n"
 """
 

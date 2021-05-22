@@ -266,5 +266,21 @@ class TestGeneratorJs(unittest.TestCase):
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "class Foo {\n    bar() {\n        if (foo == bar) {\n            var foo = bar;\n        }\n    }\n}\nfoo(\n    foo,\n\n);\n")
 
+    def test_value_manipulation(self):
+        tree = parse_statement("bar + baz")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "bar + baz;\n")
+
+        tree = parse_statement("bar    -    \"string\"")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "bar - \"string\";\n")
+
+        tree = parse_statement("bar + baz + 'foo'")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "bar + baz + \"foo\";\n")
+
 if __name__ == "__main__":
     unittest.main()

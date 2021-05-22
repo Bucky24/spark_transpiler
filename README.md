@@ -30,6 +30,15 @@ The following operators exist for numeric variables:
 ```
 variable ++
 ```
+
+The following operations can be performed on any statement:
+
+```
+<statement> + <statement>
+<statement> - <statement>
+<statement> / <statement>
+<statement> * <statement>
+```
 ### Conditionals
 
 Conditionals are of the format:

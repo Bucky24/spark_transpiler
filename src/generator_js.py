@@ -459,3 +459,26 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "new_function_calls": value.get("new_function_calls", []), 
             "new_class_calls": value.get("new_class_calls", []),
         }
+    elif statement["type"] == TYPES["VALUE_MANIPULATION"]:
+        code = ""
+        start_block = None
+        new_function_calls = []
+        new_class_calls = []
+        for i in range(len(statement["values"])):
+            is_operator = i % 2 == 1
+            if is_operator:
+                code += " {} ".format(statement["values"][i])
+            else:
+                value = process_statement(statement["values"][i], variables_generated, spaces, is_class, classes, is_jsx)
+                start_blocks = value.get("start_block", None),
+                new_function_calls += value.get("new_function_calls", []), 
+                new_class_calls += value.get("new_class_calls", []),
+
+                code += "{}".format(value["statement"])
+
+        return {
+            "statement": code,
+            "start_block": start_block,
+            "new_function_calls": new_function_calls,
+            "new_class_calls": new_class_calls,
+        }

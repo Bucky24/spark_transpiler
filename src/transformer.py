@@ -33,6 +33,7 @@ TYPES = {
     "JSX_START_TAG": "types/jsx_start_tag",
     "JSX_TAG_SELF_CLOSE": "types/jsx_tag_self_close",
     "RETURN": "types/return",
+    "VALUE_MANIPULATION": "types/value_manipulation,"
 }
 
 class SparkTransformer(Transformer):
@@ -65,6 +66,9 @@ class SparkTransformer(Transformer):
         return self._get_statement(tokens)
 
     def statement_no_space(self, tokens):
+        return self._get_statement(tokens)
+
+    def statement_no_space_no_value_manip(self, tokens):
         return self._get_statement(tokens)
 
     def VARIABLE_NAME(self, name):
@@ -306,6 +310,15 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["RETURN"],
             "value": values[0],
+        }
+
+    def OPERATOR(self, value):
+        return str(value)
+
+    def value_manipulation(self, values):
+        return {
+            "type": TYPES["VALUE_MANIPULATION"],
+            "values": values,
         }
 
 _spark_transformer = SparkTransformer()

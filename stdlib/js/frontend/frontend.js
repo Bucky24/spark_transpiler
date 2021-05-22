@@ -42,8 +42,13 @@ class Component {
 				if (typeof val === "object") {
 					val = val.render();
 				}
-				
-				elem.setAttribute(key, val);
+
+				if (key.startsWith("on")) {
+					const event = key.substr(2).toLowerCase();
+					elem.addEventListener(event, val);
+				} else {
+					elem.setAttribute(key, val);
+				}
 			}
 		}
 		
@@ -83,9 +88,18 @@ class Component {
 	}
 }
 
+let mainComponent = null;
+
 function render(component) {
+	mainComponent = component;
 	const holder = document.getElementById("app");
 	const element = component.render();
 	holder.innerHTML = "";
 	holder.appendChild(element);
+}
+
+function rerender() {
+	if (mainComponent) {
+		render(mainComponent);
+	}
 }

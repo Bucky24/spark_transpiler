@@ -14,22 +14,34 @@ style2 = Style(
 	}
 )
 
-class Container extends Component
-	function render()
-		return <div
-			style=style2
-		>
-			this.children
-		</div>
+count = 0
 
-app = <div
-	style=style
->
-	<Container>
-		"foo"
-	</Container>
-</div>
+function doRender()
+	class Container extends Component
+		function render()
+			return <div
+				style=style2
+				onClick=function()
+					count ++
+					doRender(
 
-render(
-	app
+					)
+			>
+				this.children
+			</div>
+
+	app = <div
+		style=style
+	>
+		<Container>
+			"Total Count:" + count
+		</Container>
+	</div>
+
+	render(
+		app
+	)
+
+doRender(
+
 )

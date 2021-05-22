@@ -17,6 +17,11 @@ from grammar import parse_statement
 Tree = tree.Tree
 Token = lexer.Token
 
+def _get_start(contents):
+    return Tree("start", [
+        Tree("statements", contents),
+    ])
+
 class TestGrammar(unittest.TestCase):
     def test_variables(self):
         result = parse_statement("foo = \"bar\"")
@@ -820,6 +825,70 @@ if foo == \"bar\"
                     ]),
                 ]),
                 Token("NEWLINE", "\n"),
+            ]),
+        ]))
+
+    def test_value_manipulation(self):
+        tree = parse_statement("bar + baz")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("value_manipulation", [
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "bar"),
+                        ]),
+                    ]),
+                    Token("OPERATOR", "+"),
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "baz"),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        tree = parse_statement("bar    -    \"string\"")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("value_manipulation", [
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "bar"),
+                        ]),
+                    ]),
+                    Token("OPERATOR", "-"),
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("string", [
+                            Token("STRING_CONTENTS_DOUBLE", "string"),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        tree = parse_statement("bar + baz + 'foo'")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("value_manipulation", [
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "bar"),
+                        ]),
+                    ]),
+                    Token("OPERATOR", "+"),
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("variable", [
+                            Token("VARIABLE_NAME", "baz"),
+                        ]),
+                    ]),
+                    Token("OPERATOR", "+"),
+                    Tree("statement_no_space_no_value_manip", [
+                        Tree("string", [
+                            Token("STRING_CONTENTS_SINGLE", "foo"),
+                        ]),
+                    ]),
+                ]),
             ]),
         ]))
 
