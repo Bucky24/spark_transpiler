@@ -282,5 +282,11 @@ class TestGeneratorJs(unittest.TestCase):
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "bar + baz + \"foo\";\n")
 
+    def test_value_manipulation_with_function(self):
+        tree = parse_statement("bar + foo(\n\tbaz\n)\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "bar + foo(\n    baz,\n\n);\n")
+
 if __name__ == "__main__":
     unittest.main()

@@ -206,7 +206,7 @@ The following methods are available:
 
 Signature:
 ```
-new Component(
+Component(
     tag
     attributes
     children
@@ -247,15 +247,58 @@ foo = <div>
 
 #### Style
 
-The style object allows encoding of CSS and attaching it to a component
+The Style object allows encoding of CSS and attaching it to a component
 
 ##### Constructor
 
 Signature:
 ```
-new Style(
+Style(
     {
         color: "#fff"
     }
+)
+```
+
+#### Variable
+
+The Variable class allows storing of data across re-renders.
+
+##### Constructor
+
+Signature:
+```
+Variable(
+    defaultValue
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| defaultValue | any | The value to start the Variable with. Optional |
+
+##### Get
+
+Returns the current value of the Variable
+```
+foo = Variable(
+    0
+)
+
+bar = foo.get(
+
+)
+```
+
+##### Set
+
+Sets the current value of the Variable
+```
+foo = Variable(
+    0
+)
+
+foo.set(
+    1
 )
 ```

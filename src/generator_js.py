@@ -9,6 +9,7 @@ _COMMON_FUNCS = [
 _FRONTEND_CLASSES = [
     "Component",
     "Style",
+    "Variable",
 ]
 
 _FRONTEND_FUNCS = [
@@ -161,7 +162,7 @@ def generate_js(transformed_tree):
                 current_block["variables_generated"] += result.get("new_variables", [])
 
                 code[current_platform] += _add_spaces(spaces)
-                code[current_platform] += statement_code
+                code[current_platform] += str(statement_code)
                 start_block = result.get("start_block", False)
                 
                 classes[current_platform] += result.get("new_classes", [])
@@ -470,9 +471,9 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
                 code += " {} ".format(statement["values"][i])
             else:
                 value = process_statement(statement["values"][i], variables_generated, spaces, is_class, classes, is_jsx)
-                start_blocks = value.get("start_block", None),
-                new_function_calls += value.get("new_function_calls", []), 
-                new_class_calls += value.get("new_class_calls", []),
+                start_block = value.get("start_block", None)
+                new_function_calls += value.get("new_function_calls", [])
+                new_class_calls += value.get("new_class_calls", [])
 
                 code += "{}".format(value["statement"])
 

@@ -14,34 +14,41 @@ style2 = Style(
 	}
 )
 
-count = 0
+count = Variable(
+	0
+)
 
-function doRender()
-	class Container extends Component
-		function render()
-			return <div
-				style=style2
-				onClick=function()
-					count ++
-					doRender(
+class Container extends Component
+	function render()
+		return <div
+			style=style2
+			onClick=function()
+				count.set(
+					count.get(
 
-					)
-			>
-				this.children
-			</div>
+					) + 1
+				)
+				rerender(
 
-	app = <div
-		style=style
-	>
-		<Container>
-			"Total Count:" + count
-		</Container>
+				)
+		>
+			this.children
+		</div>
+
+class App extends Component
+	function render()
+		return <div
+			style=style
+		>
+			<Container>
+				"Total Count:" + count.get(
+
+				)
+			</Container>
+		</div>
+
+render(
+	<div>
+		<App/>
 	</div>
-
-	render(
-		app
-	)
-
-doRender(
-
 )

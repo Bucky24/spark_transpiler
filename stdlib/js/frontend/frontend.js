@@ -88,6 +88,20 @@ class Component {
 	}
 }
 
+class Variable {
+	constructor(initialValue) {
+		this.value = initialValue;
+	}
+
+	get() {
+		return this.value;
+	}
+
+	set(value) {
+		this.value = value;
+	}
+}
+
 let mainComponent = null;
 
 function render(component) {
