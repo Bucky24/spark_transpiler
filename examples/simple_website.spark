@@ -1,3 +1,23 @@
+#backend
+
+user = Table(
+	"user"
+	[
+		{
+			name: "username"
+			type: Table.STRING
+		}
+	]
+)
+
+Api.post(
+	"user"
+	function(parameters)
+		print(
+			"foo"
+		)
+)
+
 #frontend
 
 style = Style(

@@ -93,8 +93,6 @@ def generate_frontend_framework(outFiles, imports):
         "tmpl.js",
     )
 
-    # TODO: Also import the backend common code (in a separate section of the template)
-
     frontend_imports = []
 
     # first, load up all the frontend imports. These should have already been copied over by the previous step
@@ -110,14 +108,23 @@ def generate_frontend_framework(outFiles, imports):
 
     frontend_imports.append(outFiles["frontend"])
 
-    import_code_list = []
+    frontend_import_code_list = []
     for import_file in frontend_imports:
         filename = path.basename(import_file)
-        import_code_list.append("\t\"{}\": \"{}\",".format(filename, import_file.replace("\\", "\\\\")))
+        frontend_import_code_list.append("\t\"{}\": \"{}\",".format(filename, import_file.replace("\\", "\\\\")))
 
-    import_string = "\n".join(import_code_list)
+    frontend_import_string = "\n".join(frontend_import_code_list)
 
-    final_content = app_contents.replace("//<FRONTEND_IMPORTS>", import_string)
+    # now load up all the backend files and generate the import list
+    backend_import_list = []
+    #for file in outFiles["backend"]:
+    # right now it's just one file
+    backend_import_list.append("require(\"{}\");".format(outFiles["backend"]))
+
+    backend_import_string = "\n".join(backend_import_list)
+
+    final_content = app_contents.replace("//<FRONTEND_IMPORTS>", frontend_import_string)
+    final_content = final_content.replace("//<BACKEND_IMPORTS>", backend_import_string)
     file_path = _write_library(
         "stdlib",
         lang,

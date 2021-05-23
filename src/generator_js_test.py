@@ -294,5 +294,11 @@ class TestGeneratorJs(unittest.TestCase):
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "var foo = bar();\n")
 
+    def test_imports_with_chain(self):
+        tree = parse_statement("Api.post()")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "const {\n    Api\n} = require(\"./stdlib_js_backend_backend.js\");\n\nApi.post();\n")
+
 if __name__ == "__main__":
     unittest.main()
