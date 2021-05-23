@@ -892,5 +892,20 @@ if foo == \"bar\"
             ]),
         ]))
 
+    def test_one_line_function(self):
+        tree = parse_statement("foo = bar()")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("variable_assignment", [
+                    Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                    Tree("statement", [
+                        Tree("call_function_one_line", [
+                            Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
 if __name__ == "__main__":
     unittest.main()

@@ -355,15 +355,21 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
     elif statement["type"] == TYPES["CALL_FUNC"]:
         name = process_statement(statement["function"], variables_generated, spaces, is_class, classes, is_jsx)
         name = name["statement"]
+        start_block = "function_call"
+        code = "{}(".format(name)
+        if statement["no_params"]:
+            start_block = False
+            code += ")"
+
         if name in classes:
             return {
-                "statement": "new {}(".format(name),
-                "start_block": "function_call",
+                "statement": "new {}".format(code),
+                "start_block": start_block,
                 "new_class_calls": [name],
             }
         return {
-            "statement": "{}(".format(name),
-            "start_block": "function_call",
+            "statement": code,
+            "start_block": start_block,
             "new_function_calls": [name],
         }
     elif statement["type"] == TYPES["CALL_FUNC_END"]:

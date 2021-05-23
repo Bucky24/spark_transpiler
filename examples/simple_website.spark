@@ -24,13 +24,9 @@ class Container extends Component
 			style=style2
 			onClick=function()
 				count.set(
-					count.get(
-
-					) + 1
+					count.get() + 1
 				)
-				rerender(
-
-				)
+				rerender()
 		>
 			this.children
 		</div>
@@ -41,9 +37,7 @@ class App extends Component
 			style=style
 		>
 			<Container>
-				"Total Count:" + count.get(
-
-				)
+				"Total Count:" + count.get()
 			</Container>
 		</div>
 

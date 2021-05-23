@@ -135,6 +135,7 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["CALL_FUNC"],
             "function": name[0],
+            "no_params": False,
         }
 
     def end_call_function(self, _):
@@ -319,6 +320,13 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["VALUE_MANIPULATION"],
             "values": values,
+        }
+
+    def call_function_one_line(self, values):
+        return {
+            "type": TYPES["CALL_FUNC"],
+            "function": values[0],
+            "no_params": True,
         }
 
 _spark_transformer = SparkTransformer()

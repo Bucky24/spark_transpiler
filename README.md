@@ -94,6 +94,11 @@ bar(
 )
 ```
 
+However a function that takes no arguments can be called on a single line:
+```
+bar()
+```
+
 Functions can return any statement:
 ```
 function foo(bar)

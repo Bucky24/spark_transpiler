@@ -58,6 +58,7 @@ if foo == "string"
             statement({
                 "type": TYPES["CALL_FUNC"],
                 "function": "print",
+                "no_params": False,
             }, 4),
             statement("foo", 8),
             statement({
@@ -244,7 +245,8 @@ class bar
                 "function": {
                     "type": TYPES["VARIABLE_CHAIN"],
                     "chain": ["foo", "bar", "baz"],
-                }
+                },
+                "no_params": False,
             }, 0),
             statement({
                 "type": TYPES["CALL_FUNC_END"],
@@ -425,6 +427,21 @@ class bar
                     "+",
                     statement("\"foo\"", 0),
                 ],
+            }, 0),
+        ])
+
+    def test_one_line_function(self):
+        tree = parse_statement("foo = bar()")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement({
+                    "type": TYPES["CALL_FUNC"],
+                    "function": "bar",
+                    "no_params": True,
+                }, 0),
             }, 0),
         ])
         
