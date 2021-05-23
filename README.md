@@ -102,7 +102,7 @@ bar()
 Functions can return any statement:
 ```
 function foo(bar)
-	return bar
+    return bar
 ```
 
 ### Classes
@@ -290,9 +290,7 @@ foo = Variable(
     0
 )
 
-bar = foo.get(
-
-)
+bar = foo.get()
 ```
 
 ##### Set
