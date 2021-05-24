@@ -159,7 +159,7 @@ def generate_js(transformed_tree):
                 
             all_classes = _FRONTEND_CLASSES + classes[current_platform] + _BACKEND_CLASSES + _COMMON_CLASSES
 
-            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], all_classes, current_block["is_jsx"])
+            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], all_classes, current_block["is_jsx"], current_platform)
             if result:
                 statement_code = result["statement"]
 
@@ -262,19 +262,23 @@ def generate_js(transformed_tree):
         if requirements != "" and platform == "backend":
             code[platform] = requirements + "\n" + code[platform]
 
+    if code["frontend"]:
+        # wrap it in an async self-calling method
+        code["frontend"] = "(async () => {\n" + code["frontend"] + "\n})();\n";
+
     return code, requirement_files
 
-def process_statement(statement, variables_generated, spaces, is_class, classes, is_jsx):
+def process_statement(statement, variables_generated, spaces, is_class, classes, is_jsx, platform):
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
         return {
             "statement": statement,
         }
 
     if statement["type"] == TYPES["STATEMENT"]:
-        return process_statement(statement["statement"], variables_generated, spaces, is_class, classes, is_jsx)
+        return process_statement(statement["statement"], variables_generated, spaces, is_class, classes, is_jsx, platform)
     elif statement["type"] == TYPES["VARIABLE_ASSIGNMENT"]:
         #print("processing ", statement["value"])
-        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx)
+        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         # if we got nothing good from our recursive process, just give up on this line
         if value is None:
             return None
@@ -308,7 +312,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": "{}++".format(statement["variable"]),
         }
     elif statement["type"] == TYPES["IF"]:
-        conditional = process_statement(statement["condition"], variables_generated, spaces, is_class, classes, is_jsx)
+        conditional = process_statement(statement["condition"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         conditional = conditional["statement"]
 
         return {
@@ -331,13 +335,13 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
     elif statement["type"] == TYPES["FOR"]:
         variables = []
         # we expect 3 conditions, no more, no less
-        result = process_statement(statement["conditions"][0], variables_generated, spaces, is_class, classes, is_jsx)
+        result = process_statement(statement["conditions"][0], variables_generated, spaces, is_class, classes, is_jsx, platform)
         variables += result.get("new_variables", [])
         cond1 = result["statement"]
-        result = process_statement(statement["conditions"][1], variables_generated, spaces, is_class, classes, is_jsx)
+        result = process_statement(statement["conditions"][1], variables_generated, spaces, is_class, classes, is_jsx, platform)
         variables += result.get("new_variables", [])
         cond2 = result["statement"]
-        result = process_statement(statement["conditions"][2], variables_generated, spaces, is_class, classes, is_jsx)
+        result = process_statement(statement["conditions"][2], variables_generated, spaces, is_class, classes, is_jsx, platform)
         variables += result.get("new_variables", [])
         cond3 = result["statement"]
         
@@ -347,16 +351,16 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "new_variables": variables,
         }
     elif statement["type"] == TYPES["CONDITION"]:
-        left_hand = process_statement(statement["left_hand"], variables_generated, spaces, is_class, classes, is_jsx)
+        left_hand = process_statement(statement["left_hand"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         left_hand = left_hand["statement"]
-        right_hand = process_statement(statement["right_hand"], variables_generated, spaces, is_class, classes, is_jsx)
+        right_hand = process_statement(statement["right_hand"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         right_hand = right_hand["statement"]
         
         return {
             "statement": "{} {} {}".format(left_hand, statement["condition"], right_hand),
         }
     elif statement["type"] == TYPES["WHILE"]:
-        condition = process_statement(statement["condition"], variables_generated, spaces, is_class, classes, is_jsx)
+        condition = process_statement(statement["condition"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         return {
             "statement": "while ({})".format(condition["statement"]) + " {",
             "start_block": "while",
@@ -369,20 +373,21 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             name = " {}".format(name)
             
         param_str = ", ".join(statement["params"])
+
+        statement = "function{}({})".format(name, param_str) + " {"
         
         if is_class:
-            return {
-                "statement": "{}({})".format(name, param_str) + " {",
-                "start_block": "function",
-            }
-        
+            statement = "{}({})".format(name, param_str) + " {"
 
+        if platform == "frontend":
+            statement = "async {}".format(statement)
+        
         return {
-            "statement": "function{}({})".format(name, param_str) + " {",
+            "statement": statement,
             "start_block": "function",
         }
     elif statement["type"] == TYPES["CALL_FUNC"]:
-        name = process_statement(statement["function"], variables_generated, spaces, is_class, classes, is_jsx)
+        name = process_statement(statement["function"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         name = name["statement"]
         start_block = "function_call"
         code = "{}(".format(name)
@@ -392,26 +397,28 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
 
         name_path = name.split(".")
         first_name = name_path[0]
+        new_function_calls = [name]
+        new_class_calls = []
+
+        new_instance = False
 
         if first_name in classes:
+            new_class_calls = [first_name]
+            new_function_calls = []
             if len(name_path) == 1:
-                # in this case we're making a class call and trying to create a new instance
-                return {
-                    "statement": "new {}".format(code),
-                    "start_block": start_block,
-                    "new_class_calls": [first_name],
-                }
-            else:
-                # in this case we're making a class call but we're calling a static method on it so don't use new
-                return {
-                    "statement": "{}".format(code),
-                    "start_block": start_block,
-                    "new_class_calls": [first_name],
-                }
+                new_instance = True
+
+        if not new_instance:
+            if platform == "frontend":
+                code = "await {}".format(code)
+        else:
+            code = "new {}".format(code)
+
         return {
-            "statement": code,
+            "statement": "{}".format(code),
             "start_block": start_block,
-            "new_function_calls": [name],
+            "new_class_calls": new_class_calls,
+            "new_function_calls": new_function_calls,
         }
     elif statement["type"] == TYPES["CALL_FUNC_END"]:
         return {
@@ -459,7 +466,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": "}",
         }
     elif statement["type"] == TYPES["MAP_ROW"]:
-        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx)
+        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         
         return {
             "statement": "\"{}\": {}".format(statement["key"], value["statement"]),
@@ -500,7 +507,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "start_block": "jsx_children",
         }
     elif statement["type"] == TYPES["RETURN"]:
-        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx)
+        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         return {
             "statement": "return {}".format(value["statement"]),
             "start_block": value.get("start_block", None),
@@ -517,7 +524,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             if is_operator:
                 code += " {} ".format(statement["values"][i])
             else:
-                value = process_statement(statement["values"][i], variables_generated, spaces, is_class, classes, is_jsx)
+                value = process_statement(statement["values"][i], variables_generated, spaces, is_class, classes, is_jsx, platform)
                 start_block = value.get("start_block", None)
                 new_function_calls += value.get("new_function_calls", [])
                 new_class_calls += value.get("new_class_calls", [])

@@ -28,7 +28,7 @@ class Component {
 		}
 	}
 	
-	render() {
+	async render() {
 		if (!this.tag) {
 			// in this case we're probably rendering a child class. It should have
 			// its own render function, but in case we get here, just don't do anything
@@ -52,18 +52,21 @@ class Component {
 			}
 		}
 		
-		const renderChild = (child) => {
+		const renderChild = async (child) => {
 			if (typeof child == "string") {
 				return document.createTextNode(child);
 			} else if (Array.isArray(child)) {
-				return child.map((child) => {
-					return renderChild(child);
-				});
+				const resultMap = [];
+				for (const entry of child) {
+					const result = await renderChild(entry);
+					resultMap.push(result);
+				}
+				child = resultMap;
 			} else if (child instanceof Node) {
 				return child;
 			} else if (typeof child == "object") {
 				// it's probably an instance of a component
-				const result = child.render();
+				const result = await child.render();
 				// recurse the render
 				return renderChild(result);
 			}
@@ -73,7 +76,7 @@ class Component {
 		
 		if (this.children) {
 			for (const child of this.children) {
-				const childResult = renderChild(child);
+				const childResult = await renderChild(child);
 				if (Array.isArray(childResult)) {
 					childResult.forEach((result) => {
 						elem.appendChild(result);
@@ -104,16 +107,16 @@ class Variable {
 
 let mainComponent = null;
 
-function render(component) {
+async function render(component) {
 	mainComponent = component;
 	const holder = document.getElementById("app");
-	const element = component.render();
+	const element = await component.render();
 	holder.innerHTML = "";
 	holder.appendChild(element);
 }
 
-function rerender() {
+async function rerender() {
 	if (mainComponent) {
-		render(mainComponent);
+		await render(mainComponent);
 	}
 }

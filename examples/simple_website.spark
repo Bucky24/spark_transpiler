@@ -36,11 +36,14 @@ count = Variable(
 	0
 )
 
-Api.get(
+user = Api.get(
 	"user"
 	{
 		username: "foo"
 	}
+)
+print(
+	user
 )
 
 class Container extends Component

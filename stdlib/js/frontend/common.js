@@ -27,13 +27,19 @@ const Api = {
 
 		const fullUrl = `${url}?${params}`;
 
-		var xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function() {
-			if (this.readyState == 4 && this.status == 200) {
-				console.log(this.responseText);
-			}
-		};
-		xhttp.open("GET", fullUrl, true);
-		xhttp.send(JSON.stringify(args));
+		return new Promise((resolve, reject) => {
+			const xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+				if (this.readyState == 4 && this.status == 200) {
+					let result = this.responseText;
+					if (result.startsWith("{") || result.startsWith("[")) {
+						result = JSON.parse(result);
+					}
+					resolve(result);
+				}
+			};
+			xhttp.open("GET", fullUrl, true);
+			xhttp.send(JSON.stringify(args));
+		});
 	},
 }
