@@ -58,10 +58,36 @@ def generate_code_from_file(file):
     sys.stdout.write("Reading... ")
     sys.stdout.flush()
     contents = _read_file(fullPath)
-    #print(contents)
     print("Done")
     sys.stdout.flush()
     time.sleep(0.01)
+    
+    #print(contents)
+    lines =  contents.split("\n")
+    blocks = []
+    block = []
+    for line in lines:
+        line_count = 0
+        for char in line:
+            if char == ' ':
+                line_count += 1
+            elif char == '\t':
+                line_count += 4
+            else:
+                break
+        # print(line_count, line)
+        if line_count == 0 and len(block) > 0:
+            blocks.append(block)
+            block = []
+        elif line != "":
+            block.append(line)
+            
+    joined_blocks = []
+    for block in blocks:
+        joined_blocks.append("\n".join(block))
+        
+    #for block in joined_blocks:
+    #    print(block)
 
     sys.stdout.write("Generating code... ")
     sys.stdout.flush()
