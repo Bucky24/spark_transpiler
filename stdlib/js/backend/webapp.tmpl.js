@@ -1,6 +1,7 @@
 const http = require("http");
 const path = require("path");
 const fs = require("fs");
+const { Api } = require("./stdlib_js_backend_common.js");
 
 //<BACKEND_IMPORTS>
 
@@ -33,13 +34,42 @@ function serveFile(response, file) {
     readStream.pipe(response);
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     // cut off the first slash
     req.url = req.url.substr(1);
     if (req.url === "") {
         serveFile(res, "stdlib_js_frontend_index.html");
     } else if (frontendFileKeys.includes(req.url)) {
         serveFile(res, frontendFiles[req.url]);
+    } else if (req.url.startsWith("api/")) {
+        const url = req.url.substr(4);
+        const parts = url.split("?");
+        const apiName = parts[0];
+        const paramStr = parts[1];
+        const paramList = paramStr.split("&");
+        const params = paramList.reduce((obj, pair) => {
+            let [key, value] = pair.split("=");
+            value = decodeURIComponent(value);
+            return {
+                ...obj,
+                [key]: value,
+            };
+        }, {});
+        try {
+            const result = await Api.execute(req.method.toLowerCase(), apiName, params);
+            res.writeHead(200);
+            if (result) {
+                res.write(JSON.stringify(result));
+            }
+        } catch(error) {
+            res.writeHead(500);
+            res.write(JSON.stringify({
+                error: error.message,
+            }));
+            console.log(`API error for ${req.method} ${apiName}: ${error.message}`);
+            console.log(error.stack);
+        }
+        res.end();
     } else {
         console.error("Unexpected:", req.url)
         res.writeHead(404);

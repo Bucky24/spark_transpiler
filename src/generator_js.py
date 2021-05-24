@@ -6,6 +6,10 @@ _COMMON_FUNCS = [
     "print",
 ]
 
+_COMMON_CLASSES = [
+    "Api",
+]
+
 _FRONTEND_CLASSES = [
     "Component",
     "Style",
@@ -18,7 +22,6 @@ _FRONTEND_FUNCS = [
 
 _BACKEND_CLASSES = [
     "Table",
-    "Api",
 ]
 
 _BACKEND_FUNCS = [
@@ -154,7 +157,7 @@ def generate_js(transformed_tree):
                 #print("ending block 2")
                 current_block = _end_block(current_block)
                 
-            all_classes = _FRONTEND_CLASSES + classes[current_platform] + _BACKEND_CLASSES
+            all_classes = _FRONTEND_CLASSES + classes[current_platform] + _BACKEND_CLASSES + _COMMON_CLASSES
 
             result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], all_classes, current_block["is_jsx"])
             if result:
@@ -216,6 +219,8 @@ def generate_js(transformed_tree):
                 required_backend.append(function_call)
 
         for class_call in class_calls[platform]:
+            if class_call in _COMMON_CLASSES:
+                required_common.append(class_call)
             if class_call in _FRONTEND_CLASSES:
                 required_frontend.append(class_call)
             if class_call in _BACKEND_CLASSES:
@@ -234,7 +239,7 @@ def generate_js(transformed_tree):
             })
             
         if required_frontend:
-            requirements += "const {\n    " + ",\n    ".join(required_frontend) + "\n} = require(\"./stdlib_js_frontend_frontend.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(required_frontend) + "\n} = require(\"./stdlib_js_" + platform + "_frontend.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",
@@ -244,7 +249,7 @@ def generate_js(transformed_tree):
             })
 
         if required_backend:
-            requirements += "const {\n    " + ",\n    ".join(required_backend) + "\n} = require(\"./stdlib_js_backend_backend.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(required_backend) + "\n} = require(\"./stdlib_js_" + platform + "_backend.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",

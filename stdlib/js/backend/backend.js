@@ -40,13 +40,6 @@ Table.init = function() {
     }
 }
 
-const Api = {
-    post: (name, cb) => {
-
-    },
-};
-
 module.exports = {
     Table,
-    Api,
 }

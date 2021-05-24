@@ -10,12 +10,10 @@ user = Table(
 	]
 )
 
-Api.post(
+Api.get(
 	"user"
 	function(parameters)
-		print(
-			"foo"
-		)
+		return parameters
 )
 
 #frontend
@@ -36,6 +34,13 @@ style2 = Style(
 
 count = Variable(
 	0
+)
+
+Api.get(
+	"user"
+	{
+		username: "foo"
+	}
 )
 
 class Container extends Component
