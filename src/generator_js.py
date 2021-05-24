@@ -229,7 +229,7 @@ def generate_js(transformed_tree):
         requirements = ""
 
         if required_common:
-            requirements += "const {\n    " + ",\n    ".join(required_common) + "\n} = require(\"./stdlib_js_" + platform + "_common.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(set(required_common)) + "\n} = require(\"./stdlib_js_" + platform + "_common.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",
@@ -239,7 +239,7 @@ def generate_js(transformed_tree):
             })
             
         if required_frontend:
-            requirements += "const {\n    " + ",\n    ".join(required_frontend) + "\n} = require(\"./stdlib_js_" + platform + "_frontend.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(set(required_frontend)) + "\n} = require(\"./stdlib_js_" + platform + "_frontend.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",
@@ -249,7 +249,7 @@ def generate_js(transformed_tree):
             })
 
         if required_backend:
-            requirements += "const {\n    " + ",\n    ".join(required_backend) + "\n} = require(\"./stdlib_js_" + platform + "_backend.js\");\n";
+            requirements += "const {\n    " + ",\n    ".join(set(required_backend)) + "\n} = require(\"./stdlib_js_" + platform + "_backend.js\");\n";
             requirement_files[platform].append({
                 "type": "stdlib",
                 "lang": "js",
@@ -502,10 +502,15 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": "])",
         }
     elif statement["type"] == TYPES["JSX_TAG_END"]:
-        return {
-            "statement": "}, [",
-            "start_block": "jsx_children",
-        }
+        if statement["self_closes"]:
+            return {
+                "statement": "}, [])",
+            }
+        else:
+            return {
+                "statement": "}, [",
+                "start_block": "jsx_children",
+            }
     elif statement["type"] == TYPES["RETURN"]:
         value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
         return {
@@ -536,4 +541,9 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "start_block": start_block,
             "new_function_calls": new_function_calls,
             "new_class_calls": new_class_calls,
+        }
+    elif statement["type"] == TYPES["ELSE"]:
+        return {
+            "statement": "else {",
+            "start_block": "if",
         }

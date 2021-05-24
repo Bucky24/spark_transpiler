@@ -246,6 +246,11 @@ class TestGeneratorJs(unittest.TestCase):
         self.assertEqual(result["frontend"], _wrap_front("new Component(\"div\", {\n    foo: \"bar\",\n\n}, [\n\n]);\n"))
         self.assertEqual(imports["frontend"], expected_imports)
         
+        tree = parse_statement("#frontend\n<input\n/>\n")
+        processed = process_tree(tree)
+        result, imports = generate(processed, "js")
+        self.assertEqual(result["frontend"], _wrap_front("new Component(\"input\", {\n\n}, []);\n"))
+        
     def test_jsx_component(self):
         tree = parse_statement("#frontend\nclass Foo extends Component\n<Foo>\n</Foo>\n")
         processed = process_tree(tree)
@@ -309,6 +314,12 @@ class TestGeneratorJs(unittest.TestCase):
         result, _ = generate(processed, "js")
         self.assertEqual(result["backend"], "foo();\n")
         self.assertEqual(result["frontend"], _wrap_front("await foo();\n"))
+      
+    def test_else(self):
+        tree = parse_statement("if foo == true\nelse\n")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "if (foo == true) {\n}\nelse {\n}\n")
 
 if __name__ == "__main__":
     unittest.main()

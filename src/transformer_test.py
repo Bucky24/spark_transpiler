@@ -366,10 +366,26 @@ class bar
             }, 4),
             statement({
                 "type": TYPES["JSX_TAG_END"],
+                "self_closes": False,
             }, 0),
             statement({
                 "type": TYPES["JSX_END_TAG"],
                 "tag": "div",
+            }, 0),
+        ])
+        
+        tree = parse_statement("<input\n/>\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["JSX_START_TAG"],
+                "tag_ends": False,
+                "tag": "input",
+                "self_closes": False,
+            }, 0),
+            statement({
+                "type": TYPES["JSX_TAG_END"],
+                "self_closes": True,
             }, 0),
         ])
         
@@ -442,6 +458,24 @@ class bar
                     "function": "bar",
                     "no_params": True,
                 }, 0),
+            }, 0),
+        ])
+        
+    def test_else(self):
+        tree = parse_statement("if foo == true\nelse\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["IF"],
+                "condition": {
+                    "type": TYPES["CONDITION"],
+                    "right_hand": statement("true", 0),
+                    "left_hand": statement("foo", 0),
+                    "condition": "==",
+                }
+            }, 0),
+            statement({
+                "type": TYPES["ELSE"],
             }, 0),
         ])
         

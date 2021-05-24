@@ -775,6 +775,22 @@ if foo == \"bar\"
             ]),
         ]))
         
+        tree = parse_statement("<input\n/>\n")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("jsx_tag_start", [
+                    Token("TAG_NAME", "input")
+                ]),
+            ]),
+            Token("NEWLINE", "\n"),
+            Tree("statement", [
+                Tree("jsx_tag_end", [
+                    Token("TAG_SELF_CLOSE", "/"),
+                ]),
+            ]),
+            Token("NEWLINE", "\n"),
+        ]))
+        
     def test_return(self):
         result = parse_statement("function foo()\n\treturn bar\n")
         self.assertEqual(result, Tree("start", [
@@ -905,6 +921,43 @@ if foo == \"bar\"
                     ]),
                 ]),
             ]),
+        ]))
+
+    def test_array_indexing(self):
+        tree = parse_statement("foo[5]")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("variable", [
+                    Token("VARIABLE_NAME", "foo[5]"),
+                ]),
+            ]),
+        ]))
+        
+    def test_else(self):
+        tree = parse_statement("if foo == true\nelse\n")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("if_stat", [
+                    Tree("condition", [
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "foo"),
+                            ]),
+                        ]),
+                        Token("EQUALITY", "=="),
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "true"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            Token("NEWLINE", "\n"),
+            Tree("statement", [
+                Tree("else_stat", []),
+            ]),
+            Token("NEWLINE", "\n"),
         ]))
 
 if __name__ == "__main__":

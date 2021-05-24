@@ -46,6 +46,8 @@ Conditionals are of the format:
 ```
 if <statement> <condition> <statement>
     <statements>
+else
+    <statements>
 ```
 
 Where a condition can be one of `>`, `<`, `=>`, `=<`, `==`, `!=`
@@ -157,6 +159,16 @@ foo = [
         "foo"
     ]
 ]
+```
+
+Accessing the contents of an array can be done as normal:
+
+```
+foo = [
+    "bar"
+]
+
+bar = foo[0]
 ```
 
 ### Maps

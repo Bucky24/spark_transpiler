@@ -33,7 +33,8 @@ TYPES = {
     "JSX_START_TAG": "types/jsx_start_tag",
     "JSX_TAG_SELF_CLOSE": "types/jsx_tag_self_close",
     "RETURN": "types/return",
-    "VALUE_MANIPULATION": "types/value_manipulation,"
+    "VALUE_MANIPULATION": "types/value_manipulation",
+    "ELSE": "types/else",
 }
 
 class SparkTransformer(Transformer):
@@ -265,10 +266,17 @@ class SparkTransformer(Transformer):
             "type": TYPES["MAP_END"],
         }
         
-    def jsx_tag_end(self, _):
-        return {
-            "type": TYPES["JSX_TAG_END"],
-        }
+    def jsx_tag_end(self, values):
+        if len(values) > 0 and values[0]["type"] == TYPES["JSX_TAG_SELF_CLOSE"]:
+            return {
+                "type": TYPES["JSX_TAG_END"],
+                "self_closes": True,
+            }
+        else:
+            return {
+                "type": TYPES["JSX_TAG_END"],
+                "self_closes": False,
+            }
 
     def TAG_NAME(self, value):
         return {
@@ -327,6 +335,11 @@ class SparkTransformer(Transformer):
             "type": TYPES["CALL_FUNC"],
             "function": values[0],
             "no_params": True,
+        }
+
+    def else_stat(self, _):
+        return {
+            "type": TYPES["ELSE"],
         }
 
 _spark_transformer = SparkTransformer()

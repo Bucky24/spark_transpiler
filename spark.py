@@ -70,9 +70,13 @@ def generate_code_from_file(file):
     if contents[-1] != "\n":
         contents += "\n"
 
+    start = time.time()
     tree = grammar.parse_statement(contents)
+    grammar_done = time.time()
     processed = transformer.process_tree(tree)
+    processed_done = time.time()
     result = generator.generate(processed, lang)
+    result_done = time.time()
 
     code = result[0]
     imports = result[1]
@@ -80,6 +84,11 @@ def generate_code_from_file(file):
     print("Done")
     sys.stdout.flush()
     time.sleep(0.01)
+    
+    """print("total time: ", (result_done - start))
+    print("grammar: ", (grammar_done - start))
+    print("processing: ", (processed_done - grammar_done))
+    print("generation: ", (result_done - processed_done))"""
 
     return code, imports
 

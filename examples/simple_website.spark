@@ -1,6 +1,6 @@
 #backend
 
-user = Table(
+userTable = Table(
 	"user"
 	[
 		{
@@ -13,14 +13,47 @@ user = Table(
 Api.get(
 	"user"
 	function(parameters)
-		return parameters
+		user = userTable.load(
+			{
+			}
+		)
+		if user.length > 0
+			return {
+				user: user[0]
+			}
+		return {
+			user: null
+		}
+)
+
+Api.post(
+    "user"
+    function(parameters)
+    	user = userTable.load(
+    		{
+            }
+    	)
+    	if user.length > 0
+            userTable.update(
+                {
+                }
+                {
+                    username: parameters.username
+                }
+            )
+        else
+            userTable.insert(
+                {
+                    username: parameters.username
+                }
+            )
 )
 
 #frontend
 
 style = Style(
 	{
-		backgroundColor: "#00f"
+		backgroundColor: "#add8e6"
 		padding: "10px"
 	}
 )
@@ -29,6 +62,7 @@ style2 = Style(
 	{
 		backgroundColor: "#0f0"
 		padding: "9px"
+		marginBottom: "4px"
 	}
 )
 
@@ -36,14 +70,13 @@ count = Variable(
 	0
 )
 
-user = Api.get(
+result = Api.get(
 	"user"
 	{
-		username: "foo"
-	}
+    }
 )
-print(
-	user
+username = Variable(
+    result.user.username
 )
 
 class Container extends Component
@@ -64,6 +97,26 @@ class App extends Component
 		return <div
 			style=style
 		>
+			<div>
+				"Hello " + username.get()
+			</div>
+			<div>
+				<input
+					type = "text"
+                    onChange=function(e)
+                        newVal = e.target.value
+                        username.set(
+                            newVal
+                        )
+                        Api.post(
+                            "user"
+                            {
+                                username: newVal
+                            }
+                        )
+                        rerender()
+				/>
+			</div>
 			<Container>
 				"Total Count:" + count.get()
 			</Container>
