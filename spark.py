@@ -178,7 +178,12 @@ def main():
 
     # right now we're assuming we only have 1 file
     for file in args.files:
-        result = generate_code_from_file(file)
+        result = None
+        try:
+            result = generate_code_from_file(file)
+        except Exception as error:
+            print(error)
+            sys.stderr.write("FAILURE\n")
         
         if not result:
             sys.exit(1)
@@ -227,6 +232,8 @@ def main():
             time.sleep(0.01)
 
         print(">>>{}".format(outFiles["backend"]))
+        sys.stdout.flush()
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     main()

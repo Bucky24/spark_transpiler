@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const args = process.argv.slice(2);
 
-function compileFiles(files) {
+function compileFiles() {
 	return new Promise((resolve, reject) => {
 		let proc = spawn("python", [path.resolve(__dirname, "./spark.py"), ...args]);
 
@@ -23,7 +23,19 @@ function compileFiles(files) {
 		});
 
 		proc.stderr.on("data", (data) => {
-			process.stderr.write(data.toString());
+			const error = data.toString();
+			process.stderr.write(error);
+			const lines = error.split("\n");
+			let compileFailed = false;
+			lines.forEach((line) => {
+				if (line === "FAILURE") {
+					compileFailed = true;
+				}
+			});
+
+			if (compileFailed) {
+				reject();
+			}
 		});
 	});
 }
@@ -54,7 +66,7 @@ function doCompile() {
 		activeProc = null;
 	}
 	doingCompile = true;
-	compileFiles(args).then((outputFile) => {
+	compileFiles().then((outputFile) => {
 		doingCompile = false;
 		return new Promise((resolve) => {
 		    console.log("Executing...");
@@ -65,11 +77,14 @@ function doCompile() {
 				if (!reloadFromWatcher) {
 		    		console.log("---------------------------------------------------------");
 					watcher.close();
+					watcher = null;
 				}
 				reloadFromWatcher = false;
 		        resolve();
 		    });
 		});
+	}).catch(() => {
+		doingCompile = false;
 	});
 }
 
