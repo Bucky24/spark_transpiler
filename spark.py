@@ -54,7 +54,9 @@ def _run_thread(code, result_arr, i):
     if code[-1] != "\n":
         code += "\n"
 
-    print("Thread {} started...".format(i))
+    start = time.time()
+    print("Thread {} started...".format(i+1))
+    #print(code)
     sys.stdout.flush()
     time.sleep(0.01)
     tree = grammar.parse_statement(code)
@@ -63,28 +65,46 @@ def _run_thread(code, result_arr, i):
     processed_done = time.time()
     result = generator.generate(processed, lang)
     result_arr[i] = result
-    print("Thread {} finished...".format(i))
+    result_done = time.time()
+    total_time = result_done - start
+    print("Thread {} finished (took {})...".format(i+1, total_time))
     sys.stdout.flush()
     time.sleep(0.01)
+    
+def _generate_code_in_threads(code_blocks):
+    result_data = [None] * len(code_blocks)
+    threads = []
+    for i in range(0, len(code_blocks)):
+        # the grammar requires a newline at the end
+        block = code_blocks[i] + "\n"
+        thread = threading.Thread(target=_run_thread, args=(block, result_data, i))
+        threads.append(thread)
 
-def generate_code_from_file(file):
-    fullPath = path.realpath(file)
-    if not _file_exists(fullPath):
-        print("Cannot find input file {}".format(fullPath))
-        return None
+    # now start and wait on all the threads
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+        
+    code = {
+        "frontend": "",
+        "backend": "",
+    }
+    imports = {
+        "frontend": [],
+        "backend": [],
+    }
+    for result in result_data:
+        code["frontend"] += result[0]["frontend"] + "\n"
+        code["backend"] += result[0]["backend"] + "\n"
+        imports["frontend"] += result[1]["frontend"]
+        imports["backend"] += result[1]["backend"]
+        
+    return code, imports
     
-    sys.stdout.write("Reading... ")
-    sys.stdout.flush()
-    contents = _read_file(fullPath)
-    print("Done")
-    sys.stdout.flush()
-    time.sleep(0.01)
-    
-    print("Generating code... \n")
-    sys.stdout.flush()
-    time.sleep(0.01)
-    
-    lines =  contents.split("\n")
+def _generate_code_blocks(code):
+    lines = code.split("\n")
     blocks = []
     block = []
     for line in lines:
@@ -103,32 +123,43 @@ def generate_code_from_file(file):
             block = []
         elif line != "":
             block.append(line)
-            
+
     joined_blocks = []
     for block in blocks:
         joined_blocks.append("\n".join(block))
         
+    return joined_blocks
+
+def generate_code_from_file(file):
+    fullPath = path.realpath(file)
+    if not _file_exists(fullPath):
+        print("Cannot find input file {}".format(fullPath))
+        return None
+    
+    sys.stdout.write("Reading... ")
+    sys.stdout.flush()
+    contents = _read_file(fullPath)
+    print("Done")
+    sys.stdout.flush()
+    time.sleep(0.01)
+    
+    print("Generating code... \n")
+    sys.stdout.flush()
+    time.sleep(0.01)
+    
     start = time.time()
-    result_code = [None] * len(joined_blocks)
-    threads = []
-    for i in range(0, len(joined_blocks)):
-        block = joined_blocks[i] + "\n"
-        thread = threading.Thread(target=_run_thread, args=(block, result_code, i))
-        threads.append(thread)
+    blocks = [contents]
+    # does not currently work because the code doesn't know if it's in frontend or backend
+    use_blocks = False
+    if use_blocks:
+        blocks = _generate_code_blocks(contents)
 
-    # now wait on all the threads
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-
-    # the grammar requires a newline at the end of the file
-    result_done = time.time()
-
+    result = _generate_code_in_threads(blocks)
     code = result[0]
     imports = result[1]
 
-    print("Done")
+    result_done = time.time()
+    print("Done (total time {})".format(result_done - start))
     sys.stdout.flush()
     time.sleep(0.01)
     

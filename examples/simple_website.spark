@@ -102,7 +102,7 @@ class App extends Component
 			</div>
 			<div>
 				<input
-					type = "text"
+                    type = "text"
                     onChange=function(e)
                         newVal = e.target.value
                         username.set(
