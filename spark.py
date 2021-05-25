@@ -5,6 +5,7 @@ import subprocess
 import time
 import shutil
 import glob
+import threading
 
 script_dir = path.dirname(path.realpath(__file__))
 cacheDir = path.realpath(script_dir + "/cache")
@@ -48,7 +49,24 @@ def _copy_library(libType, lang, category, library, extension):
     libPath = path.realpath(script_dir + "/" + libType + "/" + lang + "/" + category + "/" + library + "." + extension)
     newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
     _copy_file(libPath, newLibPath)
-    
+
+def _run_thread(code, result_arr, i):
+    if code[-1] != "\n":
+        code += "\n"
+
+    print("Thread {} started...".format(i))
+    sys.stdout.flush()
+    time.sleep(0.01)
+    tree = grammar.parse_statement(code)
+    grammar_done = time.time()
+    processed = transformer.process_tree(tree)
+    processed_done = time.time()
+    result = generator.generate(processed, lang)
+    result_arr[i] = result
+    print("Thread {} finished...".format(i))
+    sys.stdout.flush()
+    time.sleep(0.01)
+
 def generate_code_from_file(file):
     fullPath = path.realpath(file)
     if not _file_exists(fullPath):
@@ -62,7 +80,10 @@ def generate_code_from_file(file):
     sys.stdout.flush()
     time.sleep(0.01)
     
-    #print(contents)
+    print("Generating code... \n")
+    sys.stdout.flush()
+    time.sleep(0.01)
+    
     lines =  contents.split("\n")
     blocks = []
     block = []
@@ -75,8 +96,9 @@ def generate_code_from_file(file):
                 line_count += 4
             else:
                 break
-        # print(line_count, line)
         if line_count == 0 and len(block) > 0:
+            if line == ")":
+                block.append(line)
             blocks.append(block)
             block = []
         elif line != "":
@@ -86,22 +108,21 @@ def generate_code_from_file(file):
     for block in blocks:
         joined_blocks.append("\n".join(block))
         
-    #for block in joined_blocks:
-    #    print(block)
+    start = time.time()
+    result_code = [None] * len(joined_blocks)
+    threads = []
+    for i in range(0, len(joined_blocks)):
+        block = joined_blocks[i] + "\n"
+        thread = threading.Thread(target=_run_thread, args=(block, result_code, i))
+        threads.append(thread)
 
-    sys.stdout.write("Generating code... ")
-    sys.stdout.flush()
+    # now wait on all the threads
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
 
     # the grammar requires a newline at the end of the file
-    if contents[-1] != "\n":
-        contents += "\n"
-
-    start = time.time()
-    tree = grammar.parse_statement(contents)
-    grammar_done = time.time()
-    processed = transformer.process_tree(tree)
-    processed_done = time.time()
-    result = generator.generate(processed, lang)
     result_done = time.time()
 
     code = result[0]
