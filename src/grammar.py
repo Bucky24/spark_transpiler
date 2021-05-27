@@ -1,9 +1,12 @@
 from lark import Lark
+from lark import tree
+from lark import lexer
 
+Tree = tree.Tree
+Token = lexer.Token
 
 # Needed:
 # * Need to be able to have statement that is nothing but whitespace
-# * Need to be able to call a function with no params like "foo()" rather than "foo(\n)"
 
 grammar = """
 start: statements

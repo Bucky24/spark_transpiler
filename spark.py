@@ -50,86 +50,6 @@ def _copy_library(libType, lang, category, library, extension):
     newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
     _copy_file(libPath, newLibPath)
 
-def _run_thread(code, result_arr, i):
-    if code[-1] != "\n":
-        code += "\n"
-
-    start = time.time()
-    print("Thread {} started...".format(i+1))
-    #print(code)
-    sys.stdout.flush()
-    time.sleep(0.01)
-    tree = grammar.parse_statement(code)
-    grammar_done = time.time()
-    processed = transformer.process_tree(tree)
-    processed_done = time.time()
-    result = generator.generate(processed, lang)
-    result_arr[i] = result
-    result_done = time.time()
-    total_time = result_done - start
-    print("Thread {} finished (took {})...".format(i+1, total_time))
-    sys.stdout.flush()
-    time.sleep(0.01)
-    
-def _generate_code_in_threads(code_blocks):
-    result_data = [None] * len(code_blocks)
-    threads = []
-    for i in range(0, len(code_blocks)):
-        # the grammar requires a newline at the end
-        block = code_blocks[i] + "\n"
-        thread = threading.Thread(target=_run_thread, args=(block, result_data, i))
-        threads.append(thread)
-
-    # now start and wait on all the threads
-    for thread in threads:
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-        
-    code = {
-        "frontend": "",
-        "backend": "",
-    }
-    imports = {
-        "frontend": [],
-        "backend": [],
-    }
-    for result in result_data:
-        code["frontend"] += result[0]["frontend"] + "\n"
-        code["backend"] += result[0]["backend"] + "\n"
-        imports["frontend"] += result[1]["frontend"]
-        imports["backend"] += result[1]["backend"]
-        
-    return code, imports
-    
-def _generate_code_blocks(code):
-    lines = code.split("\n")
-    blocks = []
-    block = []
-    for line in lines:
-        line_count = 0
-        for char in line:
-            if char == ' ':
-                line_count += 1
-            elif char == '\t':
-                line_count += 4
-            else:
-                break
-        if line_count == 0 and len(block) > 0:
-            if line == ")":
-                block.append(line)
-            blocks.append(block)
-            block = []
-        elif line != "":
-            block.append(line)
-
-    joined_blocks = []
-    for block in blocks:
-        joined_blocks.append("\n".join(block))
-        
-    return joined_blocks
-
 def generate_code_from_file(file):
     fullPath = path.realpath(file)
     if not _file_exists(fullPath):
@@ -143,18 +63,47 @@ def generate_code_from_file(file):
     sys.stdout.flush()
     time.sleep(0.01)
     
-    print("Generating code... \n")
+    
+    
+    sys.stdout.write("Generating code... ")
     sys.stdout.flush()
     time.sleep(0.01)
+    contents += "\n"
     
-    start = time.time()
-    blocks = [contents]
-    # does not currently work because the code doesn't know if it's in frontend or backend
-    use_blocks = False
-    if use_blocks:
-        blocks = _generate_code_blocks(contents)
+    lines = contents.split("\n")
 
-    result = _generate_code_in_threads(blocks)
+    # So what are we doing here?
+    # Lark apparently has a hard time with whitespace. Like a really hard time.
+    # But only when generating the parse tree. So this code gathers info on the spaces,
+    # generates the parse tree per line with no whitespace, and then adds them back
+    # in manually. This takes a 16 second compile down to 2.5. For some reason.
+    start = time.time()
+    statements = []
+    for line in lines:
+        spaces = []
+        for char in line:
+            if char == " ":
+                spaces.append(grammar.Token("SPACE", " "))
+            elif char == "\t":
+                spaces.append(grammar.Token("TAB", "\t"))
+            else:
+                break
+
+        tree = grammar.parse_statement(line.strip() + "\n")
+        statement = tree.children[0].children[0]
+        if isinstance(statement, grammar.Tree) and spaces:
+            spaces.reverse()
+            for space in spaces:
+                statement.children.insert(0, grammar.Tree("spaces", [space]))
+        statements.append(statement)
+        
+    tree = grammar.Tree("start", [
+        grammar.Tree("statements", statements)
+    ])
+    grammar_done = time.time()
+    processed = transformer.process_tree(tree)
+    processed_done = time.time()
+    result = generator.generate(processed, lang)
     code = result[0]
     imports = result[1]
 
