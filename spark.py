@@ -63,47 +63,13 @@ def generate_code_from_file(file):
     sys.stdout.flush()
     time.sleep(0.01)
     
-    
-    
     sys.stdout.write("Generating code... ")
     sys.stdout.flush()
     time.sleep(0.01)
     contents += "\n"
-    
-    lines = contents.split("\n")
-
-    # So what are we doing here?
-    # Lark apparently has a hard time with whitespace. Like a really hard time.
-    # But only when generating the parse tree. So this code gathers info on the spaces,
-    # generates the parse tree per line with no whitespace, and then adds them back
-    # in manually. This takes a 16 second compile down to 2.5. For some reason.
     start = time.time()
-    statements = []
-    for line in lines:
-        spaces = []
-        for char in line:
-            if char == " ":
-                spaces.append(grammar.Token("SPACE", " "))
-            elif char == "\t":
-                spaces.append(grammar.Token("TAB", "\t"))
-            else:
-                break
-
-        tree = grammar.parse_statement(line.strip() + "\n")
-        statement = tree.children[0].children[0]
-        if isinstance(statement, grammar.Tree) and spaces:
-            spaces.reverse()
-            for space in spaces:
-                statement.children.insert(0, grammar.Tree("spaces", [space]))
-        statements.append(statement)
-        
-    tree = grammar.Tree("start", [
-        grammar.Tree("statements", statements)
-    ])
-    grammar_done = time.time()
-    processed = transformer.process_tree(tree)
-    processed_done = time.time()
-    result = generator.generate(processed, lang)
+    
+    result = generator.generate_from_code(contents, lang)
     code = result[0]
     imports = result[1]
 
@@ -155,7 +121,7 @@ def generate_frontend_framework(outFiles, imports):
     backend_import_list = []
     #for file in outFiles["backend"]:
     # right now it's just one file
-    backend_import_list.append("require(\"{}\");".format(outFiles["backend"]))
+    backend_import_list.append("require(\"{}\");".format(outFiles["backend"].replace("\\", "\\\\")))
 
     backend_import_string = "\n".join(backend_import_list)
 

@@ -61,7 +61,9 @@ class SparkTransformer(Transformer):
         return "\"" + str(name) + "\""
 
     def string(self, string):
-        return string[0]
+        if len(string) > 0:
+            return string[0]
+        return "\"\""
 
     def statement(self, tokens):
         return self._get_statement(tokens)

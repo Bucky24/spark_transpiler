@@ -22,7 +22,9 @@ Api.get(
 				user: user[0]
 			}
 		return {
-			user: null
+			user: {
+				username: ""
+			}
 		}
 )
 

@@ -25,7 +25,7 @@ value_manipulation: statement_no_space_no_value_manip (" "*  OPERATOR " "* state
 
 STRING_CONTENTS_DOUBLE: /([^\"])+/
 STRING_CONTENTS_SINGLE: /([^'])+/
-string: "\\\"" STRING_CONTENTS_DOUBLE "\\\"" | "'" STRING_CONTENTS_SINGLE "'"
+string: "\\\"" STRING_CONTENTS_DOUBLE? "\\\"" | "'" STRING_CONTENTS_SINGLE? "'"
 
 NUMBER: "0".."9"+ ("." "0".."9"+)?
 
