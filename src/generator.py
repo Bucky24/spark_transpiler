@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 # neccessary on windows so that generator can find generator_js when called from spark.py
 # for whatever reason
@@ -9,6 +10,12 @@ sys.path.append(file_dir)
 import grammar 
 from transformer import process_tree
 from generator_js import generate_js
+
+_COMMON_CODE = {
+    "}": grammar.Tree('statement', [grammar.Tree('map_end', [])]),
+    ")": grammar.Tree('statement', [grammar.Tree('end_call_function', [])]),
+    "{": grammar.Tree('statement', [grammar.Tree('map_start', [])]),
+}
 
 def generate(transformed, lang):
     if lang == "js":
@@ -33,8 +40,19 @@ def generate_from_code(code, lang):
             else:
                 break
 
-        tree = grammar.parse_statement(line.strip() + "\n")
-        statement = tree.children[0].children[0]
+        line_no_space = line.strip()
+
+        if line_no_space == '':
+            continue
+        statement = _COMMON_CODE.get(line_no_space, None)
+        if statement is None:
+            start = time.time()
+            tree = grammar.parse_statement(line_no_space + "\n")
+            end = time.time()
+            
+            statement = tree.children[0].children[0]
+            #print(line_no_space, (end - start))
+
         if isinstance(statement, grammar.Tree) and spaces:
             spaces.reverse()
             for space in spaces:
