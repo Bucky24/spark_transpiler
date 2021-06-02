@@ -4,7 +4,12 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
+
 const args = process.argv.slice(2);
+if (args.length === 0) {
+    console.log("Usage: spark <file>");
+    process.exit(1);
+}
 
 function compileFiles() {
 	return new Promise((resolve, reject) => {
