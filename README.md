@@ -318,6 +318,26 @@ foo.set(
 )
 ```
 
+**### API class
+
+The API class on the frontend is used to call apis.
+
+#### post/get
+
+```
+result = API.post(
+    apiName
+    apiParameters
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| apiName | string | The name of the api to call |
+| apiParameters | any | The parameters to pass to the API method. Can be anything that can be turned into JSON |
+
+The result of this method will be whatever the API returned on the backend.**
+
 ## Backend
 
 ### Table
@@ -437,29 +457,7 @@ exampleTable.update(
 | search | map | Similar to `load`, this map defines what rows should be updated. An empty map will update all rows |
 | data | map | Similar to `insert`, this map defines what fields to update and what data to update them with
 
-### API class
-
-The API class on the frontend is used to call apis.
-
-#### post/get
-
-```
-result = API.post(
-    apiName
-    apiParameters
-)
-```
-
-| Param | Type | Description |
-| --- | --- | --- |
-| apiName | string | The name of the api to call |
-| apiParameters | any | The parameters to pass to the API method. Can be anything that can be turned into JSON |
-
-The result of this method will be whatever the API returned on the backend.
-
-## Backend
-
-### API class
+### API
 
 The API class on the backend is used to define apis.
 
