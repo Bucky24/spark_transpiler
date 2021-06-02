@@ -236,10 +236,17 @@ class SparkTransformer(Transformer):
         return str(value)
 
     def pragma(self, values):
-        return {
-            "type": TYPES["PRAGMA"],
-            "pragma": values[0],
-        }
+        if len(values) == 1:
+            return {
+                "type": TYPES["PRAGMA"],
+                "pragma": values[0],
+            }
+        else:
+            return {
+                "type": TYPES["PRAGMA"],
+                "pragma": values[0],
+                "value": values[1],
+            }
         
     def array_start(self, _):
         return {
@@ -343,6 +350,9 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["ELSE"],
         }
+        
+    def PRAGMA_VALUE(self, value):
+        return str(value)
 
 _spark_transformer = SparkTransformer()
 

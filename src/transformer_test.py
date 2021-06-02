@@ -263,6 +263,16 @@ class bar
             }, 0),
         ])
         
+        tree = parse_statement("#foo bar")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["PRAGMA"],
+                "pragma": "foo",
+                "value": "bar",
+            }, 0),
+        ])
+        
     def test_tabs_and_spaces(self):
         tree = parse_statement("foo = bar\n    foo = bar\n\tfoo = bar\n")
         processed = process_tree(tree)

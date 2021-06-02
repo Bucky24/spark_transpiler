@@ -72,6 +72,7 @@ def generate_code_from_file(file):
     result = generator.generate_from_code(contents, lang)
     code = result[0]
     imports = result[1]
+    pragmas = result[2]
 
     result_done = time.time()
     print("Done (total time {})".format(result_done - start))
@@ -83,7 +84,7 @@ def generate_code_from_file(file):
     print("processing: ", (processed_done - grammar_done))
     print("generation: ", (result_done - processed_done))"""
 
-    return code, imports
+    return code, imports, pragmas
 
 def generate_frontend_framework(outFiles, imports):
     # if we have ANY frontend code, our backend needs to contain the initial setup code to display said frontend
@@ -108,7 +109,7 @@ def generate_frontend_framework(outFiles, imports):
         )
         frontend_imports.append(lib_path)
 
-    frontend_imports.append(outFiles["frontend"])
+    frontend_imports += outFiles["frontend"]
 
     frontend_import_code_list = []
     for import_file in frontend_imports:
@@ -121,7 +122,8 @@ def generate_frontend_framework(outFiles, imports):
     backend_import_list = []
     #for file in outFiles["backend"]:
     # right now it's just one file
-    backend_import_list.append("require(\"{}\");".format(outFiles["backend"].replace("\\", "\\\\")))
+    for outfile in outFiles["backend"]:
+        backend_import_list.append("require(\"{}\");".format(outfile.replace("\\", "\\\\")))
 
     backend_import_string = "\n".join(backend_import_list)
 
@@ -135,7 +137,7 @@ def generate_frontend_framework(outFiles, imports):
         "js",
         final_content,
     )
-    outFiles["backend"] = file_path
+    outFiles["backend"] = [file_path]
 
     # then we need to generate the frontend index template
 
@@ -174,12 +176,15 @@ def main():
     if not _file_exists(cacheDir):
         mkdir(cacheDir)
 
-    files = glob.glob(path.realpath(cacheDir + "/*"))
-    for f in files:
+    cache_files = glob.glob(path.realpath(cacheDir + "/*"))
+    for f in cache_files:
         remove(f)
+        
+    files = [] + args.files
 
     # right now we're assuming we only have 1 file
-    for file in args.files:
+    while len(files) > 0:
+        file = files.pop()
         result = None
         try:
             result = generate_code_from_file(file)
@@ -190,9 +195,12 @@ def main():
         if not result:
             sys.exit(1)
             
-        code, imports = result
+        code, imports, pragmas = result
 
-        outFiles = {}
+        outFiles = {
+            "frontend": [],
+            "backend": [],
+        }
         for platform in code:
             platform_code = code[platform]
             platform_imports = imports[platform]
@@ -213,16 +221,20 @@ def main():
                     importFile["extension"],
                 )
 
-            outFile = path.realpath(cacheDir + "/output_{}.js".format(platform))
+            file_path = file.replace("../", "")
+            file_path = file_path.replace("./", "")
+            file_path = file_path.replace(".spark", "")
+            file_path = file_path.replace("/", "_")
+            outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
             handle = open(outFile, "w")
             handle.write(platform_code)
             print("Done")
             sys.stdout.flush()
             time.sleep(0.01)
-            outFiles[platform] = outFile
+            outFiles[platform].append(outFile)
 
         # this all needs to be moved to a utility method so we can unit test it
-        if outFiles.get("frontend", None):
+        if len(outFiles["frontend"]) > 0:
             sys.stdout.write("Generating frontend framework... ")
             sys.stdout.flush()
             time.sleep(0.01)
@@ -233,7 +245,7 @@ def main():
             sys.stdout.flush()
             time.sleep(0.01)
 
-        print(">>>{}".format(outFiles["backend"]))
+        print(">>>{}".format(outFiles["backend"][0]))
         sys.stdout.flush()
         time.sleep(0.01)
 

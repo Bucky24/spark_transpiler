@@ -27,6 +27,10 @@ _BACKEND_CLASSES = [
 _BACKEND_FUNCS = [
 
 ]
+_PLATFORMS = [
+    "backend",
+    "frontend",
+]
 
 def _add_spaces(spaces):
     code = ""
@@ -65,6 +69,10 @@ def generate_js(transformed_tree):
         "frontend": [],
     }
     class_calls = {
+        "backend": [],
+        "frontend": [],
+    }
+    pragmas = {
         "backend": [],
         "frontend": [],
     }
@@ -167,6 +175,8 @@ def generate_js(transformed_tree):
                     # first close all blocks
                     _unwind_blocks()
                     current_platform = result.get("new_platform")
+                    
+                pragmas[current_platform] += result.get("new_pragmas", [])
                 
                 if statement_code is None:
                     continue
@@ -266,7 +276,7 @@ def generate_js(transformed_tree):
         # wrap it in an async self-calling method
         code["frontend"] = "(async () => {\n" + code["frontend"] + "\n})();\n";
 
-    return code, requirement_files
+    return code, requirement_files, pragmas
 
 def process_statement(statement, variables_generated, spaces, is_class, classes, is_jsx, platform):
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
@@ -285,7 +295,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
         str_value = value["statement"]
         start_block = value.get("start_block", None)
         if is_jsx:
-            # in this case we need to treat this like a map, because we're probably in a map
+            # in this case we need to treat this like an attribute
             return {
                 "statement": "{}: {}".format(statement["name"], str_value),
                 "start_block": start_block,
@@ -443,10 +453,30 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": ".".join(statement["chain"]),
         }
     elif statement["type"] == TYPES["PRAGMA"]:
-        return {
-            "statement": None,
-            "new_platform": statement["pragma"].lower(),
-        }
+        pragma = statement["pragma"].lower()
+        value = statement.get("value", "").lower()
+        
+        if pragma in _PLATFORMS:
+            return {
+                "statement": None,
+                "new_platform": pragma,
+            }
+        else:
+            if value == "":
+                return {
+                    "statement": None,
+                    "new_pragmas": [{
+                        "type": pragma,
+                    }]
+                }
+            else:
+                return {
+                    "statement": None,
+                    "new_pragmas": [{
+                        "type": pragma,
+                        "value": value,
+                    }]
+                }
     elif statement["type"] == TYPES["ARRAY"]:
         return {
             "statement": "[",

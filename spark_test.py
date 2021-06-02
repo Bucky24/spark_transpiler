@@ -44,10 +44,10 @@ class TestGenerateCode(unittest.TestCase):
         
         def _file_contents(*args):
             return code
-            
+
         _mock(spark, "_read_file", _file_contents)
-        
-        code, imports = generate_code_from_file("test_file")
+
+        code, imports, _ = generate_code_from_file("test_file")
         self.assertEqual(code["frontend"], "")
         self.assertEqual(code["backend"], "const {\n    print\n} = require(\"./stdlib_js_backend_common.js\");\n\nprint(\n    foo,\n\n);\n")
         self.assertEqual(imports["frontend"], [])

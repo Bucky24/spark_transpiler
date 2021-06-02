@@ -318,7 +318,7 @@ foo.set(
 )
 ```
 
-**### API class
+### API class
 
 The API class on the frontend is used to call apis.
 

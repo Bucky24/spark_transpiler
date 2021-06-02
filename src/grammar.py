@@ -53,7 +53,8 @@ call_function_one_line: variable " "* "()"
 return_stmt.1: "return" " "+ statement_no_space
 
 PRAGMA_NAME: ("a".."z" | "A".."Z")+
-pragma: "#" " "* PRAGMA_NAME
+PRAGMA_VALUE: ("a".."z" | "A".."Z")+
+pragma: "#" " "* PRAGMA_NAME " "* PRAGMA_VALUE?
 
 array_start: "["
 array_end: "]"
