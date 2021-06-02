@@ -6,9 +6,9 @@ This project defines a language, Spark, that is meant to be a very simple to use
 
 I created this project to serve as a rapid prototyping language and system, so that I can try out ideas quickly without needing to setup a lot of boilerplate. To that end, it will eventually have a very powerful and extensive standard library, geared towards rapid prototyping of web apps.
 
-## Language Details
+# Language Details
 
-### Variables
+## Variables
 
 Variables are typeless, and can be defined like so:
 
@@ -39,7 +39,7 @@ The following operations can be performed on any statement:
 <statement> / <statement>
 <statement> * <statement>
 ```
-### Conditionals
+## Conditionals
 
 Conditionals are of the format:
 
@@ -52,7 +52,7 @@ else
 
 Where a condition can be one of `>`, `<`, `=>`, `=<`, `==`, `!=`
 
-### Loops
+## Loops
 
 A loop can have the following formats:
 
@@ -70,7 +70,7 @@ while <statement> <condition> <statement>
     <statements>
 ```
 
-### Functions
+## Functions
 
 Function must be defined with the `function` keyword:
 
@@ -107,7 +107,7 @@ function foo(bar)
     return bar
 ```
 
-### Classes
+## Classes
 
 Can extend other classes. Can contain functions inside them.
 Special function `constructor` for creating new instances.
@@ -148,7 +148,7 @@ inst_of_class2.inst_of_class1.hello()
 
 This code prints "hello"
 
-### Arrays
+## Arrays
 
 Arrays can be defined in the following way:
 ```
@@ -171,7 +171,7 @@ foo = [
 bar = foo[0]
 ```
 
-### Maps
+## Maps
 
 Maps can be defined in the following way:
 ```
@@ -180,7 +180,7 @@ foo = {
 }
 ```
 
-### JSX
+## JSX
 
 The system will properly parse JSX format as well:
 ```
@@ -195,17 +195,17 @@ foo = <div>
 
 Note that this is basically syntactic sugar that does the same thing as making a new instance of a Component.
 
-## Standard Library
+# Standard Library
 
-### Common
+## Common
 
-These methods are available to both backend and frontend:
+These methods and classes are available to both backend and frontend:
 
 | Method | Description | Signature |
 | --- | --- | --- |
 | print | Prints text to the console | Can take in any number of params. Params must be castable to a string |
 
-### Frontend
+## Frontend
 
 These methods are available to the frontend code:
 
@@ -213,13 +213,13 @@ These methods are available to the frontend code:
 | --- | --- | --- |
 | render | Renders a Component to the page | Takes in a single instance of a Component |
 
-#### Component class
+### Component class
 
 The Component class represents a component and its children, and can be rendered to the page.
 
 The following methods are available:
 
-##### Constructor
+#### Constructor
 
 Signature:
 ```
@@ -234,11 +234,11 @@ Component(
 | --- | --- | --- |
 | tag | string | The tag to render. Optional |
 | attributes | map | Attributes to attach to the element |
-| children | array of strings | Children to render in the component. Can be strings, or other Components |
+| children | array | Children to render in the component. Can be strings, or other Components |
 
 If the constructor is called with only 2 parameters, these are expected to be the attributes and the children. This should only be done for classes that extend Component.
 
-##### Extending
+#### Extending
 
 Component can be extended in the following way:
 
@@ -262,11 +262,11 @@ foo = <div>
 </div>
 ```
 
-#### Style
+### Style
 
 The Style object allows encoding of CSS and attaching it to a component
 
-##### Constructor
+#### Constructor
 
 Signature:
 ```
@@ -277,11 +277,11 @@ Style(
 )
 ```
 
-#### Variable
+### Variable
 
 The Variable class allows storing of data across re-renders.
 
-##### Constructor
+#### Constructor
 
 Signature:
 ```
@@ -294,7 +294,7 @@ Variable(
 | --- | --- | --- |
 | defaultValue | any | The value to start the Variable with. Optional |
 
-##### Get
+#### Get
 
 Returns the current value of the Variable
 ```
@@ -305,7 +305,7 @@ foo = Variable(
 bar = foo.get()
 ```
 
-##### Set
+#### Set
 
 Sets the current value of the Variable
 ```
@@ -317,3 +317,165 @@ foo.set(
     1
 )
 ```
+
+## Backend
+
+### Table
+
+The Table class is used for defining and performing CRUD operations on database schemas.
+
+#### Constructor
+
+Signature:
+```
+Table(
+    tableName
+    fieldsList
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| tableName | string | The name of the database table |
+| fieldsList | array | An array of Field objects |
+
+The Field is an object with the following structure:
+
+```
+{
+    name: "the name of the field"
+    type: <one of the Table types below, Table.STRING for example>
+}
+```
+
+Table field types:
+
+The following types exist for table Fields
+| Name | Description |
+| --- | --- |
+| STRING | Defines a field that stores strings |
+
+#### load
+
+The load method is an instance method, and will perform a query on the database, returning all fields that match.
+
+```
+exampleTable = Table(
+    "example"
+    [
+        {
+            name: "field1"
+            type: Table.STRING
+        }
+    ]
+)
+
+results = exampleTable.load(
+    {
+        field1: "foo"
+    }
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| search | map | A map with keys being the field to search and value being the value the field must contain. An empty map will return all rows. |
+
+#### insert
+
+The insert method is an instance method, and will insert a new row into the database
+
+```
+exampleTable = Table(
+    "example"
+    [
+        {
+            name: "field1"
+            type: Table.STRING
+        }
+    ]
+)
+
+exampleTable.insert(
+    {
+        field1: "foo"
+    }
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | map | A map with keys being the field and value being the value to insert for that field |
+
+#### update
+
+The update method is an instance method, and will update all matching rows in the db
+
+```
+exampleTable = Table(
+    "example"
+    [
+        {
+            name: "field1"
+            type: Table.STRING
+        }
+    ]
+)
+
+exampleTable.update(
+    {
+        field1: "foo"
+    }
+    {
+        field1: "bar"
+    }
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| search | map | Similar to `load`, this map defines what rows should be updated. An empty map will update all rows |
+| data | map | Similar to `insert`, this map defines what fields to update and what data to update them with
+
+### API class
+
+The API class on the frontend is used to call apis.
+
+#### post/get
+
+```
+result = API.post(
+    apiName
+    apiParameters
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| apiName | string | The name of the api to call |
+| apiParameters | any | The parameters to pass to the API method. Can be anything that can be turned into JSON |
+
+The result of this method will be whatever the API returned on the backend.
+
+## Backend
+
+### API class
+
+The API class on the backend is used to define apis.
+
+#### post/get
+
+```
+API.get(
+    apiName
+    function(parameters)
+        return result
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| apiName | string | The name of the api to call |
+| apiMethod | function | The function to call whenever the API is called. The result of this method is returned as the API result |
+
+The result of this method will be whatever the API returned on the backend.
