@@ -261,6 +261,7 @@ class SparkTransformer(Transformer):
     def map_start(self, _):
         return {
             "type": TYPES["MAP"],
+            "self_closes": False,
         }
         
     def map_row(self, values):
@@ -353,6 +354,12 @@ class SparkTransformer(Transformer):
         
     def PRAGMA_VALUE(self, value):
         return str(value)
+
+    def map_one_line(self, _):
+        return {
+            "type": TYPES["MAP"],
+            "self_closes": True,
+        }
 
 _spark_transformer = SparkTransformer()
 

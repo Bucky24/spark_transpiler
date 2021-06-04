@@ -487,10 +487,15 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": "]",
         }
     elif statement["type"] == TYPES["MAP"]:
-        return {
-            "statement": "{",
-            "start_block": "map",
-        }
+        if statement["self_closes"]:
+            return {
+                "statement": "{}",
+            }
+        else:
+            return {
+                "statement": "{",
+                "start_block": "map",
+            }
     elif statement["type"] == TYPES["MAP_END"]:
         return {
             "statement": "}",

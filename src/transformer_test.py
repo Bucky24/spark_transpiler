@@ -321,6 +321,7 @@ class bar
                 "name": "foo",
                 "value": statement({
                     "type": TYPES["MAP"],
+                    "self_closes": False,
                 }, 0),
             }, 0),
             statement({
@@ -486,6 +487,16 @@ class bar
             }, 0),
             statement({
                 "type": TYPES["ELSE"],
+            }, 0),
+        ])
+
+    def test_map_one_line(self):
+        tree = parse_statement("{}")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["MAP"],
+                "self_closes": True,
             }, 0),
         ])
         

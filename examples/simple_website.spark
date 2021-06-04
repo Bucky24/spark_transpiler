@@ -14,8 +14,7 @@ Api.get(
 	"user"
 	function(parameters)
 		user = userTable.load(
-			{
-			}
+			{}
 		)
 		if user.length > 0
 			return {
@@ -23,7 +22,7 @@ Api.get(
 			}
 		return {
 			user: {
-				username: ""
+				username: "none"
 			}
 		}
 )
@@ -32,13 +31,11 @@ Api.post(
     "user"
     function(parameters)
     	user = userTable.load(
-    		{
-            }
+    		{}
     	)
     	if user.length > 0
             userTable.update(
-                {
-                }
+                {}
                 {
                     username: parameters.username
                 }
@@ -74,8 +71,7 @@ count = Variable(
 
 result = Api.get(
 	"user"
-	{
-    }
+	{}
 )
 username = Variable(
     result.user.username

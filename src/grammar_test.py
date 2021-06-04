@@ -972,5 +972,20 @@ if foo == \"bar\"
             Token("NEWLINE", "\n"),
         ]))
 
+    def test_map_one_line(self):
+        tree = parse_statement("{}")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("map_one_line", []),
+            ]),
+        ]))
+
+        tree = parse_statement("{  }")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("map_one_line", []),
+            ]),
+        ]))
+
 if __name__ == "__main__":
     unittest.main()

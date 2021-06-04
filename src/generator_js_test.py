@@ -340,5 +340,11 @@ class TestGeneratorJs(unittest.TestCase):
             },
         ])
 
+    def test_map_one_line(self):
+        tree = parse_statement("{}")
+        processed = process_tree(tree)
+        result, _ = generate(processed, "js")
+        self.assertEqual(result["backend"], "{};\n")
+
 if __name__ == "__main__":
     unittest.main()
