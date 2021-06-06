@@ -7,6 +7,7 @@ Token = lexer.Token
 
 # Needed:
 # * Need to be able to have statement that is nothing but whitespace
+# * clean up pragma to handle the different valid pragmas
 
 grammar = """
 start: statements
@@ -53,8 +54,8 @@ call_function_one_line: variable " "* "()"
 return_stmt.1: "return" " "+ statement_no_space
 
 PRAGMA_NAME: ("a".."z" | "A".."Z")+
-PRAGMA_VALUE: ("a".."z" | "A".."Z")+
-pragma: "#" " "* PRAGMA_NAME " "* PRAGMA_VALUE?
+PRAGMA_VALUE: ("a".."z" | "A".."Z" | "." | "0".."9" | " " | ",")+
+pragma: "#" " "* PRAGMA_NAME (" "+ PRAGMA_VALUE)?
 
 array_start: "["
 array_end: "]"

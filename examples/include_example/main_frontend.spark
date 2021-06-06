@@ -1,0 +1,11 @@
+#frontend
+
+#include Main,getComponent from components.spark
+
+main = <Main/>
+
+render(
+    <div>
+        main
+    </div>
+)

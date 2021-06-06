@@ -553,7 +553,7 @@ if foo == \"bar\"
                 Tree("statement", [
                     Tree("pragma", [
                         Token("PRAGMA_NAME", "FOO"),
-                        Token("PRAGMA_VALUE", "bar"),
+                        Token("PRAGMA_VALUE", " bar"),
                     ]),
                 ]),
             ]),

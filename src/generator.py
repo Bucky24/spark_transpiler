@@ -12,16 +12,16 @@ from transformer import process_tree
 from generator_js import generate_js
 
 _COMMON_CODE = {
-    "}": grammar.Tree('statement', [grammar.Tree('map_end', [])]),
-    ")": grammar.Tree('statement', [grammar.Tree('end_call_function', [])]),
-    "{": grammar.Tree('statement', [grammar.Tree('map_start', [])]),
+    "}": [grammar.Tree('map_end', [])],
+    ")": [grammar.Tree('end_call_function', [])],
+    "{": [grammar.Tree('map_start', [])],
 }
 
-def generate(transformed, lang):
+def generate(transformed, lang, label="label", import_data=None):
     if lang == "js":
-        return generate_js(transformed)
+        return generate_js(transformed, label, import_data)
 
-def generate_from_code(code, lang):
+def generate_from_code(code, lang, label, import_data):
     lines = code.split("\n")
 
     # So what are we doing here?
@@ -52,6 +52,10 @@ def generate_from_code(code, lang):
             
             statement = tree.children[0].children[0]
             #print(line_no_space, (end - start))
+        else:
+            # we may manipulate the statement further on with spaces, so we need to make sure children
+            # is a clean copy
+            statement = grammar.Tree('statement', [] + statement)
 
         if isinstance(statement, grammar.Tree) and spaces:
             spaces.reverse()
@@ -63,4 +67,4 @@ def generate_from_code(code, lang):
         grammar.Tree("statements", statements)
     ])
     processed = process_tree(tree)
-    return generate(processed, lang)
+    return generate(processed, lang, label, import_data)

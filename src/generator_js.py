@@ -42,7 +42,7 @@ def _add_spaces(spaces):
 
     return code
 
-def generate_js(transformed_tree):
+def generate_js(transformed_tree, label, import_data):
     code = {
         "backend": "",
         "frontend": "",
@@ -59,7 +59,12 @@ def generate_js(transformed_tree):
             "is_jsx": False,
         }
     ]
+    import_data = import_data if import_data else { "backend": {}, "frontend": {}}
     next_statement_starts_block = False
+    import_classes = {
+        "backend": import_data.get("backend", {}).get("classes", []),
+        "frontend": import_data.get("frontend", {}).get("classes", []),
+    }
     classes = {
         "backend": [],
         "frontend": [],
@@ -73,6 +78,10 @@ def generate_js(transformed_tree):
         "frontend": [],
     }
     pragmas = {
+        "backend": [],
+        "frontend": [],
+    }
+    new_functions = {
         "backend": [],
         "frontend": [],
     }
@@ -165,8 +174,8 @@ def generate_js(transformed_tree):
                 #print("ending block 2")
                 current_block = _end_block(current_block)
                 
-            all_classes = _FRONTEND_CLASSES + classes[current_platform] + _BACKEND_CLASSES + _COMMON_CLASSES
-
+            all_classes = _FRONTEND_CLASSES + classes[current_platform] + _BACKEND_CLASSES + _COMMON_CLASSES + import_classes[current_platform]
+ 
             result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], all_classes, current_block["is_jsx"], current_platform)
             if result:
                 statement_code = result["statement"]
@@ -190,6 +199,10 @@ def generate_js(transformed_tree):
                 classes[current_platform] += result.get("new_classes", [])
                 function_calls[current_platform] += result.get("new_function_calls", [])
                 class_calls[current_platform] += result.get("new_class_calls", [])
+
+                # we only care about exporting these if it's top level
+                if spaces == 0:
+                    new_functions[current_platform] += result.get("new_functions", [])
 
                 if start_block:
                     # print("starts block?", start_block)
@@ -237,6 +250,7 @@ def generate_js(transformed_tree):
                 required_backend.append(class_call)
 
         requirements = ""
+        exports = ""
 
         if required_common:
             requirements += "const {\n    " + ",\n    ".join(set(required_common)) + "\n} = require(\"./stdlib_js_" + platform + "_common.js\");\n";
@@ -268,15 +282,30 @@ def generate_js(transformed_tree):
                 "category": platform,
             })
 
-        # frontend imports are handled later on
+        # handle exports from this particular file
+        export_list = []
+        export_list += new_functions[platform]
+        export_list += classes[platform]
+        if export_list and platform == "backend":
+            function_code = ",\n\t".join(export_list)
+            exports = "\nmodule.exports = {\n\t" + function_code + "\n};\n"
+            code[platform] += exports
+
+        if export_list and platform == "frontend":
+            function_code = ",\n\t".join(export_list)
+            exports = "\nreturn {\n\t" + function_code + "\n};\n"
+            code[platform] += exports
+
+        # we only need to handle backend library imports here. Frontend libraries export their contents to global scope.
         if requirements != "" and platform == "backend":
             code[platform] = requirements + "\n" + code[platform]
 
     if code["frontend"]:
-        # wrap it in an async self-calling method
-        code["frontend"] = "(async () => {\n" + code["frontend"] + "\n})();\n";
+        # wrap it in an async self-calling method and export the result. Also include a small wait in front of it so we can be sure that we don't try
+        # to run this code until other code is also loaded
+        code["frontend"] = "const " + (label or "label") + " = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code["frontend"] + "\n})();\n";
 
-    return code, requirement_files, pragmas
+    return code, requirement_files, pragmas, classes
 
 def process_statement(statement, variables_generated, spaces, is_class, classes, is_jsx, platform):
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
@@ -377,6 +406,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
         }
     elif statement["type"] == TYPES["FUNCTION"]:
         name = statement.get("name", "")
+        orig_name = name
         if name is None:
             name = ""
         elif not is_class:
@@ -391,10 +421,15 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
 
         if platform == "frontend":
             statement = "async {}".format(statement)
+
+        new_functions = []
+        if orig_name is not None and not is_class:
+            new_functions.append(orig_name)
         
         return {
             "statement": statement,
             "start_block": "function",
+            "new_functions": new_functions,
         }
     elif statement["type"] == TYPES["CALL_FUNC"]:
         name = process_statement(statement["function"], variables_generated, spaces, is_class, classes, is_jsx, platform)
@@ -454,7 +489,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
         }
     elif statement["type"] == TYPES["PRAGMA"]:
         pragma = statement["pragma"].lower()
-        value = statement.get("value", "").lower()
+        value = statement.get("value", "")
         
         if pragma in _PLATFORMS:
             return {

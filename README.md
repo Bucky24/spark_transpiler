@@ -195,6 +195,28 @@ foo = <div>
 
 Note that this is basically syntactic sugar that does the same thing as making a new instance of a Component.
 
+## Includes
+
+It is possible to include methods and classes from another file. Note that when doing so, you cannot define a backend function, then use it in frontend code in another file, or vice versa.
+
+`include.spark`:
+```
+#backend
+
+class Foo
+    function foo()
+
+function bar()
+```
+
+`main.spark`:
+```
+#include Foo,bar from include.spark
+
+inst = Foo()
+bar()
+```
+
 # Standard Library
 
 ## Common

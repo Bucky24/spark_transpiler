@@ -34,7 +34,7 @@ class TestGenerateCode(unittest.TestCase):
     def test_failure_on_not_exist(self):
         _mock(spark, "_file_exists", _return_false)
         
-        result = generate_code_from_file("test_file")
+        result = generate_code_from_file("test_file", "label", None)
         self.assertIsNone(result)
         
     def test_code_generation(self):
@@ -47,7 +47,7 @@ class TestGenerateCode(unittest.TestCase):
 
         _mock(spark, "_read_file", _file_contents)
 
-        code, imports, _ = generate_code_from_file("test_file")
+        code, imports, _, _ = generate_code_from_file("test_file", "label", None)
         self.assertEqual(code["frontend"], "")
         self.assertEqual(code["backend"], "const {\n    print\n} = require(\"./stdlib_js_backend_common.js\");\n\nprint(\n    foo,\n\n);\n")
         self.assertEqual(imports["frontend"], [])

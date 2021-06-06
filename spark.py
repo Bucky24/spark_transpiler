@@ -50,12 +50,12 @@ def _copy_library(libType, lang, category, library, extension):
     newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
     _copy_file(libPath, newLibPath)
 
-def generate_code_from_file(file):
+def generate_code_from_file(file, label, import_data):
     fullPath = path.realpath(file)
     if not _file_exists(fullPath):
         print("Cannot find input file {}".format(fullPath))
         return None
-    
+
     sys.stdout.write("Reading... ")
     sys.stdout.flush()
     contents = _read_file(fullPath)
@@ -69,10 +69,11 @@ def generate_code_from_file(file):
     contents += "\n"
     start = time.time()
     
-    result = generator.generate_from_code(contents, lang)
+    result = generator.generate_from_code(contents, lang, label, import_data)
     code = result[0]
     imports = result[1]
     pragmas = result[2]
+    classes = result[3]
 
     result_done = time.time()
     print("Done (total time {})".format(result_done - start))
@@ -84,7 +85,7 @@ def generate_code_from_file(file):
     print("processing: ", (processed_done - grammar_done))
     print("generation: ", (result_done - processed_done))"""
 
-    return code, imports, pragmas
+    return code, imports, pragmas, classes
 
 def generate_frontend_framework(outFiles, imports):
     # if we have ANY frontend code, our backend needs to contain the initial setup code to display said frontend
@@ -153,7 +154,7 @@ def generate_frontend_framework(outFiles, imports):
 
     for import_file in frontend_imports:
         filename = path.basename(import_file)
-        scripts.append("<script src=\"" + filename + "\"></script>")
+        scripts.append("<script src=\"" + filename + "\" defer></script>")
 
     final_index_content = index_contents.replace("<!-- FRONTEND_SCRIPTS -->", format("\n".join(scripts)))
     _write_library(
@@ -164,6 +165,14 @@ def generate_frontend_framework(outFiles, imports):
         "html",
         final_index_content,
     )
+
+def get_cache_path(file, platform):
+    file_path = file.replace("../", "")
+    file_path = file_path.replace("./", "")
+    file_path = file_path.replace(".spark", "")
+    file_path = file_path.replace("/", "_")
+    outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
+    return outFile
 
 lang = "js"
 
@@ -182,12 +191,103 @@ def main():
         
     files = [] + args.files
 
-    # right now we're assuming we only have 1 file
+    # pre-check all the files to deal with pre-processor statements
+    id_to_file_map = {}
+    files_to_run = []
+    file_ids = []
+    file_to_id_map = {}
+    file_import_data = {}
     while len(files) > 0:
         file = files.pop()
+        fullPath = path.realpath(file)
+        if not _file_exists(fullPath):
+            print("Cannot find input file {}".format(fullPath))
+            return None
+        contents = _read_file(fullPath)
+        lines = contents.split("\n")
+        file_import_data[file] = {
+            "frontend": {},
+            "backend": {},
+        }
+        cur_platform = "backend"
+        for line in lines:
+            if line.startswith("#include"):
+                line = line.replace("#include ", "")
+                line_list = line.split(" ")
+                included_file = line_list[0]
+                includes = []
+                if len(line_list) == 3:
+                    included_file = line_list[2]
+                    includes = line_list[0].split(",")
+                #print(included_file)
+                new_path = path.realpath(path.dirname(fullPath) + "/" + included_file)
+
+                if includes:
+                    file_import_data[file][cur_platform][new_path] = includes
+                files.append(new_path)
+            if line == "#backend":
+                cur_platform = "backend"
+            elif line == "#frontend":
+                cur_platform = "frontend"
+        base = path.basename(file)
+        file_list = base.split(".")
+        file_name = file_list[0]
+        cur_name = file_name
+        counter = 1
+        while cur_name in file_ids:
+            cur_name = file_name + "_" + counter
+            counter += 1
+        cur_name += "_out"
+        #print(cur_name, file)
+        id_to_file_map[cur_name] = file
+        file_to_id_map[file] = cur_name
+        file_ids.append(cur_name)
+        files_to_run.append(file)
+
+    outFiles = {
+        "frontend": [],
+        "backend": [],
+    }
+
+    file_classes = {}
+
+    # right now we're assuming we only have 1 file
+    while len(files_to_run) > 0:
+        file = files_to_run.pop()
+        file_id = file_to_id_map[file]
+
+        import_data = file_import_data[file]
+
+        #print(import_data)
+
+        # flatten the import data by platform
+
+        flattened_import_data = {
+            "frontend": {
+                "classes": [],
+                "functions": [],
+            },
+            "backend": {
+                "classes": [],
+                "functions": [],
+            },
+        }
+
+        for platform in import_data:
+            import_files = import_data[platform]
+            #print(import_files)
+            for import_file in import_files:
+                classes_in_file = file_classes.get(import_file, []).get(platform, [])
+                import_values = import_files[import_file]
+                #print(import_values, classes_in_file)
+                for value in import_values:
+                    if value in classes_in_file:
+                        flattened_import_data[platform]["classes"].append(value)
+        #print(flattened_import_data)
+
         result = None
         try:
-            result = generate_code_from_file(file)
+            result = generate_code_from_file(file, file_id, flattened_import_data)
         except Exception as error:
             print(error)
             sys.stderr.write("FAILURE\n")
@@ -195,15 +295,14 @@ def main():
         if not result:
             sys.exit(1)
             
-        code, imports, pragmas = result
+        code, imports, pragmas, classes = result
+        file_classes[file] = classes
 
-        outFiles = {
-            "frontend": [],
-            "backend": [],
-        }
         for platform in code:
             platform_code = code[platform]
+            #print(imports, platform)
             platform_imports = imports[platform]
+            platform_pragmas = pragmas[platform]
 
             if platform_code == "":
                 continue
@@ -221,33 +320,53 @@ def main():
                     importFile["extension"],
                 )
 
-            file_path = file.replace("../", "")
-            file_path = file_path.replace("./", "")
-            file_path = file_path.replace(".spark", "")
-            file_path = file_path.replace("/", "_")
-            outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
+            # handle any included files
+            for pragma in platform_pragmas:
+                if pragma["type"] == "include":
+                    value = pragma["value"]
+                    value_list = value.split(" ")
+                    #print(value_list)
+                    if len(value_list) == 1:
+                        fullPath = path.realpath(path.dirname(file) + "/" + value)
+                        files.append(fullPath)
+                    else:
+                        fullPath = path.realpath(path.dirname(file) + "/" + value_list[2])
+                        #files_to_run.append(fullPath)
+                        import_list = value_list[0]
+                        # this is technically a no-no because we are hard-coding our lang to JS right now
+                        # we don't need to add any import code if it's frontend because all code gets loaded top level
+                        if platform == "backend":
+                            export_file = get_cache_path(fullPath, platform)
+                            import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
+                            platform_code = import_code + platform_code
+                        elif platform == "frontend":
+                            export_name = file_to_id_map[fullPath]
+                            import_code = "const {" + import_list + "} = await " + export_name + ";\n"
+                            platform_code = platform_code.replace("//<IMPORTS>", import_code)
+
+            outFile = get_cache_path(file, platform)
             handle = open(outFile, "w")
             handle.write(platform_code)
             print("Done")
             sys.stdout.flush()
             time.sleep(0.01)
-            outFiles[platform].append(outFile)
+            outFiles[platform].insert(0, outFile)
 
-        # this all needs to be moved to a utility method so we can unit test it
-        if len(outFiles["frontend"]) > 0:
-            sys.stdout.write("Generating frontend framework... ")
-            sys.stdout.flush()
-            time.sleep(0.01)
-        
-            generate_frontend_framework(outFiles, imports)
-        
-            print("Done")
-            sys.stdout.flush()
-            time.sleep(0.01)
-
-        print(">>>{}".format(outFiles["backend"][0]))
+    # this all needs to be moved to a utility method so we can unit test it
+    if len(outFiles["frontend"]) > 0:
+        sys.stdout.write("Generating frontend framework... ")
         sys.stdout.flush()
         time.sleep(0.01)
+    
+        generate_frontend_framework(outFiles, imports)
+    
+        print("Done")
+        sys.stdout.flush()
+        time.sleep(0.01)
+
+    print(">>>{}".format(outFiles["backend"][0]))
+    sys.stdout.flush()
+    time.sleep(0.01)
 
 if __name__ == "__main__":
     main()
