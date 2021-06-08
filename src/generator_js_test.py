@@ -462,6 +462,19 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(processed, "js", None, {"frontend": {"classes": ["Bar"]}})
         result = result[0]
         self.assertEqual(result["frontend"], _wrap_front("var foo = new Bar();\n"))
+        
+    def test_boolean(self):
+        tree = parse_statement("foo = false")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["backend"], "var foo = false;\n");
+        
+        tree = parse_statement("foo = true")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["backend"], "var foo = true;\n");
 
 if __name__ == "__main__":
     unittest.main()

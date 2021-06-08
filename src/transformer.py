@@ -360,6 +360,15 @@ class SparkTransformer(Transformer):
             "type": TYPES["MAP"],
             "self_closes": True,
         }
+        
+    def FALSE(self, _):
+        return "false"
+        
+    def TRUE(self, _):
+        return "true"
+        
+    def boolean(self, value):
+        return value[0]
 
 _spark_transformer = SparkTransformer()
 

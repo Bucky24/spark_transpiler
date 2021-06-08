@@ -500,5 +500,25 @@ class bar
             }, 0),
         ])
         
+    def test_boolean(self):
+        tree = parse_statement("foo = false")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement("false", 0),
+            }, 0),
+        ])
+        tree = parse_statement("foo = true")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                "name": "foo",
+                "value": statement("true", 0),
+            }, 0),
+        ])
+        
 if __name__ == "__main__":
     unittest.main()

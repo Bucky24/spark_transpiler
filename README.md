@@ -24,6 +24,7 @@ The following types of variables exist:
 | String | "Double quotes" 'single quotes' |
 | Integer | 1231523532 |
 | Floating Point | 154235.23543243 |
+| Boolean | true, false |
 
 The following operators exist for numeric variables:
 

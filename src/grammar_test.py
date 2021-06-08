@@ -958,8 +958,8 @@ if foo == \"bar\"
                         ]),
                         Token("EQUALITY", "=="),
                         Tree("statement", [
-                            Tree("variable", [
-                                Token("VARIABLE_NAME", "true"),
+                            Tree("boolean", [
+                                Token("TRUE", "true"),
                             ]),
                         ]),
                     ]),
@@ -984,6 +984,39 @@ if foo == \"bar\"
         self.assertEqual(tree, _get_start([
             Tree("statement", [
                 Tree("map_one_line", []),
+            ]),
+        ]))
+        
+    def test_boolean(self):
+        tree = parse_statement("foo = false")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("variable_assignment", [
+                    Tree("variable", [
+                        Token("VARIABLE_NAME", "foo"),
+                    ]),
+                    Tree("statement", [
+                        Tree("boolean", [
+                            Token("FALSE", "false"),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+        
+        tree = parse_statement("foo = true")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("variable_assignment", [
+                    Tree("variable", [
+                        Token("VARIABLE_NAME", "foo"),
+                    ]),
+                    Tree("statement", [
+                        Tree("boolean", [
+                            Token("TRUE", "true"),
+                        ]),
+                    ]),
+                ]),
             ]),
         ]))
 
