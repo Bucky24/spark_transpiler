@@ -171,6 +171,9 @@ def get_cache_path(file, platform):
     file_path = file_path.replace("./", "")
     file_path = file_path.replace(".spark", "")
     file_path = file_path.replace("/", "_")
+    # this needs to be more flexible
+    file_path = file_path.replace("C:\\", "")
+    file_path = file_path.replace("\\", "_")
     outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
     return outFile
 
@@ -222,7 +225,7 @@ def main():
                 #print(included_file)
                 new_path = path.realpath(path.dirname(fullPath) + "/" + included_file)
 
-                if includes:
+                if included_file:
                     file_import_data[file][cur_platform][new_path] = includes
                 files.append(new_path)
             if line == "#backend":
@@ -320,29 +323,43 @@ def main():
                     importFile["extension"],
                 )
 
+            frontend_imports = []
             # handle any included files
             for pragma in platform_pragmas:
                 if pragma["type"] == "include":
                     value = pragma["value"]
                     value_list = value.split(" ")
-                    #print(value_list)
+                    fullPath = None
+                    import_list = None
+                    fullFilePath = path.realpath(file)
                     if len(value_list) == 1:
-                        fullPath = path.realpath(path.dirname(file) + "/" + value)
-                        files.append(fullPath)
+                        fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value)
                     else:
-                        fullPath = path.realpath(path.dirname(file) + "/" + value_list[2])
+                        fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value_list[2])
                         #files_to_run.append(fullPath)
                         import_list = value_list[0]
+
+                    if fullPath:
                         # this is technically a no-no because we are hard-coding our lang to JS right now
                         # we don't need to add any import code if it's frontend because all code gets loaded top level
                         if platform == "backend":
                             export_file = get_cache_path(fullPath, platform)
-                            import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
+                            import_code = "require(\"" + export_file + "\");\n"
+                            if import_list:
+                                import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
                             platform_code = import_code + platform_code
                         elif platform == "frontend":
                             export_name = file_to_id_map[fullPath]
-                            import_code = "const {" + import_list + "} = await " + export_name + ";\n"
-                            platform_code = platform_code.replace("//<IMPORTS>", import_code)
+                            if import_list:
+                                import_code = "const {" + import_list + "} = await " + export_name + ";"
+                                frontend_imports.append(import_code)
+                            else:
+                                # in this case we have nothing to import, but we still want to wait until the promise of the import has
+                                # resolved
+                                import_code = "await " + export_name + ";"
+                                frontend_imports.append(import_code)
+            if frontend_imports:
+                platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 
             outFile = get_cache_path(file, platform)
             handle = open(outFile, "w")
