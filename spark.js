@@ -19,9 +19,10 @@ function compileFiles() {
 		    const str = data.toString();
 		    if (str.startsWith(">>>")) {
 		        const trimmed = str.trim();
-		        const file = trimmed.replace(">>>", "");
+		        const jsonOutput = trimmed.replace(">>>", "");
+                const json = JSON.parse(jsonOutput);
 
-				resolve(file);
+				resolve(json);
 		    } else {
 		        process.stdout.write(str);
 		    }
@@ -62,43 +63,65 @@ function executeFile(file) {
 }
 
 let activeProc = null;
-let watcher = null;
+let watchers = [];
 let doingCompile = false;
 let reloadFromWatcher = false;
+
+function closeWatchers() {
+    if (watchers.length !== 0) {
+        watchers.forEach((watcher) => {
+            watcher.close();
+        });
+        watchers = [];
+    }
+}
+
+function createWatchers(files) {
+    closeWatchers();
+    
+    watchers = files.map((file) => {
+        return fs.watch(file, (eventType, file) => {
+        	if (eventType === "change" && !doingCompile) {
+        		console.log("Changes detected, recompiling");
+        		reloadFromWatcher = true;
+        		doCompile();
+        	}
+        });
+    });
+}
+
 function doCompile() {
 	if (activeProc) {
 		activeProc.kill();
 		activeProc = null;
 	}
 	doingCompile = true;
-	compileFiles().then((outputFile) => {
+	return compileFiles().then(({ outFile, all_files }) => {
 		doingCompile = false;
-		return new Promise((resolve) => {
-		    console.log("Executing...");
-		    console.log("---------------------------------------------------------");
-			activeProc = executeFile(outputFile);
+		return new Promise((resolve, reject) => {
+            try {
+                createWatchers(all_files);
+    		    console.log("Executing...");
+    		    console.log("---------------------------------------------------------");
+    			activeProc = executeFile(outFile);
 	
-		    activeProc.on('close', () => {
-				if (!reloadFromWatcher) {
-		    		console.log("---------------------------------------------------------");
-					watcher.close();
-					watcher = null;
-				}
-				reloadFromWatcher = false;
-		        resolve();
-		    });
+    		    activeProc.on('close', () => {
+    				if (!reloadFromWatcher) {
+    		    		console.log("---------------------------------------------------------");
+    					closeWatchers();
+    				}
+    				reloadFromWatcher = false;
+    		        resolve();
+    		    });
+            } catch (error) {
+                reject(error);
+            }
 		});
 	}).catch(() => {
 		doingCompile = false;
 	});
 }
 
-doCompile();
-
-watcher = fs.watch(args[0], (eventType, file) => {
-	if (eventType === "change" && !doingCompile) {
-		console.log("Changes detected, recompiling");
-		reloadFromWatcher = true;
-		doCompile();
-	}
+doCompile().catch((error) => {
+    console.log(error);
 });

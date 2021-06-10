@@ -6,6 +6,7 @@ import time
 import shutil
 import glob
 import threading
+import json
 
 script_dir = path.dirname(path.realpath(__file__))
 cacheDir = path.realpath(script_dir + "/cache")
@@ -165,6 +166,15 @@ def generate_frontend_framework(outFiles, imports):
         "html",
         final_index_content,
     )
+    
+    # we also will need the backend common lib because the backend system requires Api
+    _copy_library(
+        "stdlib",
+        lang,
+        "backend",
+        "common",
+        "js"
+    )
 
 def get_cache_path(file, platform):
     file_path = file.replace("../", "")
@@ -255,17 +265,18 @@ def main():
     file_classes = {}
 
     all_frontend_imports = []
+    all_files_ran_over = []
 
     while len(files_to_run) > 0:
         file = files_to_run.pop()
         file_id = file_to_id_map[file]
+        all_files_ran_over.append(file)
 
         import_data = file_import_data[file]
 
         #print(import_data)
 
         # flatten the import data by platform
-
         flattened_import_data = {
             "frontend": {
                 "classes": [],
@@ -400,7 +411,11 @@ def main():
         sys.stdout.flush()
         time.sleep(0.01)
 
-    print(">>>{}".format(outFiles["backend"][0]))
+    result = {
+        "outFile": outFiles["backend"][0],
+        "all_files": all_files_ran_over,
+    }
+    print(">>>{}".format(json.dumps(result)))
     sys.stdout.flush()
     time.sleep(0.01)
 
