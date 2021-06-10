@@ -57,6 +57,7 @@ def generate_js(transformed_tree, label, import_data):
             "is_array": False,
             "is_map": False,
             "is_jsx": False,
+            "is_constructor": False,
         }
     ]
     import_data = import_data if import_data else { "backend": {}, "frontend": {}}
@@ -117,6 +118,7 @@ def generate_js(transformed_tree, label, import_data):
                 "is_array": next_statement_starts_block == "array",
                 "is_map": next_statement_starts_block == "map",
                 "is_jsx": next_statement_starts_block == "jsx_children" or next_statement_starts_block == "jsx_attributes",
+                "is_constructor": next_statement_starts_block == "is_constructor",
             }
 
         for block in blocks:
@@ -154,6 +156,7 @@ def generate_js(transformed_tree, label, import_data):
                     "is_array": next_statement_starts_block == "array",
                     "is_map": next_statement_starts_block == "map",
                     "is_jsx": next_statement_starts_block == "jsx_children" or next_statement_starts_block == "jsx_attributes",
+                    "is_constructor": next_statement_starts_block == "constructor",
                 })
                 current_block = blocks[-1]
                 next_statement_starts_block = False
@@ -176,7 +179,17 @@ def generate_js(transformed_tree, label, import_data):
                 
             all_classes = _FRONTEND_CLASSES + classes[current_platform] + _BACKEND_CLASSES + _COMMON_CLASSES + import_classes[current_platform]
  
-            result = process_statement(statement["statement"], child_variables, spaces, current_block["is_class"], all_classes, current_block["is_jsx"], current_platform)
+            args = {
+                "child_variables": child_variables,
+                "spaces": spaces,
+                "is_class": current_block["is_class"],
+                "all_classes": all_classes,
+                "is_jsx": current_block["is_jsx"],
+                "current_platform": current_platform,
+                "is_constructor":  current_block["is_constructor"],
+            }
+
+            result = process_statement(statement["statement"], args)
             if result:
                 statement_code = result["statement"]
 
@@ -307,41 +320,56 @@ def generate_js(transformed_tree, label, import_data):
 
     return code, requirement_files, pragmas, classes
 
-def process_statement(statement, variables_generated, spaces, is_class, classes, is_jsx, platform):
+def process_statement(statement, args):
+    variables_generated = args["child_variables"]
+    spaces = args["spaces"]
+    is_class = args["is_class"]
+    classes = args["all_classes"]
+    is_jsx = args["is_jsx"]
+    platform = args["current_platform"]
+    is_constructor = args["is_constructor"]
+
     if isinstance(statement, str) or isinstance(statement, float) or isinstance(statement, int):
         return {
             "statement": statement,
         }
 
     if statement["type"] == TYPES["STATEMENT"]:
-        return process_statement(statement["statement"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        return process_statement(statement["statement"], args)
     elif statement["type"] == TYPES["VARIABLE_ASSIGNMENT"]:
         #print("processing ", statement["value"])
-        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        value = process_statement(statement["value"], args)
         # if we got nothing good from our recursive process, just give up on this line
         if value is None:
             return None
+
+        name = process_statement(statement["name"], args)
+        if name is None:
+            return None
+        name = name["statement"]
+        is_chain = "." in name
+
         str_value = value["statement"]
         start_block = value.get("start_block", None)
         if is_jsx:
             # in this case we need to treat this like an attribute
             return {
-                "statement": "{}: {}".format(statement["name"], str_value),
+                "statement": "{}: {}".format(name, str_value),
                 "start_block": start_block,
                 "new_function_calls": value.get("new_function_calls", []), 
                 "new_class_calls": value.get("new_class_calls", []), 
             }
-        elif statement["name"] in variables_generated:
+        elif name in variables_generated or is_chain:
             return {
-                "statement": "{} = {}".format(statement["name"], str_value),
+                "statement": "{} = {}".format(name, str_value),
                 "start_block": start_block,
                 "new_function_calls": value.get("new_function_calls", []), 
                 "new_class_calls": value.get("new_class_calls", []), 
             }
         else:
             return {
-                "statement": "var {} = {}".format(statement["name"], str_value),
-                "new_variables": [statement["name"]],
+                "statement": "var {} = {}".format(name, str_value),
+                "new_variables": [name],
                 "start_block": start_block,
                 "new_function_calls": value.get("new_function_calls", []), 
                 "new_class_calls": value.get("new_class_calls", []), 
@@ -351,7 +379,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": "{}++".format(statement["variable"]),
         }
     elif statement["type"] == TYPES["IF"]:
-        conditional = process_statement(statement["condition"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        conditional = process_statement(statement["condition"], args)
         conditional = conditional["statement"]
 
         return {
@@ -374,13 +402,13 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
     elif statement["type"] == TYPES["FOR"]:
         variables = []
         # we expect 3 conditions, no more, no less
-        result = process_statement(statement["conditions"][0], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        result = process_statement(statement["conditions"][0], args)
         variables += result.get("new_variables", [])
         cond1 = result["statement"]
-        result = process_statement(statement["conditions"][1], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        result = process_statement(statement["conditions"][1], args)
         variables += result.get("new_variables", [])
         cond2 = result["statement"]
-        result = process_statement(statement["conditions"][2], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        result = process_statement(statement["conditions"][2], args)
         variables += result.get("new_variables", [])
         cond3 = result["statement"]
         
@@ -390,16 +418,16 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "new_variables": variables,
         }
     elif statement["type"] == TYPES["CONDITION"]:
-        left_hand = process_statement(statement["left_hand"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        left_hand = process_statement(statement["left_hand"], args)
         left_hand = left_hand["statement"]
-        right_hand = process_statement(statement["right_hand"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        right_hand = process_statement(statement["right_hand"], args)
         right_hand = right_hand["statement"]
         
         return {
             "statement": "{} {} {}".format(left_hand, statement["condition"], right_hand),
         }
     elif statement["type"] == TYPES["WHILE"]:
-        condition = process_statement(statement["condition"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        condition = process_statement(statement["condition"], args)
         return {
             "statement": "while ({})".format(condition["statement"]) + " {",
             "start_block": "while",
@@ -415,11 +443,17 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
         param_str = ", ".join(statement["params"])
 
         statement = "function{}({})".format(name, param_str) + " {"
-        
+        if name == "":
+            statement = "({}) =>".format(param_str) + " {"
+
         if is_class:
             statement = "{}({})".format(name, param_str) + " {"
 
-        if platform == "frontend":
+        start_block = "function"
+        if name == "constructor":
+            start_block = "constructor"
+
+        if platform == "frontend" and name != "constructor":
             statement = "async {}".format(statement)
 
         new_functions = []
@@ -428,11 +462,11 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
         
         return {
             "statement": statement,
-            "start_block": "function",
+            "start_block": start_block,
             "new_functions": new_functions,
         }
     elif statement["type"] == TYPES["CALL_FUNC"]:
-        name = process_statement(statement["function"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        name = process_statement(statement["function"], args)
         name = name["statement"]
         start_block = "function_call"
         code = "{}(".format(name)
@@ -454,7 +488,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
                 new_instance = True
 
         if not new_instance:
-            if platform == "frontend":
+            if not is_constructor and platform == "frontend":
                 code = "await {}".format(code)
         else:
             code = "new {}".format(code)
@@ -536,7 +570,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             "statement": "}",
         }
     elif statement["type"] == TYPES["MAP_ROW"]:
-        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        value = process_statement(statement["value"], args)
         
         return {
             "statement": "\"{}\": {}".format(statement["key"], value["statement"]),
@@ -582,7 +616,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
                 "start_block": "jsx_children",
             }
     elif statement["type"] == TYPES["RETURN"]:
-        value = process_statement(statement["value"], variables_generated, spaces, is_class, classes, is_jsx, platform)
+        value = process_statement(statement["value"], args)
         return {
             "statement": "return {}".format(value["statement"]),
             "start_block": value.get("start_block", None),
@@ -599,7 +633,7 @@ def process_statement(statement, variables_generated, spaces, is_class, classes,
             if is_operator:
                 code += " {} ".format(statement["values"][i])
             else:
-                value = process_statement(statement["values"][i], variables_generated, spaces, is_class, classes, is_jsx, platform)
+                value = process_statement(statement["values"][i], args)
                 start_block = value.get("start_block", None)
                 new_function_calls += value.get("new_function_calls", [])
                 new_class_calls += value.get("new_class_calls", [])

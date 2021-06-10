@@ -81,7 +81,7 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result= generate(processed, "js")
         result = result[0]
-        self.assertEqual(result["backend"], "function() {\n    var bar = baz;\n}\n")
+        self.assertEqual(result["backend"], "() => {\n    var bar = baz;\n}\n")
         
         tree = parse_statement("function foo(bar, baz)\n    bar = baz\n")
         processed = process_tree(tree)
@@ -399,7 +399,7 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         result = result[0]
-        self.assertEqual(result["backend"], "function() {\n}\n")
+        self.assertEqual(result["backend"], "() => {\n}\n")
 
         tree = parse_statement("class Foo\n\tfunction bar()\n")
         processed = process_tree(tree)
@@ -426,7 +426,7 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         result = result[0]
-        self.assertEqual(result["frontend"], _wrap_front("async function() {\n}\n"))
+        self.assertEqual(result["frontend"], _wrap_front("async () => {\n}\n"))
 
         tree = parse_statement("#frontend\nclass Foo\n\tfunction bar()\n")
         processed = process_tree(tree)
@@ -475,6 +475,20 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(processed, "js")
         result = result[0]
         self.assertEqual(result["backend"], "var foo = true;\n");
+
+    def test_variable_chain(self):
+        tree = parse_statement("this.foo.bar = baz")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["backend"], "this.foo.bar = baz;\n")
+
+    def test_method_call_in_constructor(self):
+        tree = parse_statement("#frontend\nclass Foo\n\tfunction constructor()\n\t\tbar()\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["frontend"], _wrap_front("class Foo {\n    constructor() {\n        bar();\n    }\n}\n\nreturn {\n\tFoo\n};\n"))
 
 if __name__ == "__main__":
     unittest.main()
