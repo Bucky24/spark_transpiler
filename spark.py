@@ -100,7 +100,7 @@ def generate_frontend_framework(outFiles, imports):
     frontend_imports = []
 
     # first, load up all the frontend imports. These should have already been copied over by the previous step
-    for platform_import in imports["frontend"]:
+    for platform_import in imports:
         lib_path = _get_new_lib_path(
             platform_import["type"],
             platform_import["lang"],
@@ -254,6 +254,8 @@ def main():
 
     file_classes = {}
 
+    all_frontend_imports = []
+
     # right now we're assuming we only have 1 file
     while len(files_to_run) > 0:
         file = files_to_run.pop()
@@ -306,6 +308,24 @@ def main():
             #print(imports, platform)
             platform_imports = imports[platform]
             platform_pragmas = pragmas[platform]
+
+            if platform == "frontend":
+                for imp in platform_imports:
+                    # dumb, like really dumb, but eh. Need some sort of an id to do it more efficiently
+                    found = False
+                    for imp2 in all_frontend_imports:
+                        if (
+                            imp["type"] == imp2["type"] and
+                            imp["lang"] == imp2["lang"] and
+                            imp["category"] == imp2["category"] and
+                            imp["library"] == imp2["library"] and
+                            imp["extension"] == imp2["extension"]
+                        ):
+                            found = True
+                            break
+
+                    if not found:
+                        all_frontend_imports.append(imp)
 
             if platform_code == "":
                 continue
@@ -375,7 +395,7 @@ def main():
         sys.stdout.flush()
         time.sleep(0.01)
     
-        generate_frontend_framework(outFiles, imports)
+        generate_frontend_framework(outFiles, all_frontend_imports)
     
         print("Done")
         sys.stdout.flush()

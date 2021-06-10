@@ -1,6 +1,8 @@
 const http = require("http");
 const path = require("path");
 const fs = require("fs");
+// required because we use Api below
+const { Api } = require('./stdlib_js_backend_common.js');
 
 //<BACKEND_IMPORTS>
 

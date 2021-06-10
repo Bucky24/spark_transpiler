@@ -13,6 +13,28 @@ class Style {
 	}
 }
 
+async function renderChild(child) {
+	if (typeof child == "string") {
+		return document.createTextNode(child);
+	} else if (Array.isArray(child)) {
+		const resultMap = [];
+		for (const entry of child) {
+			const result = await renderChild(entry);
+			resultMap.push(result);
+		}
+		child = resultMap;
+	} else if (child instanceof Node) {
+		return child;
+	} else if (typeof child == "object") {
+		// it's probably an instance of a component
+		const result = await child.render();
+		// recurse the render
+		return renderChild(result);
+	}
+	
+	return child;
+}
+
 class Component {
 	constructor(...args) {
 		if (args.length === 3) {
@@ -51,29 +73,7 @@ class Component {
 				}
 			}
 		}
-		
-		const renderChild = async (child) => {
-			if (typeof child == "string") {
-				return document.createTextNode(child);
-			} else if (Array.isArray(child)) {
-				const resultMap = [];
-				for (const entry of child) {
-					const result = await renderChild(entry);
-					resultMap.push(result);
-				}
-				child = resultMap;
-			} else if (child instanceof Node) {
-				return child;
-			} else if (typeof child == "object") {
-				// it's probably an instance of a component
-				const result = await child.render();
-				// recurse the render
-				return renderChild(result);
-			}
-			
-			return child;
-		}
-		
+
 		if (this.children) {
 			for (const child of this.children) {
 				const childResult = await renderChild(child);
@@ -105,12 +105,51 @@ class Variable {
 	}
 }
 
+function getHelper(obj, pathList, soFar) {
+	const segment = pathList.shift();
+	if (obj[segment] !== undefined) {
+		const result = obj[segment];
+		if (pathList.length === 0) {
+			return result;
+		} else {
+			return getHelper(result, pathList, [...soFar, segment]);
+		}
+	}
+
+	throw new Error(`Could not find ${soFar.join('.')}.${segment}`);
+}
+
+class State {
+	static state = {}
+
+	static init(newState) {
+		State.state = newState;
+	}
+
+	static get(path) {
+		return getHelper(State.state, path.split("."), []);
+	}
+
+	static set(path, value) {
+		const pathList = path.split(".");
+		if (pathList.length === 1) {
+			State.state[path] = value;
+			return;
+		}
+		const lastEntry = pathList.pop();
+		const obj = getHelper(State.state, pathList, []);
+		obj[lastEntry] = value;
+
+		rerender();
+	}
+}
+
 let mainComponent = null;
 
 async function render(component) {
 	mainComponent = component;
 	const holder = document.getElementById("app");
-	const element = await component.render();
+	const element = await renderChild(component);
 	holder.innerHTML = "";
 	holder.appendChild(element);
 }

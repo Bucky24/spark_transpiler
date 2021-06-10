@@ -341,14 +341,13 @@ foo.set(
 )
 ```
 
-### API class
-
-The API class on the frontend is used to call apis.
+### Api
+The Api class on the frontend is used to call apis.
 
 #### post/get
 
 ```
-result = API.post(
+result = Api.post(
     apiName
     apiParameters
 )
@@ -360,6 +359,56 @@ result = API.post(
 | apiParameters | any | The parameters to pass to the API method. Can be anything that can be turned into JSON |
 
 The result of this method will be whatever the API returned on the backend.**
+
+### State
+
+The state object keeps track of app state across components.
+
+#### init
+
+The init method is called to hydrate the state with inital values.
+
+```
+State.init(
+    {
+        key: <some data, usually another object>
+    }
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| initial value | map | The initial value of the app state |
+
+#### get
+
+The get method is called to fetch a value out of the state.
+
+```
+value = State.get(
+    "path.to.desired.value"
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| path | string | The path in the state tree to fetch |
+
+#### set
+
+The set method is called to update a piece of the state.
+
+```
+value = State.get(
+    "path.to.desired.value"
+    newValueToSet
+)
+```
+
+| Param | Type | Description |
+| --- | --- | --- |
+| path | string | The path in the state tree to fetch |
+| value | any | The new value to set in the tree |
 
 ## Backend
 
@@ -480,14 +529,14 @@ exampleTable.update(
 | search | map | Similar to `load`, this map defines what rows should be updated. An empty map will update all rows |
 | data | map | Similar to `insert`, this map defines what fields to update and what data to update them with
 
-### API
+### Api
 
-The API class on the backend is used to define apis.
+The Api class on the backend is used to define apis.
 
 #### post/get
 
 ```
-API.get(
+Api.get(
     apiName
     function(parameters)
         return result
