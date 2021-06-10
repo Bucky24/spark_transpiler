@@ -256,7 +256,6 @@ def main():
 
     all_frontend_imports = []
 
-    # right now we're assuming we only have 1 file
     while len(files_to_run) > 0:
         file = files_to_run.pop()
         file_id = file_to_id_map[file]
