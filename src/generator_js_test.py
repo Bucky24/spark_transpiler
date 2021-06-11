@@ -7,7 +7,7 @@ from transformer import process_tree
 
 def _wrap_front(code, imports = None, label = "label"):
     if imports is None:
-        return "const " + label + " = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code + "\n})();\n"
+        return "Modules[\"" + label + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code + "\n})();\n"
 
 class TestGeneratorJs(unittest.TestCase):
     def test_variables(self):
@@ -447,7 +447,7 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js", "frontend_label")
         result = result[0]
-        self.assertTrue(result["frontend"].startswith("const frontend_label = (async ()"))
+        self.assertTrue(result["frontend"].startswith("Modules[\"frontend_label\"] = (async ()"))
 
     def test_imports_backend(self):
         tree = parse_statement("foo = Bar()\n")
@@ -489,6 +489,25 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(processed, "js")
         result = result[0]
         self.assertEqual(result["frontend"], _wrap_front("class Foo {\n    constructor() {\n        bar();\n    }\n}\n\nreturn {\n\tFoo\n};\n"))
+
+    def test_function_in_jsx_map_array(self):
+        tree = parse_statement("#frontend\n<input\n\tonChange=function(event)\n\t\tfoo()\n\tvalue=\"bar\"\n/>\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["frontend"], _wrap_front("new Component(\"input\", {\n    onChange: async (event) => {\n        await foo();\n    },\n    value: \"bar\",\n\n}, []);\n"))
+
+        tree = parse_statement("foo = {\n\tonChange: function(event)\n\t\tfoo()\n\tvalue: \"bar\"\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["backend"], "var foo = {\n    \"onChange\": (event) => {\n        foo();\n    },\n    \"value\": \"bar\",\n}\n")
+
+        tree = parse_statement("foo = [\n\tfunction(event)\n\t\tfoo()\n\t\"bar\"\n]\n")
+        processed = process_tree(tree)
+        result = generate(processed, "js")
+        result = result[0]
+        self.assertEqual(result["backend"], "var foo = [\n    (event) => {\n        foo();\n    },\n    \"bar\",\n\n];\n")
 
 if __name__ == "__main__":
     unittest.main()

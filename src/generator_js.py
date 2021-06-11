@@ -94,10 +94,17 @@ def generate_js(transformed_tree, label, import_data):
         current_block = blocks[-1]
         code[current_platform] += _add_spaces(current_block["spaces"])
         #print("ending block", old_block)
+        added_bracket = False
         if old_block["is_function_call"] or old_block["is_array"] or old_block["is_map"] or old_block["is_jsx"]:
             pass
         else:
+            added_bracket = True
             code[current_platform] += "}"
+
+        # now check the new current block, if it's jsx or a map or an array, we need a comma as well
+        if added_bracket and (current_block["is_array"] or current_block["is_map"] or current_block["is_jsx"]):
+            code[current_platform] += ","
+
         code[current_platform] += "\n"
         return current_block
         
@@ -105,6 +112,7 @@ def generate_js(transformed_tree, label, import_data):
     # and the closing brace is actually at the level of the PREVIOUS block, we need to loop through
     # and on each level, close the previous level.
     def _unwind_blocks():
+        #print("unwinding blocks")
         blocks.reverse()
         prev_spaces = None
         #print("next statement", next_statement_starts_block)
@@ -217,6 +225,7 @@ def generate_js(transformed_tree, label, import_data):
                 if spaces == 0:
                     new_functions[current_platform] += result.get("new_functions", [])
 
+                # print("current block woo!", current_block)
                 if start_block:
                     # print("starts block?", start_block)
                     next_statement_starts_block = start_block
@@ -316,7 +325,7 @@ def generate_js(transformed_tree, label, import_data):
     if code["frontend"]:
         # wrap it in an async self-calling method and export the result. Also include a small wait in front of it so we can be sure that we don't try
         # to run this code until other code is also loaded
-        code["frontend"] = "const " + (label or "label") + " = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code["frontend"] + "\n})();\n";
+        code["frontend"] = "Modules[\"" + (label or "label") + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code["frontend"] + "\n})();\n";
 
     return code, requirement_files, pragmas, classes
 

@@ -381,12 +381,12 @@ def main():
                         elif platform == "frontend":
                             export_name = file_to_id_map[fullPath]
                             if import_list:
-                                import_code = "const {" + import_list + "} = await " + export_name + ";"
+                                import_code = "const {" + import_list + "} = await Modules[\"" + export_name + "\"];"
                                 frontend_imports.append(import_code)
                             else:
                                 # in this case we have nothing to import, but we still want to wait until the promise of the import has
                                 # resolved
-                                import_code = "await " + export_name + ";"
+                                import_code = "await Modules[\"" + export_name + "\"];"
                                 frontend_imports.append(import_code)
             if frontend_imports:
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
