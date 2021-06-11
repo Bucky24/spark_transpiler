@@ -186,24 +186,8 @@ def get_cache_path(file, platform):
     file_path = file_path.replace("\\", "_")
     outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
     return outFile
-
-lang = "js"
-
-def main():
-    parser = argparse.ArgumentParser(description='Spark CLI')
-    parser.add_argument('files', metavar='File', type=str, nargs='+', help='A file to process')
-
-    args = parser.parse_args()
-
-    if not _file_exists(cacheDir):
-        mkdir(cacheDir)
-
-    cache_files = glob.glob(path.realpath(cacheDir + "/*"))
-    for f in cache_files:
-        remove(f)
-        
-    files = [] + args.files
-
+    
+def pre_check_includes(files):
     # pre-check all the files to deal with pre-processor statements
     id_to_file_map = {}
     files_to_run = []
@@ -256,6 +240,108 @@ def main():
         file_to_id_map[file] = cur_name
         file_ids.append(cur_name)
         files_to_run.append(file)
+        
+    return {
+        "id_to_file_map": id_to_file_map,
+        "file_to_id_map": file_to_id_map,
+        "file_ids": file_ids,
+        "files_to_run": files_to_run,
+        "file_import_data": file_import_data,
+    }
+    
+def flatten_import_data(import_data, file_classes):
+    # flatten the import data by platform
+    flattened_import_data = {
+        "frontend": {
+            "classes": [],
+            "functions": [],
+        },
+        "backend": {
+            "classes": [],
+            "functions": [],
+        },
+    }
+
+    for platform in import_data:
+        import_files = import_data[platform]
+        #print(import_files)
+        for import_file in import_files:
+            classes_in_file = file_classes.get(import_file, []).get(platform, [])
+            import_values = import_files[import_file]
+            #print(import_values, classes_in_file)
+            for value in import_values:
+                if value in classes_in_file:
+                    flattened_import_data[platform]["classes"].append(value)
+    #print(flattened_import_data)
+    
+    return flattened_import_data
+    
+def process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map):
+    fullFilePath = path.realpath(file)
+    frontend_imports = []
+    # handle any included files
+    for pragma in platform_pragmas:
+        if pragma["type"] == "include":
+            value = pragma["value"]
+            value_list = value.split(" ")
+            fullPath = None
+            import_list = None
+            if len(value_list) == 1:
+                fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value)
+            else:
+                fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value_list[2])
+                #files_to_run.append(fullPath)
+                import_list = value_list[0]
+
+            if fullPath:
+                # this is technically a no-no because we are hard-coding our lang to JS right now
+                # we don't need to add any import code if it's frontend because all code gets loaded top level
+                if platform == "backend":
+                    export_file = get_cache_path(fullPath, platform)
+                    import_code = "require(\"" + export_file + "\");\n"
+                    if import_list:
+                        import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
+                    platform_code = import_code + platform_code
+                elif platform == "frontend":
+                    export_name = file_to_id_map[fullPath]
+                    if import_list:
+                        import_code = "const {" + import_list + "} = await Modules[\"" + export_name + "\"];"
+                        frontend_imports.append(import_code)
+                    else:
+                        # in this case we have nothing to import, but we still want to wait until the promise of the import has
+                        # resolved
+                        import_code = "await Modules[\"" + export_name + "\"];"
+                        frontend_imports.append(import_code)
+                        
+    return {
+        "platform_code": platform_code,
+        "frontend_imports": frontend_imports,
+    }
+
+lang = "js"
+
+def main():
+    parser = argparse.ArgumentParser(description='Spark CLI')
+    parser.add_argument('files', metavar='File', type=str, nargs='+', help='A file to process')
+
+    args = parser.parse_args()
+
+    if not _file_exists(cacheDir):
+        mkdir(cacheDir)
+
+    cache_files = glob.glob(path.realpath(cacheDir + "/*"))
+    for f in cache_files:
+        remove(f)
+
+    files = [] + args.files
+
+    # pre-check all the files to deal with pre-processor statements
+    includes_result = pre_check_includes(files)
+    id_to_file_map = includes_result["id_to_file_map"]
+    file_ids = includes_result["file_ids"]
+    files_to_run = includes_result["files_to_run"]
+    file_to_id_map = includes_result["file_to_id_map"]
+    file_import_data = includes_result["file_import_data"]
 
     outFiles = {
         "frontend": [],
@@ -277,28 +363,7 @@ def main():
         #print(import_data)
 
         # flatten the import data by platform
-        flattened_import_data = {
-            "frontend": {
-                "classes": [],
-                "functions": [],
-            },
-            "backend": {
-                "classes": [],
-                "functions": [],
-            },
-        }
-
-        for platform in import_data:
-            import_files = import_data[platform]
-            #print(import_files)
-            for import_file in import_files:
-                classes_in_file = file_classes.get(import_file, []).get(platform, [])
-                import_values = import_files[import_file]
-                #print(import_values, classes_in_file)
-                for value in import_values:
-                    if value in classes_in_file:
-                        flattened_import_data[platform]["classes"].append(value)
-        #print(flattened_import_data)
+        flattened_import_data = flatten_import_data(import_data, file_classes)
 
         result = None
         try:
@@ -353,41 +418,11 @@ def main():
                     importFile["extension"],
                 )
 
-            frontend_imports = []
             # handle any included files
-            for pragma in platform_pragmas:
-                if pragma["type"] == "include":
-                    value = pragma["value"]
-                    value_list = value.split(" ")
-                    fullPath = None
-                    import_list = None
-                    fullFilePath = path.realpath(file)
-                    if len(value_list) == 1:
-                        fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value)
-                    else:
-                        fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value_list[2])
-                        #files_to_run.append(fullPath)
-                        import_list = value_list[0]
+            pragma_result = process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map)
+            platform_code = pragma_result["platform_code"]
+            frontend_imports = pragma_result["frontend_imports"]
 
-                    if fullPath:
-                        # this is technically a no-no because we are hard-coding our lang to JS right now
-                        # we don't need to add any import code if it's frontend because all code gets loaded top level
-                        if platform == "backend":
-                            export_file = get_cache_path(fullPath, platform)
-                            import_code = "require(\"" + export_file + "\");\n"
-                            if import_list:
-                                import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
-                            platform_code = import_code + platform_code
-                        elif platform == "frontend":
-                            export_name = file_to_id_map[fullPath]
-                            if import_list:
-                                import_code = "const {" + import_list + "} = await Modules[\"" + export_name + "\"];"
-                                frontend_imports.append(import_code)
-                            else:
-                                # in this case we have nothing to import, but we still want to wait until the promise of the import has
-                                # resolved
-                                import_code = "await Modules[\"" + export_name + "\"];"
-                                frontend_imports.append(import_code)
             if frontend_imports:
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 
@@ -399,7 +434,6 @@ def main():
             time.sleep(0.01)
             outFiles[platform].insert(0, outFile)
 
-    # this all needs to be moved to a utility method so we can unit test it
     if len(outFiles["frontend"]) > 0:
         sys.stdout.write("Generating frontend framework... ")
         sys.stdout.flush()
