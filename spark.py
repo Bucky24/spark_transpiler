@@ -93,7 +93,7 @@ def generate_code_from_file(file, label, import_data):
 
     return code, imports, pragmas, classes
 
-def generate_frontend_framework(outFiles, imports):
+def generate_frontend_framework(outFiles, imports, main_backend_file):
     # if we have ANY frontend code, our backend needs to contain the initial setup code to display said frontend
     app_contents = _get_library(
         "stdlib",
@@ -127,10 +127,8 @@ def generate_frontend_framework(outFiles, imports):
 
     # now load up all the backend files and generate the import list
     backend_import_list = []
-    #for file in outFiles["backend"]:
-    # right now it's just one file
-    for outfile in outFiles["backend"]:
-        backend_import_list.append("require(\"{}\");".format(outfile.replace("\\", "\\\\")))
+    # we only need the main backend output, all others are imported from there
+    backend_import_list.append("require(\"{}\");".format(main_backend_file.replace("\\", "\\\\")))
 
     backend_import_string = "\n".join(backend_import_list)
 
@@ -197,7 +195,11 @@ def get_cache_path(file, platform, base_dir):
     # this needs to be more flexible
     file_path = file_path.replace("C:\\", "")
     file_path = file_path.replace("\\", "_")
-    outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
+    extension = ".js"
+    _, file_ext = path.splitext(file)
+    if file_ext:
+        extension = ""
+    outFile = path.realpath(cacheDir + "/output_{}_{}{}".format(platform, file_path, extension))
     return outFile
 
 lang = "js"
@@ -206,7 +208,7 @@ def main():
     parser = argparse.ArgumentParser(description='Spark CLI')
     parser.add_argument('--single_file', dest='single_file', action='store_true', help='If set, this only compiles the one file and does nothing else')
     parser.add_argument('--base_directory', dest='base_dir', action='store', help='The base directory of the project')
-    parser.add_argument('files', metavar='File', type=str, nargs='+', help='A file to process')
+    parser.add_argument('file', metavar='File', type=str, nargs='?', help='A file to process')
     parser.set_defaults(single_file=False)
 
     args = parser.parse_args()
@@ -221,7 +223,7 @@ def main():
         for f in cache_files:
             remove(f)
         
-    files = [] + args.files
+    files = [args.file]
 
     # pre-check all the files to deal with pre-processor statements
     id_to_file_map = {}
@@ -291,6 +293,20 @@ def main():
         file_id = file_to_id_map[file]
         all_files_ran_over.append(file)
 
+        if not file.endswith(".spark"):
+            # in this case it's not code, just copy it
+            outputFile = get_cache_path(file, "common", base_dir)
+            fileBase = path.basename(fullPath)
+
+            sys.stdout.write("Copying {}... ".format(fileBase))
+            sys.stdout.flush()
+            contents = _read_file(fullPath)
+            _write_file(outputFile, contents)
+            print("Done")
+            sys.stdout.flush()
+            time.sleep(0.01)
+            continue
+
         import_data = file_import_data[file]
 
         #print(import_data)
@@ -311,7 +327,7 @@ def main():
             import_files = import_data[platform]
             #print(import_files)
             for import_file in import_files:
-                classes_in_file = file_classes.get(import_file, []).get(platform, [])
+                classes_in_file = file_classes.get(import_file, {}).get(platform, [])
                 import_values = import_files[import_file]
                 #print(import_values, classes_in_file)
                 for value in import_values:
@@ -356,7 +372,7 @@ def main():
                     if not found:
                         all_frontend_imports.append(imp)
 
-            if platform_code == "":
+            if platform_code == "" and not platform_pragmas:
                 continue
 
             sys.stdout.write("Generating files for {}... ".format(platform))
@@ -391,11 +407,14 @@ def main():
                     if fullPath:
                         # this is technically a no-no because we are hard-coding our lang to JS right now
                         # we don't need to add any import code if it's frontend because all code gets loaded top level
+                        import_platform = platform
+                        if not fullPath.endswith(".spark"):
+                            import_platform = "common"
                         if platform == "backend":
-                            export_file = get_cache_path(fullPath, platform, base_dir)
-                            import_code = "require(\"" + export_file + "\");\n"
+                            export_file = get_cache_path(fullPath, import_platform, base_dir)
+                            import_code = "require(\"" + export_file.replace("\\", "\\\\") + "\");\n"
                             if import_list:
-                                import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
+                                import_code = "const {" + import_list + "} = require(\"" + export_file.replace("\\", "\\\\") + "\");\n"
                             platform_code = import_code + platform_code
                         elif platform == "frontend":
                             export_name = file_to_id_map[fullPath]
@@ -411,6 +430,7 @@ def main():
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 
             outFile = get_cache_path(file, platform, base_dir)
+            print("outputting", outFile)
             handle = open(outFile, "w")
             handle.write(platform_code)
             handle.close()
@@ -425,7 +445,8 @@ def main():
         sys.stdout.flush()
         time.sleep(0.01)
     
-        generate_frontend_framework(outFiles, all_frontend_imports)
+        main_backend_file = get_cache_path(args.file, "backend", base_dir)
+        generate_frontend_framework(outFiles, all_frontend_imports, main_backend_file)
     
         print("Done")
         sys.stdout.flush()
