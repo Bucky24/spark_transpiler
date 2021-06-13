@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const dataCacheDir = path.resolve(__dirname, "..", "dataCache");
+const dataCacheDir = path.resolve(__dirname, "..", "sparkDataCache");
 
 class Table {
    constructor(tableName, fields) {

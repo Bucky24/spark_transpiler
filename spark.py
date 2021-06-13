@@ -205,6 +205,8 @@ def get_cache_path(file, platform, base_dir):
 lang = "js"
 
 def main():
+    global cacheDir
+
     parser = argparse.ArgumentParser(description='Spark CLI')
     parser.add_argument('--single_file', dest='single_file', action='store_true', help='If set, this only compiles the one file and does nothing else')
     parser.add_argument('--base_directory', dest='base_dir', action='store', help='The base directory of the project')
@@ -214,6 +216,8 @@ def main():
     args = parser.parse_args()
 
     base_dir = args.base_dir
+
+    cacheDir = path.realpath(base_dir + "/sparkCache")
 
     if not _file_exists(cacheDir):
         mkdir(cacheDir)
