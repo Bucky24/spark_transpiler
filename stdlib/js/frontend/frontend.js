@@ -14,7 +14,7 @@ class Style {
 }
 
 async function renderChild(child) {
-	if (typeof child == "string") {
+	if (typeof child == "string" || typeof child == "boolean" || typeof child == "number") {
 		return document.createTextNode(child);
 	} else if (Array.isArray(child)) {
 		const resultMap = [];
