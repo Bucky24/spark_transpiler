@@ -139,6 +139,7 @@ function getHelper(obj, pathList, soFar) {
 
 class State {
 	static state = {}
+	static doingRerender = false
 
 	static init(newState) {
 		State.state = newState;
@@ -158,7 +159,14 @@ class State {
 		const obj = getHelper(State.state, pathList, []);
 		obj[lastEntry] = value;
 
-		rerender();
+		if (!State.doingRerender) {
+			State.doingRerender = true;
+			// hold for 1 ms. This will pop the rerender to a different async thread, meaning additional state updates can finish
+			setTimeout(() => {
+				State.doingRerender = false;
+				rerender();
+			}, 1);
+		}
 	}
 }
 
