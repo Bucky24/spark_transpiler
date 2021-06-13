@@ -55,7 +55,7 @@ function compileFiles(file) {
 			const lines = error.split("\n");
 			let compileFailed = false;
 			lines.forEach((line) => {
-				if (line === "FAILURE") {
+				if (line.includes("FAILURE")) {
 					compileFailed = true;
 				}
 			});

@@ -196,7 +196,7 @@ def get_cache_path(file, platform, base_dir):
     file_path = file_path.replace("C:\\", "")
     file_path = file_path.replace("\\", "_")
     extension = ".js"
-    _, file_ext = path.splitext(file)
+    _, file_ext = path.splitext(file_path)
     if file_ext:
         extension = ""
     outFile = path.realpath(cacheDir + "/output_{}_{}{}".format(platform, file_path, extension))
@@ -434,7 +434,6 @@ def main():
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 
             outFile = get_cache_path(file, platform, base_dir)
-            print("outputting", outFile)
             handle = open(outFile, "w")
             handle.write(platform_code)
             handle.close()
