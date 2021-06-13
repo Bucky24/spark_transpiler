@@ -261,6 +261,15 @@ Component(
 
 If the constructor is called with only 2 parameters, these are expected to be the attributes and the children. This should only be done for classes that extend Component.
 
+#### Re-render
+
+The rerender method allows a component to rerender itself and all of its children, without rerendering the rest of the page
+
+Signature:
+```
+someComponent.rerender()
+```
+
 #### Extending
 
 Component can be extended in the following way:

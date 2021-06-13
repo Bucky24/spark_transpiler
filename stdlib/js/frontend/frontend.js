@@ -28,8 +28,11 @@ async function renderChild(child) {
 	} else if (typeof child == "object") {
 		// it's probably an instance of a component
 		const result = await child.render();
+		// make sure the child is aware of its own element (this may not have happened if it's a component instance that has its own render fn)
 		// recurse the render
-		return renderChild(result);
+		const finalResult = await renderChild(result);
+		child.setElem(finalResult);
+		return finalResult;
 	}
 	
 	return child;
@@ -49,6 +52,21 @@ class Component {
 			this.children = children;
 		}
 	}
+
+	setElem(newElem) {
+		this.elem = newElem;
+	}
+
+	async rerender() {
+		if (!this.elem) {
+			console.error("Cannot re-render a Component that has no element");
+		}
+
+		const parent = this.elem.parentNode;
+		const oldNode = this.elem;
+		await renderChild(this);
+		parent.replaceChild(this.elem, oldNode);
+	}
 	
 	async render() {
 		if (!this.tag) {
@@ -56,7 +74,7 @@ class Component {
 			// its own render function, but in case we get here, just don't do anything
 			return;
 		}
-		const elem = document.createElement(this.tag);
+		this.elem = document.createElement(this.tag);
 		
 		if (this.attrs) {
 			for (const key in this.attrs) {
@@ -67,9 +85,9 @@ class Component {
 
 				if (key.startsWith("on")) {
 					const event = key.substr(2).toLowerCase();
-					elem.addEventListener(event, val);
+					this.elem.addEventListener(event, val);
 				} else {
-					elem.setAttribute(key, val);
+					this.elem.setAttribute(key, val);
 				}
 			}
 		}
@@ -79,15 +97,15 @@ class Component {
 				const childResult = await renderChild(child);
 				if (Array.isArray(childResult)) {
 					childResult.forEach((result) => {
-						elem.appendChild(result);
+						this.elem.appendChild(result);
 					})
 				} else {
-					elem.appendChild(childResult);
+					this.elem.appendChild(childResult);
 				}
 			}
 		}
-		
-		return elem;
+
+		return this.elem;
 	}
 }
 
