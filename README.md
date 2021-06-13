@@ -2,7 +2,7 @@
 
 ## What is it?
 
-This project defines a language, Spark, that is meant to be a very simple to use language, but also flexible. Somewhat of a combination between Python and JavaScript, with a powerful and extensive standard library.
+This project defines a language, Spark, that is meant to be a very simple to use language, but also flexible. Somewhat of a combination between Python and JavaScript.
 
 I created this project to serve as a rapid prototyping language and system, so that I can try out ideas quickly without needing to setup a lot of boilerplate. To that end, it will eventually have a very powerful and extensive standard library, geared towards rapid prototyping of web apps.
 
@@ -17,7 +17,7 @@ variable_name = <statement>
 variable_name += <statement>
 ```
 
-The following types of variables exist:
+The following are examples of valid values for variables:
 
 | Name | Example |
 | ---| --- |
