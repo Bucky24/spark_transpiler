@@ -50,6 +50,11 @@ const server = http.createServer((req, res) => {
             serveFile(res, "stdlib_js_frontend_index.html");
         } else if (frontendFileKeys.includes(req.url)) {
             serveFile(res, frontendFiles[req.url]);
+        } else if (req.url === "updateTime") {
+            const updateTime = fs.readFileSync(path.join(__dirname, "__update_time__"));
+            res.writeHead(200);
+            res.write(updateTime);
+            res.end();
         } else if (req.url.startsWith("api/")) {
             const url = req.url.substr(4);
             const parts = url.split("?");

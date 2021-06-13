@@ -57,6 +57,11 @@ def generate_code_from_file(file, label, import_data):
         print("Cannot find input file {}".format(fullPath))
         return None
 
+    fileBase = path.basename(fullPath)
+    print("Compiling {}...".format(fileBase))
+    sys.stdout.flush()
+    time.sleep(0.01)
+
     sys.stdout.write("Reading... ")
     sys.stdout.flush()
     contents = _read_file(fullPath)
@@ -176,9 +181,17 @@ def generate_frontend_framework(outFiles, imports):
         "js"
     )
 
-def get_cache_path(file, platform):
+def get_cache_path(file, platform, base_dir):
     file_path = file.replace("../", "")
+    file_path = file.replace("..\\", "")
+    if base_dir[-1] == "/" or base_dir[-1] == "\\":
+        file_path = file.replace(base_dir, "")
+    else:
+        file_path = file.replace(base_dir + "/", "")
+        file_path = file.replace(base_dir + "\\", "")
+
     file_path = file_path.replace("./", "")
+    file_path = file_path.replace(".\\", "")
     file_path = file_path.replace(".spark", "")
     file_path = file_path.replace("/", "_")
     # this needs to be more flexible
@@ -191,16 +204,22 @@ lang = "js"
 
 def main():
     parser = argparse.ArgumentParser(description='Spark CLI')
+    parser.add_argument('--single_file', dest='single_file', action='store_true', help='If set, this only compiles the one file and does nothing else')
+    parser.add_argument('--base_directory', dest='base_dir', action='store', help='The base directory of the project')
     parser.add_argument('files', metavar='File', type=str, nargs='+', help='A file to process')
+    parser.set_defaults(single_file=False)
 
     args = parser.parse_args()
+
+    base_dir = args.base_dir
 
     if not _file_exists(cacheDir):
         mkdir(cacheDir)
 
-    cache_files = glob.glob(path.realpath(cacheDir + "/*"))
-    for f in cache_files:
-        remove(f)
+    if not args.single_file:
+        cache_files = glob.glob(path.realpath(cacheDir + "/*"))
+        for f in cache_files:
+            remove(f)
         
     files = [] + args.files
 
@@ -373,7 +392,7 @@ def main():
                         # this is technically a no-no because we are hard-coding our lang to JS right now
                         # we don't need to add any import code if it's frontend because all code gets loaded top level
                         if platform == "backend":
-                            export_file = get_cache_path(fullPath, platform)
+                            export_file = get_cache_path(fullPath, platform, base_dir)
                             import_code = "require(\"" + export_file + "\");\n"
                             if import_list:
                                 import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
@@ -391,16 +410,17 @@ def main():
             if frontend_imports:
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 
-            outFile = get_cache_path(file, platform)
+            outFile = get_cache_path(file, platform, base_dir)
             handle = open(outFile, "w")
             handle.write(platform_code)
+            handle.close()
             print("Done")
             sys.stdout.flush()
             time.sleep(0.01)
             outFiles[platform].insert(0, outFile)
 
     # this all needs to be moved to a utility method so we can unit test it
-    if len(outFiles["frontend"]) > 0:
+    if len(outFiles["frontend"]) > 0 and not args.single_file:
         sys.stdout.write("Generating frontend framework... ")
         sys.stdout.flush()
         time.sleep(0.01)
@@ -411,10 +431,22 @@ def main():
         sys.stdout.flush()
         time.sleep(0.01)
 
+    # write the last time of compile to the cache file
+    updateFile = path.join(cacheDir, "__update_time__")
+    handle = open(updateFile, "w")
+    intTime = int(time.time())
+    handle.write("{}".format(intTime))
+    handle.close()
+
     result = {
-        "outFile": outFiles["backend"][0],
         "all_files": all_files_ran_over,
     }
+    if not args.single_file:
+        result = {
+            "outFile": outFiles["backend"][0],
+            "all_files": all_files_ran_over,
+        }
+
     print(">>>{}".format(json.dumps(result)))
     sys.stdout.flush()
     time.sleep(0.01)

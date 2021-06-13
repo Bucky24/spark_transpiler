@@ -15,5 +15,27 @@
     <body>
 		<div id="app"></div>
         <!-- FRONTEND_SCRIPTS -->
+		<script>
+			// janky interval that checks if we need to do a reload
+			let lastUpdate = Math.floor(Date.now()/1000);
+
+			function getUpdateTime() {
+				const url = "/updateTime"
+				var xhttp = new XMLHttpRequest();
+				xhttp.onreadystatechange = function() {
+					if (this.readyState == 4 && this.status == 200) {
+						const updateTime = parseInt(this.responseText, 10);
+						if (lastUpdate < updateTime) {
+							window.location.reload();
+						}
+					}
+				};
+				xhttp.open("GET", url, true);
+				xhttp.send();
+			}
+
+			setInterval(getUpdateTime, 1000);
+			getUpdateTime();
+		</script>
     </body>
 </html>
