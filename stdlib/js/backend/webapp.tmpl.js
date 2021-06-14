@@ -35,6 +35,46 @@ function serveFile(response, file) {
     readStream.pipe(response);
 }
 
+function parseHeaders(headers) {
+    const headerPairs = {};
+    let key = null;
+    for (let i=0;i<headers.length;i++) {
+        const entry = headers[i];
+        if (i % 2 === 0) {
+            key = entry;
+        } else {
+            if (!headerPairs[key]) {
+                headerPairs[key] = [];
+            }
+            headerPairs[key].push(entry);
+        }
+    }
+    return headerPairs;
+}
+
+function parseCookies(cookieList) {
+    if (!cookieList) {
+        return {};
+    }
+    const cookies = cookieList.reduce((list, string) => {
+        return [
+            ...list,
+            ...string.split(";"),
+        ];
+    }, []);
+    const cookieObj = cookies.reduce((obj, string) => {
+        let [key, value] = string.split("=");
+        key = key.trim();
+        value = decodeURIComponent(value);
+        return {
+            ...obj,
+            [key]: value,
+        };
+    }, {});
+
+    return cookieObj;
+}
+
 const server = http.createServer((req, res) => {
     let body = "";
     req.on('readable', function() {
@@ -47,6 +87,7 @@ const server = http.createServer((req, res) => {
         // cut off the first slash
         req.url = req.url.substr(1);
         if (req.url === "") {
+            res.setHeader('Access-Control-Allow-Credentials', true);
             serveFile(res, "stdlib_js_frontend_index.html");
         } else if (frontendFileKeys.includes(req.url)) {
             serveFile(res, frontendFiles[req.url]);
@@ -56,6 +97,8 @@ const server = http.createServer((req, res) => {
             res.write(updateTime);
             res.end();
         } else if (req.url.startsWith("api/")) {
+            const headers = parseHeaders(req.rawHeaders);
+            const cookieObj = parseCookies(headers['Cookie']);
             const url = req.url.substr(4);
             const parts = url.split("?");
             const apiName = parts[0];
@@ -77,7 +120,17 @@ const server = http.createServer((req, res) => {
                 };
             }
             try {
-                const result = await Api.execute(req.method.toLowerCase(), apiName, params);
+                const { result, cookies } = await Api.execute(req.method.toLowerCase(), apiName, params, cookieObj);
+                res.setHeader('Access-Control-Allow-Credentials', true);
+                Object.keys(cookies).forEach((cookie) => {
+                    const cookieData = cookies[cookie];
+                    let resultCookie = `${cookie}=${encodeURIComponent(cookieData.value)}`;
+                    if (cookieData.timeout) {
+                        const date = new Date(cookieData.timeout);
+                        resultCookie += `; Expires=${date.toISOString()};`;
+                    }
+                    res.setHeader('Set-Cookie', resultCookie);
+                });
                 res.writeHead(200);
                 if (result) {
                     res.write(JSON.stringify(result));
