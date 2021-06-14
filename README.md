@@ -547,7 +547,7 @@ The Api class on the backend is used to define apis.
 ```
 Api.get(
     apiName
-    function(parameters)
+    function(parameters, RequestObject)
         return result
 )
 ```
@@ -558,3 +558,34 @@ Api.get(
 | apiMethod | function | The function to call whenever the API is called. The result of this method is returned as the API result |
 
 The result of this method will be whatever the API returned on the backend.
+
+The RequestObject has the following methods available on it:
+
+#### setSession
+
+This method takes in any jsonifyable data and sets it as a session cookie on the frontend.
+
+```
+Api.get(
+    apiName
+    function(parameters, req)
+        req.setSession(
+            {
+                id: 5
+            }
+        )
+)
+```
+
+#### getSession
+
+This method will return any value stored in a session cookie from the frontend, or null if one does not exist.
+
+```
+Api.get(
+    apiName
+    function(parameters, req)
+        sessionData = req.getSession()
+        id = sessionData.id
+)
+```
