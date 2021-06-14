@@ -11,10 +11,31 @@ if (args.length === 0) {
     process.exit(1);
 }
 
-function compileFiles() {
-	return new Promise((resolve, reject) => {
-		let proc = spawn("python", [path.resolve(__dirname, "./spark.py"), ...args]);
+const baseDirectory = process.cwd();
 
+function compileFiles(file) {
+	return new Promise((resolve, reject) => {
+		let compileArgs = [];
+		try {
+			let preserveCache = true;
+			if (!file) {
+				file = args[0];
+				preserveCache = false;
+			}
+			compileArgs = [
+				path.resolve(__dirname, "./spark.py"),
+				"--base_directory",
+				baseDirectory,
+			];
+			if (preserveCache) {
+				compileArgs.push("--single_file");
+			}
+			compileArgs.push(file);
+		} catch (error) {
+			reject(error);
+		}
+
+		proc = spawn("python", compileArgs);
 		proc.stdout.on("data", (data) => {
 		    const str = data.toString();
 		    if (str.startsWith(">>>")) {
@@ -34,7 +55,7 @@ function compileFiles() {
 			const lines = error.split("\n");
 			let compileFailed = false;
 			lines.forEach((line) => {
-				if (line === "FAILURE") {
+				if (line.includes("FAILURE")) {
 					compileFailed = true;
 				}
 			});
@@ -63,47 +84,51 @@ function executeFile(file) {
 }
 
 let activeProc = null;
-let watchers = [];
+let watchers = {};
 let doingCompile = false;
 let reloadFromWatcher = false;
+let activeOutfile = false;
 
 function closeWatchers() {
     if (watchers.length !== 0) {
-        watchers.forEach((watcher) => {
+        Object.values(watchers).forEach((watcher) => {
             watcher.close();
         });
-        watchers = [];
+        watchers = {};
     }
 }
 
 function createWatchers(files) {
-    closeWatchers();
-    
-    watchers = files.map((file) => {
-        return fs.watch(file, (eventType, file) => {
-        	if (eventType === "change" && !doingCompile) {
-        		console.log("Changes detected, recompiling");
-        		reloadFromWatcher = true;
-        		doCompile();
-        	}
-        });
-    });
+	files.forEach((file) => {
+		if (!watchers[file]) {
+			watchers[file] = fs.watch(file, (eventType) => {
+				if (eventType === "change" && !doingCompile) {
+					console.log("Changes detected, recompiling");
+					reloadFromWatcher = true;
+					doCompile(file);
+				}
+			});
+		}
+	});
 }
 
-function doCompile() {
+function doCompile(file) {
 	if (activeProc) {
 		activeProc.kill();
 		activeProc = null;
 	}
 	doingCompile = true;
-	return compileFiles().then(({ outFile, all_files }) => {
+	return compileFiles(file).then(({ outFile, all_files }) => {
 		doingCompile = false;
 		return new Promise((resolve, reject) => {
+			if (outFile) {
+				activeOutfile = outFile;
+			}
             try {
                 createWatchers(all_files);
     		    console.log("Executing...");
     		    console.log("---------------------------------------------------------");
-    			activeProc = executeFile(outFile);
+    			activeProc = executeFile(activeOutfile);
 	
     		    activeProc.on('close', () => {
     				if (!reloadFromWatcher) {

@@ -2,7 +2,7 @@
 
 ## What is it?
 
-This project defines a language, Spark, that is meant to be a very simple to use language, but also flexible. Somewhat of a combination between Python and JavaScript, with a powerful and extensive standard library.
+This project defines a language, Spark, that is meant to be a very simple to use language, but also flexible. Somewhat of a combination between Python and JavaScript.
 
 I created this project to serve as a rapid prototyping language and system, so that I can try out ideas quickly without needing to setup a lot of boilerplate. To that end, it will eventually have a very powerful and extensive standard library, geared towards rapid prototyping of web apps.
 
@@ -17,7 +17,7 @@ variable_name = <statement>
 variable_name += <statement>
 ```
 
-The following types of variables exist:
+The following are examples of valid values for variables:
 
 | Name | Example |
 | ---| --- |
@@ -260,6 +260,15 @@ Component(
 | children | array | Children to render in the component. Can be strings, or other Components |
 
 If the constructor is called with only 2 parameters, these are expected to be the attributes and the children. This should only be done for classes that extend Component.
+
+#### Re-render
+
+The rerender method allows a component to rerender itself and all of its children, without rerendering the rest of the page
+
+Signature:
+```
+someComponent.rerender()
+```
 
 #### Extending
 
@@ -538,7 +547,7 @@ The Api class on the backend is used to define apis.
 ```
 Api.get(
     apiName
-    function(parameters)
+    function(parameters, RequestObject)
         return result
 )
 ```
@@ -549,3 +558,34 @@ Api.get(
 | apiMethod | function | The function to call whenever the API is called. The result of this method is returned as the API result |
 
 The result of this method will be whatever the API returned on the backend.
+
+The RequestObject has the following methods available on it:
+
+#### setSession
+
+This method takes in any jsonifyable data and sets it as a session cookie on the frontend.
+
+```
+Api.get(
+    apiName
+    function(parameters, req)
+        req.setSession(
+            {
+                id: 5
+            }
+        )
+)
+```
+
+#### getSession
+
+This method will return any value stored in a session cookie from the frontend, or null if one does not exist.
+
+```
+Api.get(
+    apiName
+    function(parameters, req)
+        sessionData = req.getSession()
+        id = sessionData.id
+)
+```

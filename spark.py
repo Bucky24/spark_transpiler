@@ -57,6 +57,11 @@ def generate_code_from_file(file, label, import_data):
         print("Cannot find input file {}".format(fullPath))
         return None
 
+    fileBase = path.basename(fullPath)
+    print("Compiling {}...".format(fileBase))
+    sys.stdout.flush()
+    time.sleep(0.01)
+
     sys.stdout.write("Reading... ")
     sys.stdout.flush()
     contents = _read_file(fullPath)
@@ -88,7 +93,7 @@ def generate_code_from_file(file, label, import_data):
 
     return code, imports, pragmas, classes
 
-def generate_frontend_framework(outFiles, imports):
+def generate_frontend_framework(outFiles, imports, main_backend_file):
     # if we have ANY frontend code, our backend needs to contain the initial setup code to display said frontend
     app_contents = _get_library(
         "stdlib",
@@ -122,10 +127,8 @@ def generate_frontend_framework(outFiles, imports):
 
     # now load up all the backend files and generate the import list
     backend_import_list = []
-    #for file in outFiles["backend"]:
-    # right now it's just one file
-    for outfile in outFiles["backend"]:
-        backend_import_list.append("require(\"{}\");".format(outfile.replace("\\", "\\\\")))
+    # we only need the main backend output, all others are imported from there
+    backend_import_list.append("require(\"{}\");".format(main_backend_file.replace("\\", "\\\\")))
 
     backend_import_string = "\n".join(backend_import_list)
 
@@ -176,18 +179,56 @@ def generate_frontend_framework(outFiles, imports):
         "js"
     )
 
-def get_cache_path(file, platform):
+def get_cache_path(file, platform, base_dir):
     file_path = file.replace("../", "")
+    file_path = file.replace("..\\", "")
+    if base_dir[-1] == "/" or base_dir[-1] == "\\":
+        file_path = file.replace(base_dir, "")
+    else:
+        file_path = file.replace(base_dir + "/", "")
+        file_path = file.replace(base_dir + "\\", "")
+
     file_path = file_path.replace("./", "")
+    file_path = file_path.replace(".\\", "")
     file_path = file_path.replace(".spark", "")
     file_path = file_path.replace("/", "_")
     # this needs to be more flexible
     file_path = file_path.replace("C:\\", "")
     file_path = file_path.replace("\\", "_")
-    outFile = path.realpath(cacheDir + "/output_{}_{}.js".format(platform, file_path))
+    extension = ".js"
+    _, file_ext = path.splitext(file_path)
+    if file_ext:
+        extension = ""
+    outFile = path.realpath(cacheDir + "/output_{}_{}{}".format(platform, file_path, extension))
     return outFile
-    
-def pre_check_includes(files):
+
+lang = "js"
+
+def main():
+    global cacheDir
+
+    parser = argparse.ArgumentParser(description='Spark CLI')
+    parser.add_argument('--single_file', dest='single_file', action='store_true', help='If set, this only compiles the one file and does nothing else')
+    parser.add_argument('--base_directory', dest='base_dir', action='store', help='The base directory of the project')
+    parser.add_argument('file', metavar='File', type=str, nargs='?', help='A file to process')
+    parser.set_defaults(single_file=False)
+
+    args = parser.parse_args()
+
+    base_dir = args.base_dir
+
+    cacheDir = path.realpath(base_dir + "/sparkCache")
+
+    if not _file_exists(cacheDir):
+        mkdir(cacheDir)
+
+    if not args.single_file:
+        cache_files = glob.glob(path.realpath(cacheDir + "/*"))
+        for f in cache_files:
+            remove(f)
+        
+    files = [args.file]
+
     # pre-check all the files to deal with pre-processor statements
     id_to_file_map = {}
     files_to_run = []
@@ -358,12 +399,47 @@ def main():
         file_id = file_to_id_map[file]
         all_files_ran_over.append(file)
 
+        if not file.endswith(".spark"):
+            # in this case it's not code, just copy it
+            outputFile = get_cache_path(file, "common", base_dir)
+            fileBase = path.basename(fullPath)
+
+            sys.stdout.write("Copying {}... ".format(fileBase))
+            sys.stdout.flush()
+            contents = _read_file(fullPath)
+            _write_file(outputFile, contents)
+            print("Done")
+            sys.stdout.flush()
+            time.sleep(0.01)
+            continue
+
         import_data = file_import_data[file]
 
         #print(import_data)
 
         # flatten the import data by platform
-        flattened_import_data = flatten_import_data(import_data, file_classes)
+        flattened_import_data = {
+            "frontend": {
+                "classes": [],
+                "functions": [],
+            },
+            "backend": {
+                "classes": [],
+                "functions": [],
+            },
+        }
+
+        for platform in import_data:
+            import_files = import_data[platform]
+            #print(import_files)
+            for import_file in import_files:
+                classes_in_file = file_classes.get(import_file, {}).get(platform, [])
+                import_values = import_files[import_file]
+                #print(import_values, classes_in_file)
+                for value in import_values:
+                    if value in classes_in_file:
+                        flattened_import_data[platform]["classes"].append(value)
+        #print(flattened_import_data)
 
         result = None
         try:
@@ -402,7 +478,7 @@ def main():
                     if not found:
                         all_frontend_imports.append(imp)
 
-            if platform_code == "":
+            if platform_code == "" and not platform_pragmas:
                 continue
 
             sys.stdout.write("Generating files for {}... ".format(platform))
@@ -419,36 +495,83 @@ def main():
                 )
 
             # handle any included files
-            pragma_result = process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map)
-            platform_code = pragma_result["platform_code"]
-            frontend_imports = pragma_result["frontend_imports"]
+            for pragma in platform_pragmas:
+                if pragma["type"] == "include":
+                    value = pragma["value"]
+                    value_list = value.split(" ")
+                    fullPath = None
+                    import_list = None
+                    fullFilePath = path.realpath(file)
+                    if len(value_list) == 1:
+                        fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value)
+                    else:
+                        fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value_list[2])
+                        #files_to_run.append(fullPath)
+                        import_list = value_list[0]
 
+                    if fullPath:
+                        # this is technically a no-no because we are hard-coding our lang to JS right now
+                        # we don't need to add any import code if it's frontend because all code gets loaded top level
+                        import_platform = platform
+                        if not fullPath.endswith(".spark"):
+                            import_platform = "common"
+                        if platform == "backend":
+                            export_file = get_cache_path(fullPath, import_platform, base_dir)
+                            import_code = "require(\"" + export_file.replace("\\", "\\\\") + "\");\n"
+                            if import_list:
+                                import_code = "const {" + import_list + "} = require(\"" + export_file.replace("\\", "\\\\") + "\");\n"
+                            platform_code = import_code + platform_code
+                        elif platform == "frontend":
+                            export_name = file_to_id_map[fullPath]
+                            if import_list:
+                                import_code = "const {" + import_list + "} = await Modules[\"" + export_name + "\"];"
+                                frontend_imports.append(import_code)
+                            else:
+                                # in this case we have nothing to import, but we still want to wait until the promise of the import has
+                                # resolved
+                                import_code = "await Modules[\"" + export_name + "\"];"
+                                frontend_imports.append(import_code)
             if frontend_imports:
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 
-            outFile = get_cache_path(file, platform)
+            outFile = get_cache_path(file, platform, base_dir)
             handle = open(outFile, "w")
             handle.write(platform_code)
+            handle.close()
             print("Done")
             sys.stdout.flush()
             time.sleep(0.01)
             outFiles[platform].insert(0, outFile)
 
-    if len(outFiles["frontend"]) > 0:
+    # this all needs to be moved to a utility method so we can unit test it
+    if len(outFiles["frontend"]) > 0 and not args.single_file:
         sys.stdout.write("Generating frontend framework... ")
         sys.stdout.flush()
         time.sleep(0.01)
     
-        generate_frontend_framework(outFiles, all_frontend_imports)
+        main_backend_file = get_cache_path(args.file, "backend", base_dir)
+        generate_frontend_framework(outFiles, all_frontend_imports, main_backend_file)
     
         print("Done")
         sys.stdout.flush()
         time.sleep(0.01)
 
+    # write the last time of compile to the cache file
+    updateFile = path.join(cacheDir, "__update_time__")
+    handle = open(updateFile, "w")
+    intTime = int(time.time())
+    handle.write("{}".format(intTime))
+    handle.close()
+
     result = {
-        "outFile": outFiles["backend"][0],
         "all_files": all_files_ran_over,
     }
+    if not args.single_file:
+        result = {
+            "outFile": outFiles["backend"][0],
+            "all_files": all_files_ran_over,
+        }
+
     print(">>>{}".format(json.dumps(result)))
     sys.stdout.flush()
     time.sleep(0.01)
