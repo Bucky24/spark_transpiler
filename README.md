@@ -472,6 +472,7 @@ Table storage types:
 | Name | Description |
 | --- | --- |
 | STORAGE_FILE | Uses a local file for data storage |
+| STORAGE_MYSQL | Attempts to use a MySql server for storage |
 
 #### load
 
@@ -554,6 +555,19 @@ exampleTable.update(
 | --- | --- | --- |
 | search | map | Similar to `load`, this map defines what rows should be updated. An empty map will update all rows |
 | data | map | Similar to `insert`, this map defines what fields to update and what data to update them with
+
+#### setConfig
+
+The setConfig method is meant for setting connection data for storage types that require connection info.
+
+For mysql the setConfig method should be called with an object containing the following:
+
+| Param | Description |
+| --- | --- |
+| host | The hostname or IP of the database |
+| user | The username of the database |
+| password | The password for the user |
+| database | The database to use |
 
 ### Api
 
