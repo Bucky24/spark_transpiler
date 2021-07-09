@@ -5,6 +5,7 @@ generate_frontend_framework = spark.generate_frontend_framework
 generate_code_from_file = spark.generate_code_from_file
 pre_check_includes = spark.pre_check_includes
 flatten_import_data = spark.flatten_import_data
+process_pragmas = spark.process_pragmas
 
 mocks = []
 def _mock(inst, value, newFn):
@@ -89,8 +90,9 @@ def _mock_libraries():
         return "script_path"
 
     _mock(spark, "_script_dir", _override_script)
+    _mock_cachedir()
     
-    
+def _mock_cachedir():  
     def _override_cache():
         return "cache_path"
 
@@ -444,6 +446,119 @@ class TestFlattenImportData(unittest.TestCase):
             },
         })
         
+class TestProcessPragmas(unittest.TestCase):
+    def tearDown(self):
+        _clean_mocks()
+
+    def test_frontend_with_no_includes(self):
+        pragmas = []
+        code = "code"
+        file_to_id_map = {}
+        base_dir = "base/"
+        
+        result = process_pragmas("file1.spark", "frontend", pragmas, code, file_to_id_map, base_dir)
+        
+        self.assertEqual(result['frontend_imports'], [])
+        self.assertEqual(result['platform_code'], code)
+        
+    def test_backend_with_no_includes(self):
+        pragmas = []
+        code = "code"
+        file_to_id_map = {}
+        base_dir = "base/"
+        
+        result = process_pragmas("file1.spark", "backend", pragmas, code, file_to_id_map, base_dir)
+        
+        self.assertEqual(result['frontend_imports'], [])
+        self.assertEqual(result['platform_code'], code)
+
+    def test_frontend_with_just_file_include(self):
+        _mock_realpath({
+            "file1.spark": "/file1.spark",
+            "//file2.spark": "/file2.spark",
+        })
+        pragmas = [{
+            "type": "include",
+            "value": "file2.spark",
+        }]
+        code = "code"
+        file_to_id_map = {
+            "/file2.spark": "file2",
+        }
+        base_dir = "base/"
+        
+        result = process_pragmas("file1.spark", "frontend", pragmas, code, file_to_id_map, base_dir)
+        
+        self.assertEqual(result['frontend_imports'], [
+            "await Modules[\"file2\"];",
+        ])
+        self.assertEqual(result['platform_code'], code)
+        
+    def test_backend_with_just_file_include(self):
+        _mock_realpath({
+            "file1.spark": "/file1.spark",
+            "//file2.spark": "/file2.spark",
+            "cache_path/output_backend__file2.js": "cache_path/output_backend__file2.js",
+        })
+        _mock_cachedir()
+        pragmas = [{
+            "type": "include",
+            "value": "file2.spark",
+        }]
+        code = "code"
+        file_to_id_map = {
+            "/file2.spark": "file2",
+        }
+        base_dir = "base/"
+    
+        result = process_pragmas("file1.spark", "backend", pragmas, code, file_to_id_map, base_dir)
+    
+        self.assertEqual(result['frontend_imports'], [])
+        self.assertEqual(result['platform_code'], "require(\"cache_path/output_backend__file2.js\");\n" + code)
+        
+    def test_frontend_with_complex_include(self):
+        _mock_realpath({
+            "file1.spark": "/file1.spark",
+            "//file2.spark": "/file2.spark",
+        })
+        pragmas = [{
+            "type": "include",
+            "value": "foo,bar from file2.spark",
+        }]
+        code = "code"
+        file_to_id_map = {
+            "/file2.spark": "file2",
+        }
+        base_dir = "base/"
+    
+        result = process_pragmas("file1.spark", "frontend", pragmas, code, file_to_id_map, base_dir)
+    
+        self.assertEqual(result['frontend_imports'], [
+            "const {foo,bar} = await Modules[\"file2\"];",
+        ])
+        self.assertEqual(result['platform_code'], code)
+
+    def test_backend_with_complex_include(self):
+        _mock_realpath({
+            "file1.spark": "/file1.spark",
+            "//file2.spark": "/file2.spark",
+            "cache_path/output_backend__file2.js": "cache_path/output_backend__file2.js",
+        })
+        _mock_cachedir()
+        pragmas = [{
+            "type": "include",
+            "value": "foo,bar from file2.spark",
+        }]
+        code = "code"
+        file_to_id_map = {
+            "/file2.spark": "file2",
+        }
+        base_dir = "base/"
+    
+        result = process_pragmas("file1.spark", "backend", pragmas, code, file_to_id_map, base_dir)
+    
+        self.assertEqual(result['frontend_imports'], [])
+        self.assertEqual(result['platform_code'], "const {foo,bar} = require(\"cache_path/output_backend__file2.js\");\n" + code)
 
 if __name__ == "__main__":
     unittest.main()

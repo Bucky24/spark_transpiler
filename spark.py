@@ -135,7 +135,8 @@ def generate_frontend_framework(outFiles, imports, main_backend_file):
 
     # now load up all the backend files and generate the import list
     backend_import_list = []
-    # we only need the main backend output, all others are imported from there
+    # we only need the main backend output, all others are imported from there.
+    # it may not exist if the main file given has only frontend code. In that case just skip it
     if _file_exists(main_backend_file):
         backend_import_list.append("require(\"{}\");".format(main_backend_file.replace("\\", "\\\\")))
     
@@ -209,7 +210,7 @@ def get_cache_path(file, platform, base_dir):
     _, file_ext = path.splitext(file_path)
     if file_ext:
         extension = ""
-    outFile = path.realpath(_cache_dir() + "/output_{}_{}{}".format(platform, file_path, extension))
+    outFile = _realpath(_cache_dir() + "/output_{}_{}{}".format(platform, file_path, extension))
     return outFile
 
 lang = "js"
@@ -313,8 +314,8 @@ def flatten_import_data(import_data, file_classes):
     
     return flattened_import_data
     
-def process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map):
-    fullFilePath = path.realpath(file)
+def process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map, base_dir):
+    fullFilePath = _realpath(file)
     frontend_imports = []
     # handle any included files
     for pragma in platform_pragmas:
@@ -324,16 +325,16 @@ def process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_
             fullPath = None
             import_list = None
             if len(value_list) == 1:
-                fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value)
+                fullPath = _realpath(path.dirname(fullFilePath) + "/" + value)
             else:
-                fullPath = path.realpath(path.dirname(fullFilePath) + "/" + value_list[2])
+                fullPath = _realpath(path.dirname(fullFilePath) + "/" + value_list[2])
                 #files_to_run.append(fullPath)
                 import_list = value_list[0]
 
             if fullPath:
                 # this is technically a no-no because we are hard-coding our lang to JS right now by sending js code here
                 if platform == "backend":
-                    export_file = get_cache_path(fullPath, platform)
+                    export_file = get_cache_path(fullPath, platform, base_dir)
                     import_code = "require(\"" + export_file + "\");\n"
                     if import_list:
                         import_code = "const {" + import_list + "} = require(\"" + export_file + "\");\n"
@@ -489,7 +490,7 @@ def process_files(base_dir, single_file, files):
                     importFile["extension"],
                 )
             
-            result = process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map)
+            result = process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map, base_dir)
             frontend_imports = result['frontend_imports']
             platform_code = result['platform_code']
 
