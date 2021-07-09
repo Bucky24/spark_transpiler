@@ -1,0 +1,46 @@
+#backend
+
+table = Table(
+    "sample"
+    [
+        {
+            name: "id"
+            type: Table.INT
+            meta: [
+                Table.AUTO
+            ]
+        }
+        {
+            name: "username"
+            type: Table.STRING
+        }
+        {
+            name: "email"
+            type: Table.STRING
+        }
+    ]
+    Table.SOURCE_SQL
+)
+
+table.setConfig(
+    {
+        host: "1.1.1.1"
+        user: "test"
+        password: "foo"
+        database: "test"
+    }
+)
+
+table.insert(
+    {
+        username: "foo"
+        email: "foo@foo.com"
+    }
+)
+
+table.insert(
+    {
+        username: "bar"
+        email: "bar@foo.com"
+    }
+)

@@ -14,10 +14,11 @@ function getMysql() {
 const dataCacheDir = path.resolve(__dirname, "..", "sparkDataCache");
 
 class Table {
-    constructor(tableName, fields, storageType = Table.SOURCE_FILE) {
+    constructor(tableName, fields, storageType = Table.SOURCE_FILE, version = 1) {
         Table.init();
         
         this.tableName = tableName;
+        this.version = version;
         this.fields = fields;
         this.storageType = storageType;
         this.tableFile = path.join(dataCacheDir, `${tableName}.json`);
@@ -27,6 +28,25 @@ class Table {
         } else {
             this.readData();
         }
+    }
+    
+    setConfig(config) {
+        this.config = config;
+        this.conn = null;
+    }
+    
+    _getConn() {
+        if (!this.conn) {
+            if (this.storageType === Table.SOURCE_MYSQL) {
+                const mysql = getMysql();
+                this.conn = mysql.createConnection(this.config);
+                this.conn.connect();
+            } else {
+                console.error("Don't know how to get connection for " + this.storageType);
+            }
+        }
+        
+        return this.conn;
     }
     
     writeData() {
@@ -63,17 +83,46 @@ class Table {
         }
     }
     
-    load(params) {
+    _getTable() {
+        return `${this.tableName}_v${this.version}`;
+    }
+    
+    async load(params) {
         if (this.storageType === Table.SOURCE_FILE) {
             const matching = this.data.filter(this._filter(params));
         
             return matching;
+        } else if (this.storageType === Table.SOURCE_MYSQL) {
+            const conn = this._getConn();
+            let query = "SELECT * FROM " + this._getTable();
+            const params = [];
+            const paramStrings = Object.keys(params).map((key) => {
+                const value = params[key];
+                params.push(value);
+                return `${key} = ?`;
+            });
+            if (paramStrings.length > 0) {
+                const paramString = paramStrings.join(" AND ");
+                query += " WHERE " + paramStrings;
+            }
+            query = mysql.format(query, params);
+            const promise = new Promise((resolve, reject) => {
+                connonn().query(query, (error, results, fields) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+            const results = await promise;
+            return results;
         } else {
             console.error("Don't know how to write data for " + this.storageType);
         }
     }
     
-    update(search, update) {
+    async update(search, update) {
         if (this.storageType === Table.SOURCE_FILE) {
             const matching = [];
         
@@ -93,12 +142,40 @@ class Table {
             } 
         
             this.writeData();
+        } else if (this.storageType === Table.SOURCE_MYSQL) {
+            const conn = this._getConn();
+            let query = "UPDATE " + this._getTable() + " SET ";
+            const params = [];
+            const updateList = Object.keys(update).map((key) => {
+                const value = update[key];
+                params.push(value);
+                return `${key} = ?`;
+            });
+            query += `${updateList.join(' ')} WHERE `;
+            const searchList = Object.keys(search).map((key) => {
+                const value = search[key];
+                params.push(value);
+                return `${key} = ?`;
+            });
+            query += searchList.join(' ');
+
+            query = mysql.format(query, params);
+            const promise = new Promise((resolve, reject) => {
+                connonn().query(query, (error, results, fields) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+            await promise;
         } else {
             console.error("Don't know how to write data for " + this.storageType);
         }
     }
     
-    insert(data) {
+    async insert(data) {
         if (this.storageType === Table.SOURCE_FILE) {
             // generate any auto-increment fields that don't already exist
             this.fields.forEach((field) => {
@@ -120,6 +197,29 @@ class Table {
         
             this.data.push(data);
             this.writeData();
+        } else if (this.storageType === Table.SOURCE_MYSQL) {
+            const conn = this._getConn();
+            let query = "INSERT INTO " + this._getTable() + " ";
+            const params = [];
+            const fieldList = Object.keys(data);
+            const valueList = fieldList.map((field) => {
+                const value = data[field];
+                params.push(value);
+                return '?';
+            });
+            query += `(${fieldList.join(',  ')}) VALUES(${valueList.join(', ')})`;
+            query = mysql.format(query, params);
+            const promise = new Promise((resolve, reject) => {
+                connonn().query(query, (error, results, fields) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+            const result = await promise;
+            return result;
         } else {
             console.error("Don't know how to insert data for " + this.storageType);
         }
@@ -131,6 +231,7 @@ Table.INT = "type/int";
 Table.AUTO = "meta/auto";
 
 Table.SOURCE_FILE = "source/file";
+Table.SOURCE_MYSQL = "source/mysql";
 
 Table.init = function() {
     if (!fs.existsSync(dataCacheDir)) {

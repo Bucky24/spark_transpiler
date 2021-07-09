@@ -86,6 +86,7 @@ def generate_js(transformed_tree, label, import_data):
         "backend": [],
         "frontend": [],
     }
+    required_external_modules = []
     current_platform = "backend"
     def _end_block(current_block):
         # block ends
@@ -220,6 +221,14 @@ def generate_js(transformed_tree, label, import_data):
                 classes[current_platform] += result.get("new_classes", [])
                 function_calls[current_platform] += result.get("new_function_calls", [])
                 class_calls[current_platform] += result.get("new_class_calls", [])
+                
+                # do a very simple check for if we need to include mysql module
+                if (
+                    isinstance(statement_code, str) and
+                    "Table.SOURCE_MYSQL" in statement_code and
+                    "mysql" not in required_external_modules
+                ):
+                    required_external_modules.append("mysql")
 
                 # we only care about exporting these if it's top level
                 if spaces == 0:
@@ -327,7 +336,13 @@ def generate_js(transformed_tree, label, import_data):
         # to run this code until other code is also loaded
         code["frontend"] = "Modules[\"" + (label or "label") + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code["frontend"] + "\n})();\n";
 
-    return code, requirement_files, pragmas, classes
+    return {
+        "code": code,
+        "internal_imports": requirement_files,
+        "pragmas": pragmas,
+        "classes": classes,
+        "external_imports": required_external_modules,
+    }
 
 def process_statement(statement, args):
     variables_generated = args["child_variables"]

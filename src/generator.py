@@ -19,7 +19,8 @@ _COMMON_CODE = {
 
 def generate(transformed, lang, label="label", import_data=None):
     if lang == "js":
-        return generate_js(transformed, label, import_data)
+        result = generate_js(transformed, label, import_data)
+        return result
 
 def generate_from_code(code, lang, label, import_data):
     lines = code.split("\n")
@@ -67,4 +68,5 @@ def generate_from_code(code, lang, label, import_data):
         grammar.Tree("statements", statements)
     ])
     processed = process_tree(tree)
+
     return generate(processed, lang, label, import_data)

@@ -13,7 +13,7 @@ grammar = """
 start: statements
 statements: statement | (statement NEWLINE | NEWLINE)+
 
-VARIABLE_NAME: /[a-zA-Z_][a-zA-Z0-9]*(\[[0-9]+\])?/
+VARIABLE_NAME: /[a-zA-Z_][a-zA-Z0-9_]*(\[[0-9]+\])?/
 TYPE: ("a".."z" | "A".."Z" | "_") ("a".."z" | "A".."Z" | "_" | "0".."9")*
 instance_variable_chain: VARIABLE_NAME ("." VARIABLE_NAME)+
 variable: VARIABLE_NAME | instance_variable_chain
