@@ -408,7 +408,7 @@ value = State.get(
 The set method is called to update a piece of the state.
 
 ```
-value = State.get(
+value = State.set(
     "path.to.desired.value"
     newValueToSet
 )

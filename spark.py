@@ -136,7 +136,9 @@ def generate_frontend_framework(outFiles, imports, main_backend_file):
     # now load up all the backend files and generate the import list
     backend_import_list = []
     # we only need the main backend output, all others are imported from there
-    backend_import_list.append("require(\"{}\");".format(main_backend_file.replace("\\", "\\\\")))
+    if _file_exists(main_backend_file):
+        backend_import_list.append("require(\"{}\");".format(main_backend_file.replace("\\", "\\\\")))
+    
 
     backend_import_string = "\n".join(backend_import_list)
 
@@ -486,46 +488,11 @@ def process_files(base_dir, single_file, files):
                     importFile["library"],
                     importFile["extension"],
                 )
-                
-            frontend_imports = []
+            
+            result = process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map)
+            frontend_imports = result['frontend_imports']
+            platform_code = result['platform_code']
 
-            # handle any included files
-            for pragma in platform_pragmas:
-                if pragma["type"] == "include":
-                    value = pragma["value"]
-                    value_list = value.split(" ")
-                    fullPath = None
-                    import_list = None
-                    fullFilePath = _realpath(file)
-                    if len(value_list) == 1:
-                        fullPath = _realpath(path.dirname(fullFilePath) + "/" + value)
-                    else:
-                        fullPath = _realpath(path.dirname(fullFilePath) + "/" + value_list[2])
-                        #files_to_run.append(fullPath)
-                        import_list = value_list[0]
-
-                    if fullPath:
-                        # this is technically a no-no because we are hard-coding our lang to JS right now
-                        # we don't need to add any import code if it's frontend because all code gets loaded top level
-                        import_platform = platform
-                        if not fullPath.endswith(".spark"):
-                            import_platform = "common"
-                        if platform == "backend":
-                            export_file = get_cache_path(fullPath, import_platform, base_dir)
-                            import_code = "require(\"" + export_file.replace("\\", "\\\\") + "\");\n"
-                            if import_list:
-                                import_code = "const {" + import_list + "} = require(\"" + export_file.replace("\\", "\\\\") + "\");\n"
-                            platform_code = import_code + platform_code
-                        elif platform == "frontend":
-                            export_name = file_to_id_map[fullPath]
-                            if import_list:
-                                import_code = "const {" + import_list + "} = await Modules[\"" + export_name + "\"];"
-                                frontend_imports.append(import_code)
-                            else:
-                                # in this case we have nothing to import, but we still want to wait until the promise of the import has
-                                # resolved
-                                import_code = "await Modules[\"" + export_name + "\"];"
-                                frontend_imports.append(import_code)
             if frontend_imports:
                 platform_code = platform_code.replace("//<IMPORTS>", "\n".join(frontend_imports))
 

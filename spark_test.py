@@ -63,6 +63,12 @@ def _mock_copyfile():
     
     _mock(spark, "_copy_file", _do_copy_file)
     
+def _mock_fileexists(fileList):
+    def _do_fileexists(file):
+        return file in fileList
+        
+    _mock(spark, "_file_exists", _do_fileexists)
+        
 def _mock_libraries():
     _mock_readfile({
         "webapp.tmpl.js": "const frontendFiles = {\n//<FRONTEND_IMPORTS>\n};\n//<BACKEND_IMPORTS>\n",
@@ -323,6 +329,7 @@ class TestGenerateFrontendFramework(unittest.TestCase):
         _mock_writefile()
         _mock_copyfile()
         _mock_libraries()
+        _mock_fileexists(['back1.js'])
 
         outfiles = {
             "frontend": ['front1.js'],
@@ -348,6 +355,7 @@ class TestGenerateFrontendFramework(unittest.TestCase):
         _mock_writefile()
         _mock_copyfile()
         _mock_libraries()
+        _mock_fileexists(['back1.js'])
 
         outfiles = {
             "frontend": ['front1.js'],
@@ -376,6 +384,32 @@ class TestGenerateFrontendFramework(unittest.TestCase):
             "common_backend.js": "cache_path/stdlib_js_backend_common.js",
         })
         self.assertEquals(outfiles["backend"], ['cache_path/stdlib_js_backend_webapp.js'])
+        
+    def test_no_backend_file(self):
+        def test_no_imports(self):
+            _mock_writefile()
+            _mock_copyfile()
+            _mock_libraries()
+
+            outfiles = {
+                "frontend": ['front1.js'],
+                "backend": [],
+            }
+            imports = []
+            backend_file = "back1.js"
+        
+            generate_frontend_framework(outfiles, imports, backend_file)
+        
+            self.assertEquals(file_writes, {
+                "cache_path/stdlib_js_backend_webapp.js": [
+                    "const frontendFiles = {\n\t\"front1.js\": \"front1.js\",\n};\n",
+                ],
+                "cache_path/stdlib_js_frontend_index.html": ["<script src=\"front1.js\" defer></script>"],
+            })
+            self.assertEquals(file_copies, {
+                "common_backend.js": "cache_path/stdlib_js_backend_common.js",
+            })
+            self.assertEquals(outfiles["backend"], ['cache_path/stdlib_js_backend_webapp.js'])
         
 class TestFlattenImportData(unittest.TestCase):
     def test_flatten_import_data(self):
