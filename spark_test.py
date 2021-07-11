@@ -93,7 +93,7 @@ def _mock_libraries():
     _mock_cachedir()
     
 def _mock_cachedir():  
-    def _override_cache():
+    def _override_cache(path):
         return "cache_path"
 
     _mock(spark, "_cache_dir", _override_cache)
@@ -340,7 +340,7 @@ class TestGenerateFrontendFramework(unittest.TestCase):
         imports = []
         backend_file = "back1.js"
         
-        generate_frontend_framework(outfiles, imports, backend_file)
+        generate_frontend_framework(outfiles, imports, backend_file, "base_dir")
         
         self.assertEquals(file_writes, {
             "cache_path/stdlib_js_backend_webapp.js": [
@@ -374,7 +374,7 @@ class TestGenerateFrontendFramework(unittest.TestCase):
         ]
         backend_file = "back1.js"
         
-        generate_frontend_framework(outfiles, imports, backend_file)
+        generate_frontend_framework(outfiles, imports, backend_file, "dir")
         
         self.assertEquals(file_writes, {
             "cache_path/stdlib_js_backend_webapp.js": [

@@ -1,6 +1,6 @@
 import unittest
 
-from generator import generate
+from generator import generate, process_external_exports
 from grammar import parse_statement
 from transformer import process_tree
 
@@ -533,13 +533,39 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         output = generate(processed, "js")
         imports = output['external_imports']
-        self.assertEqual(imports, ['mysql'])
+        self.assertEqual(imports, [{"module": "mysql", "version": "2.18.1"}])
         
         tree = parse_statement("table = Table(\n\t\"table1\"\n\t[\n\t]\n\tTable.SOURCE_FILE\n)\n")
         processed = process_tree(tree)
         output = generate(processed, "js")
         imports = output['external_imports']
         self.assertEqual(imports, [])
+
+class TestGenerateExternalExports(unittest.TestCase):
+    def test_no_exports(self):
+        result = process_external_exports("js", [])
+        json = result["data"]
+        file = result["file"]
+        command = result["command"]
+
+        self.assertEqual(json, "{\n    \"dependencies\": {}\n}")
+        self.assertEqual(file, "package.json")
+        self.assertEqual(command, "npm install")
+
+    def test_with_exports(self):
+        result = process_external_exports("js", [
+            {
+                "module": "test",
+                "version": "1.0.0",
+            },
+            {
+                "module": "test2",
+                "version": "0.2.0",
+            }
+        ])
+        json = result["data"]
+
+        self.assertEqual(json, "{\n    \"dependencies\": {\n        \"test\": \"1.0.0\",\n        \"test2\": \"0.2.0\"\n    }\n}")
 
 if __name__ == "__main__":
     unittest.main()

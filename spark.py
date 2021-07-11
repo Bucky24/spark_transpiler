@@ -15,8 +15,8 @@ from src import generator
 def _script_dir():
     return path.dirname(path.realpath(__file__))
     
-def _cache_dir():
-    return path.realpath(_script_dir() + "/sparkCache")
+def _cache_dir(base_dir):
+    return path.realpath(base_dir + "/sparkCache")
 
 def _read_file(file):
     handle = open(file)
@@ -46,19 +46,19 @@ def _get_library(libType, lang, category, library, extension):
         libPath = _realpath(_script_dir() + "/" + libType + "/" + lang + "/" + category + "/" + library + "." + extension)
         return _read_file(libPath)
 
-def _get_new_lib_path(libType, lang, category, library, extension):
+def _get_new_lib_path(libType, lang, category, library, extension, base_dir):
     newLibFile = libType + "_" + lang + "_" + category + "_" + library + "." + extension
-    newLibPath = _realpath(_cache_dir() + "/" + newLibFile)
+    newLibPath = _realpath(_cache_dir(base_dir) + "/" + newLibFile)
     return newLibPath
 
-def _write_library(libType, lang, category, library, extension, contents):
-    newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
+def _write_library(libType, lang, category, library, extension, contents, base_dir):
+    newLibPath = _get_new_lib_path(libType, lang, category, library, extension, base_dir)
     _write_file(newLibPath, contents)
     return newLibPath
 
-def _copy_library(libType, lang, category, library, extension):
+def _copy_library(libType, lang, category, library, extension, base_dir):
     libPath = _realpath(_script_dir() + "/" + libType + "/" + lang + "/" + category + "/" + library + "." + extension)
-    newLibPath = _get_new_lib_path(libType, lang, category, library, extension)
+    newLibPath = _get_new_lib_path(libType, lang, category, library, extension, base_dir)
     _copy_file(libPath, newLibPath)
     
 # end util methods
@@ -89,7 +89,7 @@ def generate_code_from_file(file, label, import_data):
     
     try:
         result = generator.generate_from_code(contents, lang, label, import_data)
-    except Exception, err:
+    except Exception as err:
         exc_info = sys.exc_info()
         traceback.print_exception(*exc_info)
         del exc_info
@@ -101,7 +101,7 @@ def generate_code_from_file(file, label, import_data):
 
     return result
 
-def generate_frontend_framework(outFiles, imports, main_backend_file):
+def generate_frontend_framework(outFiles, imports, main_backend_file, base_dir):
     # if we have ANY frontend code, our backend needs to contain the initial setup code to display said frontend
     app_contents = _get_library(
         "stdlib",
@@ -121,6 +121,7 @@ def generate_frontend_framework(outFiles, imports, main_backend_file):
             platform_import["category"],
             platform_import["library"],
             platform_import["extension"],
+            base_dir,
         )
         frontend_imports.append(lib_path)
 
@@ -152,6 +153,7 @@ def generate_frontend_framework(outFiles, imports, main_backend_file):
         "webapp",
         "js",
         final_content,
+        base_dir,
     )
     outFiles["backend"] = [file_path]
 
@@ -179,6 +181,7 @@ def generate_frontend_framework(outFiles, imports, main_backend_file):
         "index",
         "html",
         final_index_content,
+        base_dir,
     )
     
     # we also will need the backend common lib because the backend system requires Api
@@ -187,7 +190,8 @@ def generate_frontend_framework(outFiles, imports, main_backend_file):
         lang,
         "backend",
         "common",
-        "js"
+        "js",
+        base_dir,
     )
 
 def get_cache_path(file, platform, base_dir):
@@ -210,7 +214,8 @@ def get_cache_path(file, platform, base_dir):
     _, file_ext = path.splitext(file_path)
     if file_ext:
         extension = ""
-    outFile = _realpath(_cache_dir() + "/output_{}_{}{}".format(platform, file_path, extension))
+    outFile = _realpath(_cache_dir(base_dir) + "/output_{}_{}{}".format(platform, file_path, extension))
+    outFile = outFile.replace("\\", "\\\\")
     return outFile
 
 lang = "js"
@@ -304,7 +309,7 @@ def flatten_import_data(import_data, file_classes):
         import_files = import_data[platform]
         #print(import_files)
         for import_file in import_files:
-            classes_in_file = file_classes.get(import_file, []).get(platform, [])
+            classes_in_file = file_classes.get(import_file, {}).get(platform, [])
             import_values = import_files[import_file]
             #print(import_file, import_values, classes_in_file)
             for value in import_values:
@@ -355,9 +360,23 @@ def process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_
         "frontend_imports": frontend_imports,
     }
 
-def main():
-    cacheDir = _cache_dir()
+def build_external_exports(lang, external_exports, base_dir):
+    result = generator.process_external_exports(lang, external_exports)
 
+    data = result["data"]
+    file = result["file"]
+    command = result["command"]
+
+    cache_file = get_cache_path(file, "common", base_dir)
+    _write_file(cache_file, data)
+
+    cwd = os.getcwd()
+    os.chdir(_cache_path(base_dir))
+    command_result = subprocess.run(command)
+    os.chdir(cwd)
+    print(command_result.returncode)
+
+def main():
     parser = argparse.ArgumentParser(description='Spark CLI')
     parser.add_argument('--single_file', dest='single_file', action='store_true', help='If set, this only compiles the one file and does nothing else')
     parser.add_argument('--base_directory', dest='base_dir', action='store', help='The base directory of the project')
@@ -373,7 +392,7 @@ def main():
     process_files(base_dir, single_file, files)
     
 def process_files(base_dir, single_file, files):
-    cacheDir = _cache_dir()
+    cacheDir = _cache_dir(base_dir)
 
     if not _file_exists(cacheDir):
         mkdir(cacheDir)
@@ -411,13 +430,14 @@ def process_files(base_dir, single_file, files):
         all_files_ran_over.append(file)
 
         if not file.endswith(".spark"):
-            # in this case it's not code, just copy it
-            outputFile = get_cache_path(file, "common", base_dir)
-            fileBase = _basename(fullPath)
+            # in this case it's not code, copy it over without transforming
+            outputFile = get_cache_path(file, "backend", base_dir)
+            fileBase = _basename(file)
+            outputBase = _basename(outputFile)
 
-            sys.stdout.write("Copying {}... ".format(fileBase))
+            sys.stdout.write("Copying {} to {}... ".format(fileBase, outputBase))
             sys.stdout.flush()
-            contents = _read_file(fullPath)
+            contents = _read_file(file)
             _write_file(outputFile, contents)
             print("Done")
             sys.stdout.flush()
@@ -488,6 +508,7 @@ def process_files(base_dir, single_file, files):
                     importFile["category"],
                     importFile["library"],
                     importFile["extension"],
+                    base_dir,
                 )
             
             result = process_pragmas(file, platform, platform_pragmas, platform_code, file_to_id_map, base_dir)
@@ -503,7 +524,7 @@ def process_files(base_dir, single_file, files):
             handle.close()
             print("Done")
             sys.stdout.flush()
-            time.sleep(0.01)
+            time.sleep(0.01)   
             outFiles[platform].insert(0, outFile)
 
     # this all needs to be moved to a utility method so we can unit test it
@@ -513,7 +534,7 @@ def process_files(base_dir, single_file, files):
         time.sleep(0.01)
     
         main_backend_file = get_cache_path(starting_file, "backend", base_dir)
-        generate_frontend_framework(outFiles, all_frontend_imports, main_backend_file)
+        generate_frontend_framework(outFiles, all_frontend_imports, main_backend_file, base_dir)
     
         print("Done")
         sys.stdout.flush()

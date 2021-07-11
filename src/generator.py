@@ -9,7 +9,7 @@ sys.path.append(file_dir)
 
 import grammar 
 from transformer import process_tree
-from generator_js import generate_js
+from generator_js import generate_js, generate_external_exports
 
 _COMMON_CODE = {
     "}": [grammar.Tree('map_end', [])],
@@ -70,3 +70,19 @@ def generate_from_code(code, lang, label, import_data):
     processed = process_tree(tree)
 
     return generate(processed, lang, label, import_data)
+
+def process_external_exports(lang, exports):
+    export_file_data = None
+    export_file = ""
+    export_command = ""
+
+    if lang == "js":
+        export_file_data, export_file, export_command = generate_external_exports(exports)
+    
+    return {
+        "data": export_file_data,
+        "file": export_file,
+        "command": export_command,
+    }
+
+    

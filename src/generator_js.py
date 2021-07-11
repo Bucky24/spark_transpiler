@@ -1,3 +1,5 @@
+import json
+
 from transformer import TYPES
 
 _DEFAULT_SPACES = 4
@@ -87,6 +89,7 @@ def generate_js(transformed_tree, label, import_data):
         "frontend": [],
     }
     required_external_modules = []
+    exernal_module_list = []
     current_platform = "backend"
     def _end_block(current_block):
         # block ends
@@ -226,9 +229,13 @@ def generate_js(transformed_tree, label, import_data):
                 if (
                     isinstance(statement_code, str) and
                     "Table.SOURCE_MYSQL" in statement_code and
-                    "mysql" not in required_external_modules
+                    "mysql" not in exernal_module_list
                 ):
-                    required_external_modules.append("mysql")
+                    exernal_module_list.append("mysql")
+                    required_external_modules.append({
+                        "module": "mysql",
+                        "version": "2.18.1",
+                    })
 
                 # we only care about exporting these if it's top level
                 if spaces == 0:
@@ -675,3 +682,16 @@ def process_statement(statement, args):
             "statement": "else {",
             "start_block": "if",
         }
+
+def generate_external_exports(exports):
+    package_json = {
+        "dependencies": {},
+    }
+
+    for export in exports:
+        module = export['module']
+        version = export['version']
+
+        package_json['dependencies'][module] = version
+
+    return json.dumps(package_json, indent=4), "package.json", "npm install"
