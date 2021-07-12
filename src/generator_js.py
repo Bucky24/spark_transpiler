@@ -342,6 +342,8 @@ def generate_js(transformed_tree, label, import_data):
         # wrap it in an async self-calling method and export the result. Also include a small wait in front of it so we can be sure that we don't try
         # to run this code until other code is also loaded
         code["frontend"] = "Modules[\"" + (label or "label") + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code["frontend"] + "\n})();\n";
+    if code["backend"]:
+        code["backend"] = "(async () => {\n" + code["backend"] + "\n})();\n"
 
     return {
         "code": code,
@@ -484,7 +486,7 @@ def process_statement(statement, args):
         if name == "constructor":
             start_block = "constructor"
 
-        if platform == "frontend" and name != "constructor":
+        if name != "constructor":
             statement = "async {}".format(statement)
 
         new_functions = []
@@ -519,7 +521,7 @@ def process_statement(statement, args):
                 new_instance = True
 
         if not new_instance:
-            if not is_constructor and platform == "frontend":
+            if not is_constructor:
                 code = "await {}".format(code)
         else:
             code = "new {}".format(code)
