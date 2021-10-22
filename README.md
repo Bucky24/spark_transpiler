@@ -440,7 +440,7 @@ Table(
 | --- | --- | --- |
 | tableName | string | The name of the database table |
 | fieldsList | array | An array of Field objects |
-| storageType | Table Storage Type | The type of storage to setup for this table. Optional, defaults to Table.STORAGE_FILE |
+| storageType | Table Storage Type | The type of storage to setup for this table. Optional, defaults to Table.SOURCE_FILE |
 
 The Field is an object with the following structure:
 
@@ -471,8 +471,8 @@ Table storage types:
 
 | Name | Description |
 | --- | --- |
-| STORAGE_FILE | Uses a local file for data storage |
-| STORAGE_MYSQL | Attempts to use a MySql server for storage |
+| SOURCE_FILE | Uses a local file for data storage |
+| SOURCE_MYSQL | Attempts to use a MySql server for storage |
 
 #### load
 

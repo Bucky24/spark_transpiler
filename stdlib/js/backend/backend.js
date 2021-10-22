@@ -36,17 +36,28 @@ class Table {
     }
     
     _getConn() {
-        if (!this.conn) {
-            if (this.storageType === Table.SOURCE_MYSQL) {
-                const mysql = getMysql();
-                this.conn = mysql.createConnection(this.config);
-                this.conn.connect();
+        return new Promise((resolve, reject) => {
+            if (!this.conn) {
+                if (this.storageType === Table.SOURCE_MYSQL) {
+                    const mysql = getMysql();
+                    const conn = mysql.createConnection(this.config);
+                    conn.connect((err) => {
+                        if (err) {
+                            console.error("Unable to connect to database", err);
+                            resolve(null);
+                        } else {
+                            this.conn = conn;
+                            resolve(this.conn);
+                        }
+                    });
+                } else {
+                    console.error("Don't know how to get connection for " + this.storageType);
+                    resolve(null);
+                }
             } else {
-                console.error("Don't know how to get connection for " + this.storageType);
+                resolve(this.conn);
             }
-        }
-        
-        return this.conn;
+        });
     }
     
     writeData() {
@@ -93,7 +104,7 @@ class Table {
         
             return matching;
         } else if (this.storageType === Table.SOURCE_MYSQL) {
-            const conn = this._getConn();
+            const conn = await this._getConn();
             let query = "SELECT * FROM " + this._getTable();
             const params = [];
             const paramStrings = Object.keys(params).map((key) => {
@@ -107,7 +118,7 @@ class Table {
             }
             query = mysql.format(query, params);
             const promise = new Promise((resolve, reject) => {
-                connonn().query(query, (error, results, fields) => {
+                conn.query(query, (error, results, fields) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -143,7 +154,7 @@ class Table {
         
             this.writeData();
         } else if (this.storageType === Table.SOURCE_MYSQL) {
-            const conn = this._getConn();
+            const conn = await this._getConn();
             let query = "UPDATE " + this._getTable() + " SET ";
             const params = [];
             const updateList = Object.keys(update).map((key) => {
@@ -161,7 +172,7 @@ class Table {
 
             query = mysql.format(query, params);
             const promise = new Promise((resolve, reject) => {
-                connonn().query(query, (error, results, fields) => {
+                conn.query(query, (error, results, fields) => {
                     if (error) {
                         reject(error);
                     } else {
@@ -198,7 +209,7 @@ class Table {
             this.data.push(data);
             this.writeData();
         } else if (this.storageType === Table.SOURCE_MYSQL) {
-            const conn = this._getConn();
+            const conn = await this._getConn();
             let query = "INSERT INTO " + this._getTable() + " ";
             const params = [];
             const fieldList = Object.keys(data);
@@ -210,7 +221,7 @@ class Table {
             query += `(${fieldList.join(',  ')}) VALUES(${valueList.join(', ')})`;
             query = mysql.format(query, params);
             const promise = new Promise((resolve, reject) => {
-                connonn().query(query, (error, results, fields) => {
+                conn.query(query, (error, results, fields) => {
                     if (error) {
                         reject(error);
                     } else {

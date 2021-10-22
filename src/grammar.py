@@ -87,4 +87,136 @@ NEWLINE: "\\n"
 parser = Lark(grammar)
 
 def parse_statement(statement):
+    return process_statement(statement)
     return parser.parse(statement)
+    
+START = "states/start";
+VARIABLE_OR_METHOD = "states/variable_or_method"
+VARIABLE_SET = "states/variable_set"
+STRING = "states/string"
+    
+def process_tokens(tokens):
+    print("starting")
+    statement = []
+    
+    state = START
+    context = {}
+        
+    def close_statement():
+        print("closing time!")
+        if len(context) == 0:
+            return
+        
+        tokens = context.get("children", None)
+        if tokens:
+            statements = [];
+    
+            while len(tokens) > 0:
+                result = process_tokens(tokens)
+                tokens = result['tokens']
+                statements += result['statement']
+
+            context['children'] = statements
+            
+        if context["type"] == "string":
+            statement.append(Tree("string", [Token("STRING_CONTENTS_DOUBLE", context['string'])]))
+        elif context['type'] == 'variable_assignment':
+            statement.append(Tree("variable_assignment", [
+                Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
+                Tree("statement", statements),
+            ]))
+        else:
+            raise Exception("Unknown type {}".format(context['type']))
+    
+    while len(tokens) > 0:
+        token = tokens.pop(0);
+        
+        print("handle token {}: \"{}\"".format(state, token))
+        
+        if state == START:
+            if token == "\"":
+                state = STRING
+                context["string"] = ""
+                context["type"] = "string"
+                continue
+            elif token == " ":
+                continue
+            else:
+                state = VARIABLE_OR_METHOD
+                context["variable_or_method"] = token
+                continue
+        elif state == VARIABLE_OR_METHOD:
+            if token == " ":
+                # ignore
+                continue
+            elif token == "=":
+                state = VARIABLE_SET
+                context["variable"] = context['variable_or_method']
+                context['children'] = []
+                context['type'] = 'variable_assignment'
+                continue
+        elif state == VARIABLE_SET:
+            if token == "\n":
+                close_statement()
+                state = START
+                context = {}
+            else:
+                context['children'].append(token)
+            continue
+        elif state == STRING:
+            if token == "\"":
+                close_statement()
+                state = START
+                context = {}
+                #print("after reset! {}".format(context))
+                continue
+            else:
+                context["string"] += token
+                continue
+
+        raise Exception("Unexpected token {}".format(token))
+    
+    close_statement()
+    
+    print("result {}".format(statement))
+    
+    return {
+        "tokens": tokens,
+        "statement": statement,
+    }
+    
+def process_statement(statement):
+    tokens = []
+    token = ""
+    slash = False
+    for char in statement:
+        print(char)
+        if slash:
+            char = "\\" + char
+            slash = False
+
+        if char == " " or char == "\"" or char == "\n":
+            if len(token) > 0:
+                tokens.append(token)
+                token = ""
+            tokens.append(char)
+        elif char == "\\":
+            slash = True
+        else:
+            token += char
+            
+    if len(token) > 0:
+        tokens.append(token)
+            
+    print(tokens)
+    
+    statements = [];
+    
+    while len(tokens) > 0:
+        result = process_tokens(tokens)
+        tokens = result['tokens']
+        statements.append(Tree("statement", result['statement']))
+        
+    print(statements)
+    
+    return Tree("start", [Tree("statements", statements)])

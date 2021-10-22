@@ -1,5 +1,5 @@
 import argparse
-from os import path, mkdir, remove
+from os import path, mkdir, remove, getcwd, chdir
 import sys
 import subprocess
 import time
@@ -367,14 +367,16 @@ def build_external_exports(lang, external_exports, base_dir):
     file = result["file"]
     command = result["command"]
 
-    cache_file = get_cache_path(file, "common", base_dir)
+    cache_file = _realpath(_cache_dir(base_dir) + "/" + file)
     _write_file(cache_file, data)
 
-    cwd = os.getcwd()
-    os.chdir(_cache_path(base_dir))
-    command_result = subprocess.run(command)
-    os.chdir(cwd)
-    print(command_result.returncode)
+    cwd = getcwd()
+    chdir(_cache_dir(base_dir))
+    child = subprocess.Popen(command, stdout=sys.stdout, stderr=sys.stderr, shell=True)
+    child.communicate()
+    chdir(cwd)
+    if child.returncode != 0:
+        raise Error("Unable to build external exports")
 
 def main():
     parser = argparse.ArgumentParser(description='Spark CLI')
@@ -393,17 +395,23 @@ def main():
     
 def process_files(base_dir, single_file, files):
     cacheDir = _cache_dir(base_dir)
-
+    
     if not _file_exists(cacheDir):
         mkdir(cacheDir)
         
     # not super ideal
     starting_file = files[0]
-
+    
     if not single_file:
         cache_files = glob.glob(_realpath(cacheDir + "/*"))
         for f in cache_files:
-            remove(f)
+            base = _basename(f)
+            if base == "node_modules" or base == "package-lock.json":
+                continue
+            if path.isdir(f):
+                shutil.rmtree(cacheDir)
+            else:
+                remove(f)
 
     # pre-check all the files to deal with pre-processor statements
     includes_result = pre_check_includes(files)
@@ -539,6 +547,9 @@ def process_files(base_dir, single_file, files):
         print("Done")
         sys.stdout.flush()
         time.sleep(0.01)
+        
+    # build external modules
+    build_external_exports("js", all_external_modules, base_dir)
 
     # write the last time of compile to the cache file
     updateFile = path.join(cacheDir, "__update_time__")
