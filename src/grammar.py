@@ -87,13 +87,14 @@ NEWLINE: "\\n"
 parser = Lark(grammar)
 
 def parse_statement(statement):
-    return process_statement(statement)
+    #return process_statement(statement)
     return parser.parse(statement)
     
 START = "states/start";
 VARIABLE_OR_METHOD = "states/variable_or_method"
 VARIABLE_SET = "states/variable_set"
-STRING = "states/string"
+STRING_DOUBLE = "states/string_double"
+STRING_SINGLE = "states/string_single"
     
 def process_tokens(tokens):
     print("starting")
@@ -135,7 +136,12 @@ def process_tokens(tokens):
         
         if state == START:
             if token == "\"":
-                state = STRING
+                state = STRING_DOUBLE
+                context["string"] = ""
+                context["type"] = "string"
+                continue
+            elif token == "'":
+                state = STRING_SINGLE
                 context["string"] = ""
                 context["type"] = "string"
                 continue
@@ -160,11 +166,22 @@ def process_tokens(tokens):
                 close_statement()
                 state = START
                 context = {}
+                statement.append(Token("NEWLINE", "\n"))
             else:
                 context['children'].append(token)
             continue
-        elif state == STRING:
+        elif state == STRING_DOUBLE:
             if token == "\"":
+                close_statement()
+                state = START
+                context = {}
+                #print("after reset! {}".format(context))
+                continue
+            else:
+                context["string"] += token
+                continue
+        elif state == STRING_SINGLE:
+            if token == "'":
                 close_statement()
                 state = START
                 context = {}
@@ -195,7 +212,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n":
+        if char == " " or char == "\"" or char == "\n" or char == "'":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
