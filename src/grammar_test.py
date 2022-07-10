@@ -24,7 +24,7 @@ def _get_start(contents):
 
 class TestGrammar(unittest.TestCase):
     def test_variables(self):
-        """result = parse_statement("foo = \"bar\"")
+        result = parse_statement("foo = \"bar\"")
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
@@ -38,7 +38,7 @@ class TestGrammar(unittest.TestCase):
                     ]),
                 ]),
             ]),
-        ]))"""
+        ]))
 
         result = parse_statement("foo = \"bar\"\nbar = 'baz'\n")
         self.assertEqual(result, Tree('start', [
