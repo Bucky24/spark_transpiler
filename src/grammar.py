@@ -87,8 +87,8 @@ NEWLINE: "\\n"
 parser = Lark(grammar)
 
 def parse_statement(statement):
-    return process_statement(statement)
-    #return parser.parse(statement)
+    #return process_statement(statement)
+    return parser.parse(statement)
     
 START = "states/start";
 VARIABLE_OR_METHOD = "states/variable_or_method"
