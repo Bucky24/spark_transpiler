@@ -87,8 +87,8 @@ NEWLINE: "\\n"
 parser = Lark(grammar)
 
 def parse_statement(statement):
-    #return process_statement(statement)
-    return parser.parse(statement)
+    return process_statement(statement)
+    #return parser.parse(statement)
     
 START = "states/start";
 VARIABLE_OR_METHOD = "states/variable_or_method"
@@ -98,11 +98,13 @@ STRING_SINGLE = "states/string_single"
 NUMBER_STATE = "states/number"
 VARIABLE_ADD_OR_INCREMENT = "states/variable_add_or_increment"
 VARIABLE_COERCION = "states/variable_coercion"
+IF_STATEMENT = "states/if_statement"
+VARIABLE_EQUALITY = "states/variable_equality"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 # turn to true for debug logs
-LOG = False
+LOG = True
 
 def log(str):
     if LOG:
@@ -182,6 +184,11 @@ def process_tokens(tokens):
                     "statement": statement,
                     "raw": [Token("NEWLINE", "\n")],
                 }
+            elif token == "if":
+                state = IF_STATEMENT
+                context["type"] = "if"
+                context["children"] = []
+                continue
             elif len(token) > 0 and token[0] in NUMBERS:
                 state = NUMBER_STATE
                 context["type"] = "number"
@@ -219,6 +226,13 @@ def process_tokens(tokens):
                 context = {}
                 tokens.insert(0, "\n")
                 continue
+            elif token == "=":
+                if len(context['children']) == 0:
+                    # this is not a variable set
+                    state = VARIABLE_EQUALITY
+                    context['type'] = 'variable_equality'
+                    context['equality_type'] = '='
+                    continue
             else:
                 context['children'].append(token)
             continue
@@ -255,6 +269,20 @@ def process_tokens(tokens):
                 continue
             else:
                 context['children'].append(token)
+                continue
+        elif state == IF_STATEMENT:
+            if token == " ":
+                # ignore
+                continue
+            else:
+                context["children"].append(token)
+                continue
+        elif state == VARIABLE_EQUALITY:
+            if token == " ":
+                # ignore
+                continue
+            else:
+                context["children"].append(token)
                 continue
 
         raise Exception("Unexpected token {}".format(token))
