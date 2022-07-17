@@ -157,6 +157,22 @@ def process_tokens(tokens):
                 Tree("variable", [Token('VARIABLE_NAME', context['variable'])]),
                 Token('TYPE', context['children'][0]),
             ]))
+        elif context['type'] == 'variable_equality':
+            equality_statement = Token("EQUALITY", context['equality_type'])
+            if context['equality_type'] == "=":
+                equality_statement = Token('EQUALITY', '==')
+    
+            statement.append(Tree('condition', [
+                Tree('statement', [
+                    Tree("variable", [Token('VARIABLE_NAME', context['variable'])]),
+                ]),
+                equality_statement,
+                Tree('statement', [
+                    Tree("variable", [Token('VARIABLE_NAME', context['children'][0])]),
+                ]),
+            ]))
+        elif context['type'] == 'if':
+            statement.append(Tree('if_stat', context['children']))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
     
@@ -219,6 +235,27 @@ def process_tokens(tokens):
                 context['children'] = []
                 context['type'] = 'variable_coercion'
                 continue
+            elif token == ">":
+                state = VARIABLE_EQUALITY
+                context['type'] = 'variable_equality'
+                context['equality_type'] = '>'
+                context['children'] = []
+                context['variable'] = context['variable_or_method']
+                continue
+            elif token == "<":
+                state = VARIABLE_EQUALITY
+                context['type'] = 'variable_equality'
+                context['equality_type'] = '<'
+                context['children'] = []
+                context['variable'] = context['variable_or_method']
+                continue
+            elif token == "!":
+                state = VARIABLE_EQUALITY
+                context['type'] = 'variable_equality'
+                context['equality_type'] = '!'
+                context['children'] = []
+                context['variable'] = context['variable_or_method']
+                continue
         elif state == VARIABLE_SET:
             if token == "\n":
                 close_statement()
@@ -274,12 +311,21 @@ def process_tokens(tokens):
             if token == " ":
                 # ignore
                 continue
+            elif token == "\n":
+                close_statement()
+                state = START
+                context = {}
+                tokens.insert(0, "\n")
+                continue
             else:
                 context["children"].append(token)
                 continue
         elif state == VARIABLE_EQUALITY:
             if token == " ":
                 # ignore
+                continue
+            elif token == "=":
+                context["equality_type"] = context["equality_type"] + token
                 continue
             else:
                 context["children"].append(token)
