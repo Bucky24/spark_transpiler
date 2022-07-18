@@ -100,11 +100,12 @@ VARIABLE_ADD_OR_INCREMENT = "states/variable_add_or_increment"
 VARIABLE_COERCION = "states/variable_coercion"
 IF_STATEMENT = "states/if_statement"
 VARIABLE_EQUALITY = "states/variable_equality"
+FOR_STATEMENT = "states/for_statement"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 # turn to true for debug logs
-LOG = False
+LOG = True
 
 def log(str):
     if LOG:
@@ -116,13 +117,9 @@ def process_tokens(tokens):
     
     state = START
     context = {}
-        
-    def close_statement():
-        log("closing time! {}".format(context))
-        if len(context) == 0:
-            return
-        
-        tokens = context.get("children", None)
+
+    def process_children(context, var):
+        tokens = context.get(var, None)
         if tokens:
             statements = [];
     
@@ -137,7 +134,22 @@ def process_tokens(tokens):
                 if item == Tree("spaces", [Token('SPACE', ' ')]):
                     statements.remove(item)
 
-            context['children'] = statements
+            context[var] = statements
+
+    def children_as_variable_name(children_arr):
+        if len(children_arr) == 1 and isinstance(children_arr[0], str):
+            return [
+                Tree('variable', [Token('VARIABLE_NAME', children_arr[0])])
+            ]
+        return children_array
+
+        
+    def close_statement():
+        log("closing time! {}".format(context))
+        if len(context) == 0:
+            return
+        
+        process_children(context, "children")
 
         if "spaces" in context:
             for i in range(0, context['spaces']):
@@ -149,14 +161,10 @@ def process_tokens(tokens):
             statement.append(Tree("string", [Token("STRING_CONTENTS_SINGLE", context['string'])]))
         elif context['type'] == 'variable_assignment':
             # if we only have one child statement and it's a string, make it a variable instead
-            if len(statements) == 1 and isinstance(statements[0], str):
-                statements = [
-                    Tree('variable', [Token('VARIABLE_NAME', statements[0])])
-                ]
-
+            context['children'] = children_as_variable_name(context['children'])
             statement.append(Tree("variable_assignment", [
                 Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
-                Tree("statement", statements),
+                Tree("statement", context['children']),
             ]))
         elif context["type"] == "number":
             statement.append(Token("NUMBER", context['number']))
@@ -199,6 +207,24 @@ def process_tokens(tokens):
             statement.append(Tree('condition', tree_children))
         elif context['type'] == 'if':
             statement.append(Tree('if_stat', context['children']))
+        elif context['type'] == 'for_as':
+            process_children(context,"children")
+            process_children(context,"children2")
+            children = children_as_variable_name(context['children'])
+            children2 = children_as_variable_name(context['children2'])
+            statement.append(Tree("for_stat", [
+                Tree('for_array', children + children2)
+            ]))
+        elif context['type'] == 'for_object':
+            process_children(context,"children")
+            process_children(context,"children2")
+            process_children(context,"children3")
+            children = children_as_variable_name(context['children'])
+            children2 = children_as_variable_name(context['children2'])
+            children3 = children_as_variable_name(context['children3'])
+            statement.append(Tree("for_stat", [
+                Tree('for_object', children + children2 + children3)
+            ]))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
     
@@ -238,6 +264,15 @@ def process_tokens(tokens):
                 state = NUMBER_STATE
                 context["type"] = "number"
                 context["number"] = token
+                continue
+            elif token == "for":
+                state = FOR_STATEMENT
+                context['type'] = 'for'
+                context['children'] = []
+                context['children2'] = []
+                context['children3'] = []
+                context['found_as'] = False
+                context['found_colon'] = False
                 continue
             else:
                 state = VARIABLE_OR_METHOD
@@ -359,8 +394,30 @@ def process_tokens(tokens):
             else:
                 context["children"].append(token)
                 continue
+        elif state == FOR_STATEMENT:
+            if token == " ":
+                # ignore
+                continue
+            elif token == "as":
+                context['type'] = "for_as"
+                context['found_as'] = True
+                continue
+            elif token == ":" and context['found_as']:
+                context['type'] = "for_object"
+                context['found_colon'] = True
+                continue
+            else:
+                if not context['found_as']:
+                    context['children'].append(token)
+                    continue
+                elif not context['found_colon']:
+                    context['children2'].append(token)
+                    continue
+                else:
+                    context['children3'].append(token)
+                    continue
 
-        raise Exception("Unexpected token {}".format(token))
+        raise Exception("Unexpected token {} for state {}".format(token, state))
     
     close_statement()
     
@@ -381,7 +438,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+":
+        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
