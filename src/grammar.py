@@ -104,7 +104,7 @@ VARIABLE_EQUALITY = "states/variable_equality"
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 # turn to true for debug logs
-LOG = True
+LOG = False
 
 def log(str):
     if LOG:
@@ -132,13 +132,28 @@ def process_tokens(tokens):
                 tokens = result['tokens']
                 statements += result['statement']
 
+            # remove any spaces - inner children don't care about spaces
+            for item in statements:
+                if item == Tree("spaces", [Token('SPACE', ' ')]):
+                    statements.remove(item)
+
             context['children'] = statements
+
+        if "spaces" in context:
+            for i in range(0, context['spaces']):
+                statement.append(Tree("spaces", [Token('SPACE', ' ')]))
             
         if context["type"] == "string":
             statement.append(Tree("string", [Token("STRING_CONTENTS_DOUBLE", context['string'])]))
         elif context["type"] == "string_single":
             statement.append(Tree("string", [Token("STRING_CONTENTS_SINGLE", context['string'])]))
         elif context['type'] == 'variable_assignment':
+            # if we only have one child statement and it's a string, make it a variable instead
+            if len(statements) == 1 and isinstance(statements[0], str):
+                statements = [
+                    Tree('variable', [Token('VARIABLE_NAME', statements[0])])
+                ]
+
             statement.append(Tree("variable_assignment", [
                 Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
                 Tree("statement", statements),
@@ -146,9 +161,14 @@ def process_tokens(tokens):
         elif context["type"] == "number":
             statement.append(Token("NUMBER", context['number']))
         elif context['type'] == "variable_increment":
-            statement.append(Tree("variable_increment", [
-                Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
-            ]))
+            if isinstance(context['variable'], str):
+                statement.append(Tree("variable_increment", [
+                    Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
+                ]))
+            else:
+                statement.append(Tree("variable_increment", [
+                    Tree("variable", [context['variable']]),
+                ]))
         elif context['type'] == 'variable_or_method':
             # in this case we just kick it back up the tree, we have no idea what to do with it at this level
             statement.append(context['variable_or_method'])
@@ -162,15 +182,21 @@ def process_tokens(tokens):
             if context['equality_type'] == "=":
                 equality_statement = Token('EQUALITY', '==')
     
-            statement.append(Tree('condition', [
+            tree_children = [
                 Tree('statement', [
                     Tree("variable", [Token('VARIABLE_NAME', context['variable'])]),
                 ]),
                 equality_statement,
-                Tree('statement', [
-                    Tree("variable", [Token('VARIABLE_NAME', context['children'][0])]),
-                ]),
-            ]))
+            ]
+            if (isinstance(context['children'][0], str)):
+                tree_children.append(Tree('statement', [
+                        Tree("variable", [Token('VARIABLE_NAME', context['children'][0])]),
+                ]))
+            else:
+                tree_children.append(Tree('statement', [
+                    context['children'][0],
+                ]))
+            statement.append(Tree('condition', tree_children))
         elif context['type'] == 'if':
             statement.append(Tree('if_stat', context['children']))
         else:
@@ -193,6 +219,9 @@ def process_tokens(tokens):
                 context["type"] = "string_single"
                 continue
             elif token == " ":
+                if "spaces" not in context.keys():
+                    context["spaces"] = 0
+                context['spaces'] += 1
                 continue
             elif token == "\n":
                 return {
