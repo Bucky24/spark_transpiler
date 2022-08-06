@@ -101,6 +101,7 @@ VARIABLE_COERCION = "states/variable_coercion"
 IF_STATEMENT = "states/if_statement"
 VARIABLE_EQUALITY = "states/variable_equality"
 FOR_STATEMENT = "states/for_statement"
+WHILE_STATEMENT = "states/while_statement"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -253,6 +254,8 @@ def process_tokens(tokens):
             statement.append(Tree("for_stat", [
                 Tree("for_statement", [children, children2, children3])
             ]))
+        elif context['type'] == 'while':
+            statement.append(Tree("while_stat", context['children']))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
     
@@ -302,6 +305,11 @@ def process_tokens(tokens):
                 context['child_list'] = []
                 context['found_as'] = False
                 context['found_colon'] = False
+                continue
+            elif token == "while":
+                state = WHILE_STATEMENT
+                context['type'] = 'while'
+                context['children'] = []
                 continue
             else:
                 state = VARIABLE_OR_METHOD
@@ -449,6 +457,19 @@ def process_tokens(tokens):
                 else:
                     context['children3'].append(token)
                     continue
+        elif state == WHILE_STATEMENT:
+            if token == " ":
+                # ignore
+                continue
+            elif token == "\n":
+                close_statement()
+                state = START
+                context = {}
+                tokens.insert(0, "\n")
+                continue
+            else:
+                context['children'].append(token)
+                continue
 
         raise Exception("Unexpected token {} for state {}".format(token, state))
     
