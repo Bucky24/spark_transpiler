@@ -102,6 +102,7 @@ IF_STATEMENT = "states/if_statement"
 VARIABLE_EQUALITY = "states/variable_equality"
 FOR_STATEMENT = "states/for_statement"
 WHILE_STATEMENT = "states/while_statement"
+CLASS_STATEMENT = "states/class"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -256,6 +257,16 @@ def process_tokens(tokens):
             ]))
         elif context['type'] == 'while':
             statement.append(Tree("while_stat", context['children']))
+        elif context['type'] == 'class':
+            if not context['found_extends']:
+                statement.append(Tree("class_stat", [
+                    Tree('variable', [Token("VARIABLE_NAME", context['class_name'])]),
+                ]))
+            else:
+                statement.append(Tree("class_stat", [
+                    Tree('variable', [Token("VARIABLE_NAME", context['class_name'])]),
+                    Tree('variable', [Token("VARIABLE_NAME", context['class_extends'])]),
+                ]))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
     
@@ -310,6 +321,13 @@ def process_tokens(tokens):
                 state = WHILE_STATEMENT
                 context['type'] = 'while'
                 context['children'] = []
+                continue
+            elif token == "class":
+                state = CLASS_STATEMENT
+                context['type'] = 'class'
+                context['found_extends'] = False
+                context['class_name'] = None
+                context['class_extends'] = None
                 continue
             else:
                 state = VARIABLE_OR_METHOD
@@ -469,6 +487,25 @@ def process_tokens(tokens):
                 continue
             else:
                 context['children'].append(token)
+                continue
+        elif state == CLASS_STATEMENT:
+            if token == " ":
+                # ignore
+                continue
+            elif token == "\n":
+                close_statement()
+                state = START
+                context = {}
+                tokens.insert(0, "\n")
+                continue
+            elif token == "extends":
+                context['found_extends'] = True
+                continue
+            else:
+                if context['found_extends']:
+                    context['class_extends'] = token
+                else:
+                    context['class_name'] = token
                 continue
 
         raise Exception("Unexpected token {} for state {}".format(token, state))
