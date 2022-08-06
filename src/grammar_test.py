@@ -236,7 +236,7 @@ if foo == \"bar\"
         ]))
 
     def test_for(self):
-        """result = parse_statement("for foo as bar")
+        result = parse_statement("for foo as bar")
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
@@ -273,7 +273,7 @@ if foo == \"bar\"
         result2 = parse_statement("for foo as bar:baz")
         self.assertEqual(result, result2)
         result2 = parse_statement("for   foo   as   bar   :  baz")
-        self.assertEqual(result, result2)"""
+        self.assertEqual(result, result2)
 
         result = parse_statement("for foo;bar;baz")
         self.assertEqual(result, Tree('start', [
@@ -297,6 +297,38 @@ if foo == \"bar\"
         ]))
         result2 = parse_statement("for    foo  ;   bar  ;  baz")
         self.assertEqual(result, result2)
+
+        result = parse_statement("for foo=0;foo<5;foo++")
+        self.assertEqual(result, Tree('start', [
+            Tree('statements', [
+                Tree('statement', [
+                    Tree('for_stat', [
+                        Tree('for_statement', [
+                            Tree('statement_no_space', [
+                                Tree("variable_assignment", [
+                                    Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
+                                    Tree("statement", [Token("NUMBER", "0")]),
+                                ])  
+                            ]),
+                            Tree('statement_no_space', [
+                                Tree("condition", [
+                                    Tree("statement", [
+                                        Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
+                                    ]),
+                                    Token("EQUALITY", "<"),
+                                    Tree("statement", [Token("NUMBER", "5")]),
+                                ]),
+                            ]),
+                            Tree('statement_no_space', [
+                                Tree("variable_increment", [
+                                    Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
 
     def test_while(self):
         result = parse_statement("while foo > bar")

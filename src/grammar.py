@@ -120,8 +120,12 @@ def process_tokens(tokens):
 
     def process_children(context, var):
         tokens = context.get(var, None)
+
         if tokens:
-            statements = [];
+            statements = []
+
+            if len(tokens) == 1 and isinstance(tokens[0], Tree):
+                return tokens[0]
     
             backup_context = context.copy()
             while len(tokens) > 0:
@@ -138,11 +142,17 @@ def process_tokens(tokens):
 
     def children_as_variable_name(children_arr):
         if len(children_arr) == 1 and isinstance(children_arr[0], str):
-            return [
+            children = [
                 Tree('variable', [Token('VARIABLE_NAME', children_arr[0])])
             ]
-        return children_array
+            return children
+        return children_arr
 
+    def wrap_in_statement(children, wrap_no_space_statement=False):
+        if wrap_no_space_statement:
+            return Tree("statement_no_space", children)
+        
+        return Tree("statement", children)
         
     def close_statement():
         log("closing time! {}".format(context))
@@ -225,6 +235,24 @@ def process_tokens(tokens):
             statement.append(Tree("for_stat", [
                 Tree('for_object', children + children2 + children3)
             ]))
+        elif context['type'] == 'for':
+            # our last children will be the final group before the statement ended
+            context['child_list'].append(context['children'])
+            context['children'] = context['child_list'][0]
+            context['children2'] = context['child_list'][1]
+            context['children3'] = context['child_list'][2]
+            process_children(context,"children")
+            process_children(context,"children2")
+            process_children(context,"children3")
+            children = children_as_variable_name(context['children'])
+            children = wrap_in_statement(children, wrap_no_space_statement=True)
+            children2 = children_as_variable_name(context['children2'])
+            children2 = wrap_in_statement(children2, wrap_no_space_statement=True)
+            children3 = children_as_variable_name(context['children3'])
+            children3 = wrap_in_statement(children3, wrap_no_space_statement=True)
+            statement.append(Tree("for_stat", [
+                Tree("for_statement", [children, children2, children3])
+            ]))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
     
@@ -271,6 +299,7 @@ def process_tokens(tokens):
                 context['children'] = []
                 context['children2'] = []
                 context['children3'] = []
+                context['child_list'] = []
                 context['found_as'] = False
                 context['found_colon'] = False
                 continue
@@ -406,6 +435,10 @@ def process_tokens(tokens):
                 context['type'] = "for_object"
                 context['found_colon'] = True
                 continue
+            elif token == ";" and context['type'] == 'for':
+                context['child_list'].append(context['children'])
+                context['children'] = []
+                continue
             else:
                 if not context['found_as']:
                     context['children'].append(token)
@@ -438,7 +471,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";":
+        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
