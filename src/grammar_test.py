@@ -4,6 +4,10 @@ import unittest
 
 from grammar import parse_statement, Tree, Token
 
+if 'unittest.util' in __import__('sys').modules:
+    # Show full diff in self.assertEqual.
+    __import__('sys').modules['unittest.util']._MAX_LENGTH = 999999999
+
 """
  bar = 'baz'
     if foo == \"bar\"
@@ -351,7 +355,7 @@ if foo == \"bar\"
         ]))
 
     def test_class(self):
-        """result = parse_statement("class Foo")
+        result = parse_statement("class Foo")
         self.assertEqual(result, Tree('start', [
             Tree('statements', [
                 Tree('statement', [
@@ -374,7 +378,7 @@ if foo == \"bar\"
             ]),
         ]))
         result2 = parse_statement("class     Foo   extends    Bar")
-        self.assertEqual(result, result2)"""
+        self.assertEqual(result, result2)
 
         result = parse_statement("bar.baz.foo = bin")
         self.assertEqual(result, Tree('start', [

@@ -45,6 +45,9 @@ class Token:
         self.name = name
         self.value = value
 
+        if not isinstance(self.value, str):
+            raise Exception("Value to Token must be a string, got " + type(self.value).__name__)
+
     def __eq__(self, obj):
         if not isinstance(obj, Token):
             return False
@@ -156,6 +159,7 @@ VARIABLE_EQUALITY = "states/variable_equality"
 FOR_STATEMENT = "states/for_statement"
 WHILE_STATEMENT = "states/while_statement"
 CLASS_STATEMENT = "states/class"
+VARIABLE_CHAIN = 'states/variable_chain'
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -173,6 +177,13 @@ def process_tokens(tokens):
     state = START
     context = {}
 
+    def strip_spaces(statements):
+        new_statements = []
+        for item in statements:
+            if item != Tree("spaces", [Token('SPACE', ' ')]):
+                new_statements.append(item)
+        return new_statements
+
     def process_children(context, var):
         tokens = context.get(var, None)
 
@@ -189,10 +200,7 @@ def process_tokens(tokens):
                 statements += result['statement']
 
             # remove any spaces - inner children don't care about spaces
-            for item in statements:
-                if item == Tree("spaces", [Token('SPACE', ' ')]):
-                    statements.remove(item)
-
+            statements = strip_spaces(statements)
             context[var] = statements
 
     def children_as_variable_name(children_arr):
@@ -210,9 +218,15 @@ def process_tokens(tokens):
         return Tree("statement", children)
         
     def close_statement():
+        results = process_statement(context)
+        for result in results:
+            statement.append(result)
+
+    def process_statement(context):
+        statement = []
         log("closing time! {}".format(context))
         if len(context) == 0:
-            return
+            return statement
         
         process_children(context, "children")
 
@@ -227,27 +241,29 @@ def process_tokens(tokens):
         elif context['type'] == 'variable_assignment':
             # if we only have one child statement and it's a string, make it a variable instead
             context['children'] = children_as_variable_name(context['children'])
+            context['variable'] = process_statement(context['variable'])
+            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = children_as_variable_name(context['variable'])[0]
             statement.append(Tree("variable_assignment", [
-                Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
+                context['variable'],
                 Tree("statement", context['children']),
             ]))
         elif context["type"] == "number":
             statement.append(Token("NUMBER", context['number']))
         elif context['type'] == "variable_increment":
-            if isinstance(context['variable'], str):
-                statement.append(Tree("variable_increment", [
-                    Tree("variable", [Token("VARIABLE_NAME", context['variable'])]),
-                ]))
-            else:
-                statement.append(Tree("variable_increment", [
-                    Tree("variable", [context['variable']]),
-                ]))
+            context['variable'] = process_statement(context['variable'])
+            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = children_as_variable_name(context['variable'])
+            statement.append(Tree("variable_increment", context['variable']))
         elif context['type'] == 'variable_or_method':
             # in this case we just kick it back up the tree, we have no idea what to do with it at this level
             statement.append(context['variable_or_method'])
         elif context['type'] == 'variable_coercion':
+            context['variable'] = process_statement(context['variable'])
+            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = children_as_variable_name(context['variable'])
             statement.append(Tree('variable_coercion', [
-                Tree("variable", [Token('VARIABLE_NAME', context['variable'])]),
+                context['variable'][0],
                 Token('TYPE', context['children'][0]),
             ]))
         elif context['type'] == 'variable_equality':
@@ -255,15 +271,16 @@ def process_tokens(tokens):
             if context['equality_type'] == "=":
                 equality_statement = Token('EQUALITY', '==')
     
+            context['variable'] = process_statement(context['variable'])
+            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = children_as_variable_name(context['variable'])
             tree_children = [
-                Tree('statement', [
-                    Tree("variable", [Token('VARIABLE_NAME', context['variable'])]),
-                ]),
+                Tree('statement', context['variable']),
                 equality_statement,
             ]
             if (isinstance(context['children'][0], str)):
                 tree_children.append(Tree('statement', [
-                        Tree("variable", [Token('VARIABLE_NAME', context['children'][0])]),
+                    Tree("variable", [Token('VARIABLE_NAME', context['children'][0])]),
                 ]))
             else:
                 tree_children.append(Tree('statement', [
@@ -320,11 +337,72 @@ def process_tokens(tokens):
                     Tree('variable', [Token("VARIABLE_NAME", context['class_name'])]),
                     Tree('variable', [Token("VARIABLE_NAME", context['class_extends'])]),
                 ]))
+        elif context['type'] == 'variable_chain':
+            tree = []
+            for item in context['variable']:
+                if isinstance(item, dict):
+                    item = process_statement(item)
+                    if len(item) == 1 and isinstance(item[0], str):
+                        tree.append(Token("VARIABLE_NAME", item[0]))
+                    else:
+                        tree += item
+                elif isinstance(item, str):
+                    tree.append(Token("VARIABLE_NAME", item))
+            
+            statement.append(Tree("variable", [Tree("instance_variable_chain", tree)]))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
+
+        return statement
+
+    def handle_equation(token, state, context):
+        if token == "=":
+            state = VARIABLE_SET
+            context["variable"] = context.copy()
+            context['children'] = []
+            context['type'] = 'variable_assignment'
+        elif token == "+":
+            state = VARIABLE_ADD_OR_INCREMENT
+            context["variable"] = context.copy()
+        elif token == "as":
+            state = VARIABLE_COERCION
+            context["variable"] = context.copy()
+            context['type'] = 'variable_coercion'
+            context['children'] = []
+        elif token == ">":
+            state = VARIABLE_EQUALITY
+            context['variable'] = context.copy()
+            context['type'] = 'variable_equality'
+            context['equality_type'] = '>'
+            context['children'] = []
+        elif token == "<":
+            state = VARIABLE_EQUALITY
+            context["variable"] = context.copy()
+            context['type'] = 'variable_equality'
+            context['equality_type'] = '<'
+            context['children'] = []
+        elif token == "!":
+            state = VARIABLE_EQUALITY
+            context["variable"] = context.copy()
+            context['type'] = 'variable_equality'
+            context['equality_type'] = '!'
+            context['children'] = []
+        elif token == ".":
+            state = VARIABLE_CHAIN
+            context["variable"] = [context.copy()]
+            context['type'] = 'variable_chain'
+            context['has_dot'] = True
+        else:
+            return None
+        return (context, state)
     
     while len(tokens) > 0:
-        token = tokens.pop(0);
+        token = tokens.pop(0)
+
+        if isinstance(token, dict):
+            context = token
+            close_statement()
+            continue
         
         log("handle token {}: \"{}\"".format(state, token))
         
@@ -391,43 +469,11 @@ def process_tokens(tokens):
             if token == " ":
                 # ignore
                 continue
-            elif token == "=":
-                state = VARIABLE_SET
-                context["variable"] = context['variable_or_method']
-                context['children'] = []
-                context['type'] = 'variable_assignment'
-                continue
-            elif token == "+":
-                state = VARIABLE_ADD_OR_INCREMENT
-                context["variable"] = context['variable_or_method']
-                continue
-            elif token == "as":
-                state = VARIABLE_COERCION
-                context["variable"] = context['variable_or_method']
-                context['children'] = []
-                context['type'] = 'variable_coercion'
-                continue
-            elif token == ">":
-                state = VARIABLE_EQUALITY
-                context['type'] = 'variable_equality'
-                context['equality_type'] = '>'
-                context['children'] = []
-                context['variable'] = context['variable_or_method']
-                continue
-            elif token == "<":
-                state = VARIABLE_EQUALITY
-                context['type'] = 'variable_equality'
-                context['equality_type'] = '<'
-                context['children'] = []
-                context['variable'] = context['variable_or_method']
-                continue
-            elif token == "!":
-                state = VARIABLE_EQUALITY
-                context['type'] = 'variable_equality'
-                context['equality_type'] = '!'
-                context['children'] = []
-                context['variable'] = context['variable_or_method']
-                continue
+            elif token in ["=", "+", "as", ">", "<", "!", "."]:
+                result = handle_equation(token, state, context)
+                if result != None:
+                    (context, state) = result
+                    continue
         elif state == VARIABLE_SET:
             if token == "\n":
                 close_statement()
@@ -560,8 +606,29 @@ def process_tokens(tokens):
                 else:
                     context['class_name'] = token
                 continue
+        elif state == VARIABLE_CHAIN:
+            if token == '.':
+                if not context['has_dot']:
+                    context['has_dot'] = True
+                    continue
+            elif token == " ":
+                continue
+            elif token in ["=", "+", "as", ">", "<", "!", "."]:
+                result = handle_equation(token, state, context)
+                if result != None:
+                    (context, state) = result
+                    continue
+            else:
+                if context['has_dot']:
+                    context['variable'].append(token)
+                    context['has_dot'] = False
+                    continue
+        elif state == NUMBER_STATE:
+            if token[0] in NUMBERS or token == ".":
+                context['number'] += token
+                continue
 
-        raise Exception("Unexpected token {} for state {}".format(token, state))
+        raise Exception("Unexpected token \"{}\" for state {}".format(token, state))
     
     close_statement()
     
@@ -582,7 +649,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">":
+        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == ".":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
