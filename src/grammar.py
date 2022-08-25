@@ -1,9 +1,62 @@
-from lark import Lark
-from lark import tree
-from lark import lexer
+#from lark import Lark
+#from lark import tree
+#from lark import lexer
 
-Tree = tree.Tree
-Token = lexer.Token
+#Tree = tree.Tree
+#Token = lexer.Token
+
+class Tree:
+    def __init__(self, name, children):
+        self.name = name
+        self.children = children
+
+    def __eq__(self, obj):
+        if not isinstance(obj, Tree):
+            return False
+        if self.name != obj.name:
+            return False
+            
+        if len(self.children) != len(obj.children):
+            return False
+
+        for index in range(len(self.children)):
+            child = self.children[index]
+            other_child = obj.children[index]
+
+            if child != other_child:
+                return False
+        return True
+
+    def __str__(self):
+        result = "Tree(\"" + self.name + "\", ["
+
+        str_child = []
+        for child in self.children:
+            str_child.append(str(child))
+
+        result += ", ".join(str_child) + "])"
+        return result
+
+    def __repr__(self):
+        return str(self)
+
+class Token:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def __eq__(self, obj):
+        if not isinstance(obj, Token):
+            return False
+        return self.name == obj.name and self.value == obj.value
+
+    def __str__(self):
+        result = "Token(\"" + self.name + "\", \"" + self.value + "\")"
+        return result
+
+    def __repr__(self):
+        return str(self)
+
 
 # Needed:
 # * Need to be able to have statement that is nothing but whitespace
@@ -84,7 +137,7 @@ statement: spaces* (variable | variable_assignment | string | NUMBER | condition
 NEWLINE: "\\n"
 """
 
-parser = Lark(grammar)
+#parser = Lark(grammar)
 
 def parse_statement(statement):
     return process_statement(statement)
