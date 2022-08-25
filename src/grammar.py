@@ -160,6 +160,7 @@ FOR_STATEMENT = "states/for_statement"
 WHILE_STATEMENT = "states/while_statement"
 CLASS_STATEMENT = "states/class"
 VARIABLE_CHAIN = 'states/variable_chain'
+FUNCTION_DEFINITION = 'states/function_definition'
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -350,6 +351,23 @@ def process_tokens(tokens):
                     tree.append(Token("VARIABLE_NAME", item))
             
             statement.append(Tree("variable", [Tree("instance_variable_chain", tree)]))
+        elif context['type'] == 'function_definition':
+            params = []
+ 
+            for param in context["params"]:
+                variable = Tree("variable", [Token("VARIABLE_NAME", param)])
+                if len(params) == 0:
+                    params.append(Tree("first_param", [variable]))
+                else:
+                    params.append(Tree("param", [variable]))
+            if context['name'] is None:
+                statement.append(Tree("function_definition", params))
+            else:
+                statement.append(Tree("function_definition",
+                    [Tree('function_name', [
+                        Tree("variable", [Token("VARIABLE_NAME", context['name'])]),
+                    ])] + params,
+                ))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
 
@@ -459,6 +477,14 @@ def process_tokens(tokens):
                 context['found_extends'] = False
                 context['class_name'] = None
                 context['class_extends'] = None
+                continue
+            elif token == "function":
+                state = FUNCTION_DEFINITION
+                context['type'] = 'function_definition'
+                context['name'] = None
+                context['in_params'] = False
+                context['params'] = []
+                context['found_param'] = False
                 continue
             else:
                 state = VARIABLE_OR_METHOD
@@ -627,6 +653,28 @@ def process_tokens(tokens):
             if token[0] in NUMBERS or token == ".":
                 context['number'] += token
                 continue
+        elif state == FUNCTION_DEFINITION:
+            if token == '(' and not context['in_params']:
+                context['in_params'] = True
+                continue
+            elif token == ')' and context['in_params']:
+                context['in_params'] = False
+                context['found_param'] = False
+                continue
+            elif token == " ":
+                continue
+            elif context['in_params']:
+                if token == ',':
+                    if context['found_param']:
+                        context['found_param'] = False
+                        continue
+                elif not context['found_param']:
+                    context['params'].append(token)
+                    context['found_param'] = True
+                    continue
+            elif not context['in_params']:
+                context['name'] = token
+                continue
 
         raise Exception("Unexpected token \"{}\" for state {}".format(token, state))
     
@@ -649,7 +697,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == ".":
+        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == "." or char == "(" or char == ")" or char == ",":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
