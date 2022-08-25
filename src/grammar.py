@@ -161,6 +161,7 @@ WHILE_STATEMENT = "states/while_statement"
 CLASS_STATEMENT = "states/class"
 VARIABLE_CHAIN = 'states/variable_chain'
 FUNCTION_DEFINITION = 'states/function_definition'
+FUNCTION_CALL = "states/function_call"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -368,6 +369,21 @@ def process_tokens(tokens):
                         Tree("variable", [Token("VARIABLE_NAME", context['name'])]),
                     ])] + params,
                 ))
+        elif context['type'] == 'function_call':
+            new_children = []
+            for tokens in context['params']:
+                stmts = []
+                while len(tokens) > 0:
+                    result = process_tokens(tokens)
+                    tokens = result['tokens']
+                    result = strip_spaces(result['statement'])
+                    stmts += result
+                new_children += stmts
+            context['params'] = new_children
+            variable_params = []
+            for param in context['params']:
+                variable_params.append(children_as_variable_name(param)[0])
+            print(variable_params)
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
 
@@ -494,6 +510,13 @@ def process_tokens(tokens):
         elif state == VARIABLE_OR_METHOD:
             if token == " ":
                 # ignore
+                continue
+            elif token == "(":
+                state = FUNCTION_CALL
+                context['type'] = 'function_call'
+                context['function'] = context['variable_or_method']
+                context['temp_params'] = []
+                context['params'] = []
                 continue
             elif token in ["=", "+", "as", ">", "<", "!", "."]:
                 result = handle_equation(token, state, context)
@@ -675,7 +698,21 @@ def process_tokens(tokens):
             elif not context['in_params']:
                 context['name'] = token
                 continue
-
+        elif state == FUNCTION_CALL:
+            if token == '\n':
+                if len(context['temp_params']) > 0:
+                    context['params'].append(context['temp_params'])
+                    pass
+                context['temp_params'] = []
+                continue
+            if token == ')':
+                close_statement()
+                state = START
+                context = {}
+                continue
+            else:
+                context['temp_params'].append(token)
+                continue
         raise Exception("Unexpected token \"{}\" for state {}".format(token, state))
     
     close_statement()
