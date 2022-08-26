@@ -172,17 +172,28 @@ def log(str):
     if LOG:
         print(str)
     
-def process_tokens(tokens):
+def process_tokens(tokens, do_wrap=True):
     log("starting with {}".format(tokens))
     statement = []
     
     state = START
     context = {}
 
+    def is_tree_with_spaces(tree):
+        if not isinstance(tree, Tree):
+            return False
+        children = tree.children
+        for child in children:
+            if child != Tree("spaces", [Token('SPACE', ' ')]):
+                return False
+        return True
+
     def strip_spaces(statements):
         new_statements = []
         for item in statements:
-            if item != Tree("spaces", [Token('SPACE', ' ')]):
+            print('strip spaces ' + str(item))
+            if not is_tree_with_spaces(item) and item != Tree("spaces", [Token('SPACE', ' ')]):
+                print("is fine!")
                 new_statements.append(item)
         return new_statements
 
@@ -197,9 +208,10 @@ def process_tokens(tokens):
     
             backup_context = context.copy()
             while len(tokens) > 0:
-                result = process_tokens(tokens)
+                result = process_tokens(tokens, False)
                 tokens = result['tokens']
                 statements += result['statement']
+                log("added to children " + str(result['statement']))
 
             # remove any spaces - inner children don't care about spaces
             statements = strip_spaces(statements)
@@ -218,53 +230,83 @@ def process_tokens(tokens):
             return Tree("statement_no_space", children)
         
         return Tree("statement", children)
+
+    def append_statement(statement, statements, wrap=True):
+        if wrap and do_wrap:
+            if not isinstance(statements, list):
+                statements = [statements]
+            statements = wrap_in_statement(statements)
+        statement.append(statements)
+
+    def unwrap_statements(data):
+        result = []
+        only_one = len(data) == 1
+        for item in data:
+            if isinstance(item, Tree) and item.name == "statement":
+                result.append(item.children)
+            else:
+                result.append(item)
+        if only_one and not isinstance(result[0], str):
+            return result[0]
+        return result
         
     def close_statement():
         results = process_statement(context)
         for result in results:
-            statement.append(result)
+            if isinstance(result, list):
+                for inner in result:
+                    statement.append(inner)
+            else:
+                statement.append(result)
 
-    def process_statement(context):
+    def process_statement(context, keep_spaces=True):
         statement = []
         log("closing time! {}".format(context))
         if len(context) == 0:
             return statement
         
         process_children(context, "children")
+        spaces = []
 
-        if "spaces" in context:
+        def append(statements, wrap=True):
+            if not isinstance(statements, list) and len(spaces) > 0:
+                statements = spaces + [statements]
+            elif isinstance(statements, list) and len(spaces) > 0:
+                statements = spaces + statements
+            append_statement(statement, statements, wrap)
+
+        if "spaces" in context and keep_spaces:
             for i in range(0, context['spaces']):
-                statement.append(Tree("spaces", [Token('SPACE', ' ')]))
+                spaces.append(Tree("spaces", [Token('SPACE', ' ')]))
             
         if context["type"] == "string":
-            statement.append(Tree("string", [Token("STRING_CONTENTS_DOUBLE", context['string'])]))
+            append(Tree("string", [Token("STRING_CONTENTS_DOUBLE", context['string'])]))
         elif context["type"] == "string_single":
-            statement.append(Tree("string", [Token("STRING_CONTENTS_SINGLE", context['string'])]))
+            append(Tree("string", [Token("STRING_CONTENTS_SINGLE", context['string'])]))
         elif context['type'] == 'variable_assignment':
             # if we only have one child statement and it's a string, make it a variable instead
             context['children'] = children_as_variable_name(context['children'])
-            context['variable'] = process_statement(context['variable'])
-            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = process_statement(context['variable'], False)
+            context['variable'] = unwrap_statements(context['variable'])
+            print("varaible here " + str(context['variable']))
             context['variable'] = children_as_variable_name(context['variable'])[0]
-            statement.append(Tree("variable_assignment", [
+            append(Tree("variable_assignment", [
                 context['variable'],
                 Tree("statement", context['children']),
             ]))
         elif context["type"] == "number":
-            statement.append(Token("NUMBER", context['number']))
+            append(Token("NUMBER", context['number']))
         elif context['type'] == "variable_increment":
-            context['variable'] = process_statement(context['variable'])
-            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = process_statement(context['variable'], False)
             context['variable'] = children_as_variable_name(context['variable'])
-            statement.append(Tree("variable_increment", context['variable']))
+            append(Tree("variable_increment", context['variable']))
         elif context['type'] == 'variable_or_method':
             # in this case we just kick it back up the tree, we have no idea what to do with it at this level
-            statement.append(context['variable_or_method'])
+            append(context['variable_or_method'], False)
         elif context['type'] == 'variable_coercion':
-            context['variable'] = process_statement(context['variable'])
-            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = process_statement(context['variable'], False)
             context['variable'] = children_as_variable_name(context['variable'])
-            statement.append(Tree('variable_coercion', [
+            append(Tree('variable_coercion', [
                 context['variable'][0],
                 Token('TYPE', context['children'][0]),
             ]))
@@ -273,8 +315,7 @@ def process_tokens(tokens):
             if context['equality_type'] == "=":
                 equality_statement = Token('EQUALITY', '==')
     
-            context['variable'] = process_statement(context['variable'])
-            context['variable'] = strip_spaces(context['variable'])
+            context['variable'] = process_statement(context['variable'], False)
             context['variable'] = children_as_variable_name(context['variable'])
             tree_children = [
                 Tree('statement', context['variable']),
@@ -288,15 +329,15 @@ def process_tokens(tokens):
                 tree_children.append(Tree('statement', [
                     context['children'][0],
                 ]))
-            statement.append(Tree('condition', tree_children))
+            append(Tree('condition', tree_children))
         elif context['type'] == 'if':
-            statement.append(Tree('if_stat', context['children']))
+            append(Tree('if_stat', context['children']))
         elif context['type'] == 'for_as':
             process_children(context,"children")
             process_children(context,"children2")
             children = children_as_variable_name(context['children'])
             children2 = children_as_variable_name(context['children2'])
-            statement.append(Tree("for_stat", [
+            append(Tree("for_stat", [
                 Tree('for_array', children + children2)
             ]))
         elif context['type'] == 'for_object':
@@ -306,7 +347,7 @@ def process_tokens(tokens):
             children = children_as_variable_name(context['children'])
             children2 = children_as_variable_name(context['children2'])
             children3 = children_as_variable_name(context['children3'])
-            statement.append(Tree("for_stat", [
+            append(Tree("for_stat", [
                 Tree('for_object', children + children2 + children3)
             ]))
         elif context['type'] == 'for':
@@ -324,18 +365,18 @@ def process_tokens(tokens):
             children2 = wrap_in_statement(children2, wrap_no_space_statement=True)
             children3 = children_as_variable_name(context['children3'])
             children3 = wrap_in_statement(children3, wrap_no_space_statement=True)
-            statement.append(Tree("for_stat", [
+            append(Tree("for_stat", [
                 Tree("for_statement", [children, children2, children3])
             ]))
         elif context['type'] == 'while':
-            statement.append(Tree("while_stat", context['children']))
+            append(Tree("while_stat", context['children']))
         elif context['type'] == 'class':
             if not context['found_extends']:
-                statement.append(Tree("class_stat", [
+                append(Tree("class_stat", [
                     Tree('variable', [Token("VARIABLE_NAME", context['class_name'])]),
                 ]))
             else:
-                statement.append(Tree("class_stat", [
+                append(Tree("class_stat", [
                     Tree('variable', [Token("VARIABLE_NAME", context['class_name'])]),
                     Tree('variable', [Token("VARIABLE_NAME", context['class_extends'])]),
                 ]))
@@ -351,7 +392,7 @@ def process_tokens(tokens):
                 elif isinstance(item, str):
                     tree.append(Token("VARIABLE_NAME", item))
             
-            statement.append(Tree("variable", [Tree("instance_variable_chain", tree)]))
+            append(Tree("variable", [Tree("instance_variable_chain", tree)]))
         elif context['type'] == 'function_definition':
             params = []
  
@@ -362,9 +403,9 @@ def process_tokens(tokens):
                 else:
                     params.append(Tree("param", [variable]))
             if context['name'] is None:
-                statement.append(Tree("function_definition", params))
+                append(Tree("function_definition", params))
             else:
-                statement.append(Tree("function_definition",
+                append(Tree("function_definition",
                     [Tree('function_name', [
                         Tree("variable", [Token("VARIABLE_NAME", context['name'])]),
                     ])] + params,
@@ -374,16 +415,26 @@ def process_tokens(tokens):
             for tokens in context['params']:
                 stmts = []
                 while len(tokens) > 0:
-                    result = process_tokens(tokens)
+                    result = process_tokens(tokens, False)
                     tokens = result['tokens']
-                    result = strip_spaces(result['statement'])
-                    stmts += result
-                new_children += stmts
+                    #result = strip_spaces(result['statement'])
+                    stmts += result['statement']
+                new_children.append(stmts)
             context['params'] = new_children
             variable_params = []
-            for param in context['params']:
-                variable_params.append(children_as_variable_name(param)[0])
-            print(variable_params)
+            for params in context['params']:
+                new_params = []
+                for param in params:
+                    new_params.append(children_as_variable_name([param])[0])
+                variable_params.append(new_params)
+            append(Tree("call_function", [
+                Tree("variable", [Token("VARIABLE_NAME", context['function'])]),
+            ]))
+            append(Token("NEWLINE", "\n"), False)
+            for param_list in variable_params:
+                append(param_list)
+                append(Token("NEWLINE", "\n"), False)
+            append(Tree("end_call_function", []))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
 
@@ -749,14 +800,14 @@ def process_statement(statement):
             
     log(tokens)
     
-    statements = [];
+    statements = []
     
     while len(tokens) > 0:
         result = process_tokens(tokens)
         tokens = result['tokens']
         log("done processing statements! Tokens left? {}".format(tokens))
         if result['statement'] is not None:
-            statements.append(Tree("statement", result['statement']))
+            statements += result['statement']
 
         if 'raw' in result.keys():
             statements += result['raw']
