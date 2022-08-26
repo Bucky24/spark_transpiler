@@ -162,6 +162,7 @@ CLASS_STATEMENT = "states/class"
 VARIABLE_CHAIN = 'states/variable_chain'
 FUNCTION_DEFINITION = 'states/function_definition'
 FUNCTION_CALL = "states/function_call"
+PRAGMA = "states/pragma"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -276,8 +277,11 @@ def process_tokens(tokens, do_wrap=True):
             append_statement(statement, statements, wrap)
 
         if "spaces" in context and keep_spaces:
-            for i in range(0, context['spaces']):
-                spaces.append(Tree("spaces", [Token('SPACE', ' ')]))
+            for item in context['spaces']:
+                if item == 'space':
+                    spaces.append(Tree("spaces", [Token('SPACE', ' ')]))
+                elif item == 'tab':
+                    spaces.append(Tree("spaces", [Token('TAB', '\t')]))
             
         if context["type"] == "string":
             append(Tree("string", [Token("STRING_CONTENTS_DOUBLE", context['string'])]))
@@ -285,10 +289,12 @@ def process_tokens(tokens, do_wrap=True):
             append(Tree("string", [Token("STRING_CONTENTS_SINGLE", context['string'])]))
         elif context['type'] == 'variable_assignment':
             # if we only have one child statement and it's a string, make it a variable instead
-            context['children'] = children_as_variable_name(context['children'])
+            if len(context['children']) == 1 and context['children'][0] == '[':
+                context['children'] = [Tree('array_start', [])]
+            else:
+                context['children'] = children_as_variable_name(context['children'])
             context['variable'] = process_statement(context['variable'], False)
             context['variable'] = unwrap_statements(context['variable'])
-            print("varaible here " + str(context['variable']))
             context['variable'] = children_as_variable_name(context['variable'])[0]
             append(Tree("variable_assignment", [
                 context['variable'],
@@ -301,8 +307,11 @@ def process_tokens(tokens, do_wrap=True):
             context['variable'] = children_as_variable_name(context['variable'])
             append(Tree("variable_increment", context['variable']))
         elif context['type'] == 'variable_or_method':
-            # in this case we just kick it back up the tree, we have no idea what to do with it at this level
-            append(context['variable_or_method'], False)
+            if context['variable_or_method'] == ']':
+                append(Tree("array_end", []))
+            else:
+                # in this case we just kick it back up the tree, we have no idea what to do with it at this level
+                append(context['variable_or_method'], False)
         elif context['type'] == 'variable_coercion':
             context['variable'] = process_statement(context['variable'], False)
             context['variable'] = children_as_variable_name(context['variable'])
@@ -435,6 +444,16 @@ def process_tokens(tokens, do_wrap=True):
                 append(param_list)
                 append(Token("NEWLINE", "\n"), False)
             append(Tree("end_call_function", []))
+        elif context['type'] == PRAGMA:
+            children = [
+                Token("PRAGMA_NAME", context['name']),
+            ]
+            if len(context['value']) > 0:
+                value = "".join(context['value']).strip()
+                # dumb thing to keep in line with the lark processor
+                value = " " + value
+                children.append(Token("PRAGMA_VALUE", value))
+            append(Tree("pragma", children))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
 
@@ -504,8 +523,13 @@ def process_tokens(tokens, do_wrap=True):
                 continue
             elif token == " ":
                 if "spaces" not in context.keys():
-                    context["spaces"] = 0
-                context['spaces'] += 1
+                    context["spaces"] = []
+                context['spaces'].append('space')
+                continue
+            elif token == "\t":
+                if "spaces" not in context.keys():
+                    context["spaces"] = []
+                context['spaces'].append('tab')
                 continue
             elif token == "\n":
                 return {
@@ -553,6 +577,12 @@ def process_tokens(tokens, do_wrap=True):
                 context['params'] = []
                 context['found_param'] = False
                 continue
+            elif token == "#":
+                state = PRAGMA
+                context['type'] = PRAGMA
+                context['name'] = None
+                context['value'] = []
+                continue
             else:
                 state = VARIABLE_OR_METHOD
                 context['type'] = 'variable_or_method'
@@ -574,6 +604,12 @@ def process_tokens(tokens, do_wrap=True):
                 if result != None:
                     (context, state) = result
                     continue
+            elif token == '\n':
+                close_statement()
+                state = START
+                context = {}
+                tokens.insert(0, "\n")
+                continue
         elif state == VARIABLE_SET:
             if token == "\n":
                 close_statement()
@@ -764,6 +800,23 @@ def process_tokens(tokens, do_wrap=True):
             else:
                 context['temp_params'].append(token)
                 continue
+        elif state == PRAGMA:
+            if token == '\n':
+                close_statement()
+                state = START
+                context = {}
+                tokens.insert(0, "\n")
+                continue
+            else:
+                if context['name'] == None:
+                    if token == ' ':
+                        continue
+                    else:
+                        context['name'] = token
+                        continue
+                else:
+                    context['value'].append(token)
+                    continue
         raise Exception("Unexpected token \"{}\" for state {}".format(token, state))
     
     close_statement()
@@ -785,7 +838,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == "." or char == "(" or char == ")" or char == ",":
+        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == "." or char == "(" or char == ")" or char == "," or char == "#" or char == "\t" or char == "[" or char == "]":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
