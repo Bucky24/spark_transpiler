@@ -163,6 +163,7 @@ VARIABLE_CHAIN = 'states/variable_chain'
 FUNCTION_DEFINITION = 'states/function_definition'
 FUNCTION_CALL = "states/function_call"
 PRAGMA = "states/pragma"
+MAP_LINE = "states/map_line"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -291,6 +292,8 @@ def process_tokens(tokens, do_wrap=True):
             # if we only have one child statement and it's a string, make it a variable instead
             if len(context['children']) == 1 and context['children'][0] == '[':
                 context['children'] = [Tree('array_start', [])]
+            elif len(context['children']) == 1 and context['children'][0] == '{':
+                context['children'] = [Tree('map_start', [])]
             else:
                 context['children'] = children_as_variable_name(context['children'])
             context['variable'] = process_statement(context['variable'], False)
@@ -309,6 +312,8 @@ def process_tokens(tokens, do_wrap=True):
         elif context['type'] == 'variable_or_method':
             if context['variable_or_method'] == ']':
                 append(Tree("array_end", []))
+            elif context['variable_or_method'] == '}':
+                append(Tree("map_end", []))
             else:
                 # in this case we just kick it back up the tree, we have no idea what to do with it at this level
                 append(context['variable_or_method'], False)
@@ -454,6 +459,12 @@ def process_tokens(tokens, do_wrap=True):
                 value = " " + value
                 children.append(Token("PRAGMA_VALUE", value))
             append(Tree("pragma", children))
+        elif context['type'] == MAP_LINE:
+            context['children'] = wrap_in_statement(context['children'], True)
+            append(Tree("map_row", [
+                Token("VARIABLE_NAME", context['variable']),
+                context['children']
+            ]))
         else:
             raise Exception("Unknown statement type {}".format(context['type']))
 
@@ -609,6 +620,12 @@ def process_tokens(tokens, do_wrap=True):
                 state = START
                 context = {}
                 tokens.insert(0, "\n")
+                continue
+            elif token == ":":
+                state = MAP_LINE
+                context['type'] = MAP_LINE
+                context['variable'] = context['variable_or_method']
+                context['children'] = []
                 continue
         elif state == VARIABLE_SET:
             if token == "\n":
@@ -817,6 +834,16 @@ def process_tokens(tokens, do_wrap=True):
                 else:
                     context['value'].append(token)
                     continue
+        elif state == MAP_LINE:
+            if token == '\n':
+                close_statement()
+                state = START
+                context = {}
+                tokens.insert(0, "\n")
+                continue
+            else:
+                context['children'].append(token)
+                continue
         raise Exception("Unexpected token \"{}\" for state {}".format(token, state))
     
     close_statement()
