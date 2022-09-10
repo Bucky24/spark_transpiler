@@ -164,6 +164,7 @@ FUNCTION_DEFINITION = 'states/function_definition'
 FUNCTION_CALL = "states/function_call"
 PRAGMA = "states/pragma"
 MAP_LINE = "states/map_line"
+NEWLINE = "states/newline"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -174,7 +175,7 @@ def log(str):
     if LOG:
         print(str)
     
-def process_tokens(tokens, do_wrap=True):
+"""def process_tokens(tokens, do_wrap=True):
     log("starting with {}".format(tokens))
     statement = []
     
@@ -853,7 +854,7 @@ def process_tokens(tokens, do_wrap=True):
     return {
         "tokens": tokens,
         "statement": statement,
-    }
+    }"""
     
 def process_statement(statement):
     tokens = []
@@ -880,7 +881,11 @@ def process_statement(statement):
             
     log(tokens)
     
-    statements = []
+    statements = process_tokens2(tokens)
+    trees = build_tree(statements)
+    return Tree("start", [Tree("statements", trees)])
+
+    """statements = []
     
     while len(tokens) > 0:
         result = process_tokens(tokens)
@@ -894,4 +899,143 @@ def process_statement(statement):
         
     log(statements)
     
-    return Tree("start", [Tree("statements", statements)])
+    return Tree("start", [Tree("statements", statements)])"""
+
+def process_tokens2(tokens):
+    context_stack = []
+    current_context = None
+
+    statements = []
+
+    def pop_context(newline=False):
+        # if we have no context, then nothing to do
+        if current_context == None:
+            if newline:
+                # if we have a newline we still want to insert it
+                statements.append({"type": NEWLINE})
+            return None
+
+        # if we have no stack, then this is a top level statement so we just add
+        # it to the list and reset the context
+        if len(context_stack) == 0:
+            statements.append(current_context)
+            if newline:
+                # top level statements care about newlines
+                statements.append({"type": NEWLINE})
+            return None
+        parent = context_stack.pop()
+        if "children" not in parent:
+            parent["children"] = []
+        parent["children"].append(current_context)
+        return parent
+
+    def pop_all_contexts():
+        nonlocal current_context
+        while len(context_stack) > 0:
+            current_context = pop_context()
+        # pop one last time to get the last statement appended
+        pop_context()
+
+    for token in tokens:
+        state = (current_context['type'] if current_context is not None else None)
+        log("handle token {}: \"{}\"".format(state, token))
+        if current_context == None:
+            if token == " ":
+                continue
+            elif token == "\"":
+                current_context = {
+                    "type": STRING_DOUBLE,
+                    "string": ""
+                }
+                continue
+            elif token == "'":
+                current_context = {
+                    "type": STRING_SINGLE,
+                    "string": ""
+                }
+                continue
+            elif len(token) > 0 and token[0] in NUMBERS:
+                current_context = {
+                    "type": NUMBER_STATE,
+                    "number": token
+                }
+                continue
+            else:
+                # default if it's not an operator or keyword, then it's probably a variable
+                # or a function name
+                current_context = {
+                    "type": VARIABLE_OR_METHOD,
+                    "variable": token
+                }
+                continue
+        else:
+            if current_context['type'] == VARIABLE_OR_METHOD:
+                if token == " ":
+                    continue
+                elif token == "=":
+                    current_context = {
+                        "type": VARIABLE_SET,
+                        "variable": current_context['variable'],
+                    }
+                    context_stack.append(current_context)
+                    current_context = None
+                    continue
+            elif current_context['type'] == STRING_DOUBLE:
+                if token == "\"":
+                    current_context = pop_context()
+                    continue
+                else:
+                    current_context["string"] += token
+                    continue
+            elif current_context['type'] == VARIABLE_SET:
+                if token == "\n":
+                    current_context = pop_context(newline=True)
+                    continue
+            elif current_context['type'] == STRING_SINGLE:
+                if token == "'":
+                    current_context = pop_context()
+                    continue
+                else:
+                    current_context["string"] += token
+                    continue
+            elif current_context['type'] == NUMBER_STATE:
+                if token == '.' or len(token) > 0 and token[0] in NUMBERS:
+                    current_context['number'] += token
+                    continue
+                else:
+                    current_context = pop_context()
+                    continue
+        
+        raise Exception("Unexpected token " + token + " " + state)
+
+    # pop at the very end just to make sure we handle any final contexts
+    pop_all_contexts()
+
+    return statements
+
+def build_tree(statements):
+    tree_children = []
+
+    for statement in statements:
+        if statement['type'] == VARIABLE_SET:
+            child = statement['children'][0]
+            child_tree = build_tree([child])[0]
+
+            tree_children.append(Tree("statement", [Tree("variable_assignment", [
+                Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
+                child_tree,
+            ])]))
+        elif statement['type'] == STRING_DOUBLE:
+            tree_children.append(Tree("statement", [Tree("string", [Token("STRING_CONTENTS_DOUBLE", statement['string'])])]))
+        elif statement['type'] == STRING_SINGLE:
+            tree_children.append(Tree("statement", [Tree("string", [Token("STRING_CONTENTS_SINGLE", statement['string'])])]))
+        elif statement['type'] == NEWLINE:
+            tree_children.append(Token("NEWLINE", "\n"))
+        elif statement['type'] == NUMBER_STATE:
+            tree_children.append(Tree('statement', [
+                Token('NUMBER', statement['number']),
+            ]))
+        else:
+            raise Exception("build_tree: Unknown type " + statement['type'])
+
+    return tree_children
