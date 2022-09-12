@@ -904,7 +904,10 @@ def process_statement(statement):
 
 def process_tokens2(tokens):
     context_stack = []
-    current_context = None
+    current_context = {
+        "type": START,
+        "spaces": 0,
+    }
 
     statements = []
 
@@ -912,11 +915,14 @@ def process_tokens2(tokens):
 
     def pop_context(newline=False):
         # if we have no context, then nothing to do
-        if current_context == None:
+        if current_context['type'] == START:
             if newline:
                 # if we have a newline we still want to insert it
                 statements.append({"type": NEWLINE})
-            return None
+            return {
+                "type": START,
+                "spaces": 0,
+            }
 
         # if we have no stack, then this is a top level statement so we just add
         # it to the list and reset the context
@@ -925,7 +931,10 @@ def process_tokens2(tokens):
             if newline:
                 # top level statements care about newlines
                 statements.append({"type": NEWLINE})
-            return None
+            return {
+                "type": START,
+                "spaces": 0,
+            }
         parent = context_stack.pop()
         if "children" not in parent:
             parent["children"] = []
@@ -939,36 +948,52 @@ def process_tokens2(tokens):
         # pop one last time to get the last statement appended
         pop_context()
 
+    def copy_context(new_context):
+        spaces = current_context['spaces']
+        new_context.update({
+            "spaces": spaces,
+        })
+        return new_context
+
+    def append_context_stack():
+        nonlocal current_context
+        context_stack.append(current_context)
+        current_context = {
+            "type": START,
+            "spaces": 0,
+        }
+
     for token in tokens:
         state = (current_context['type'] if current_context is not None else None)
         log("handle token {}: \"{}\"".format(state, token))
         if token == "\n":
             line += 1
-        if current_context == None:
+        if current_context['type'] == START:
             if token == " ":
+                current_context['spaces'] += 1
                 continue
             elif token == "\"":
-                current_context = {
+                current_context = copy_context({
                     "type": STRING_DOUBLE,
                     "string": ""
-                }
+                })
                 continue
             elif token == "'":
-                current_context = {
+                current_context = copy_context({
                     "type": STRING_SINGLE,
                     "string": ""
-                }
+                })
                 continue
             elif len(token) > 0 and token[0] in NUMBERS:
-                current_context = {
+                current_context = copy_context({
                     "type": NUMBER_STATE,
                     "number": token
-                }
+                })
                 continue
             elif token == "if":
-                current_context = {
+                current_context = copy_context({
                     "type": IF_STATEMENT,
-                }
+                })
                 continue
             elif token == "\n":
                 statements.append({
@@ -978,44 +1003,45 @@ def process_tokens2(tokens):
             else:
                 # default if it's not an operator or keyword, then it's probably a variable
                 # or a function name
-                current_context = {
+                current_context = copy_context({
                     "type": VARIABLE_OR_METHOD,
                     "variable": token
-                }
+                })
                 continue
         else:
             if current_context['type'] == VARIABLE_OR_METHOD:
                 if token == " ":
                     continue
                 elif token == "=":
-                    current_context = {
+                    current_context = copy_context({
                         "type": VARIABLE_SET,
                         "variable": current_context['variable'],
-                    }
+                    })
                     continue
                 elif token == "+":
-                    current_context = {
+                    current_context = copy_context({
                         "type": VARIABLE_ADD_OR_INCREMENT,
                         "variable": current_context['variable'],
-                    }
+                    })
                     continue
                 elif token == "as":
-                    current_context = {
+                    current_context = copy_context({
                         "type": VARIABLE_COERCION,
                         "variable": current_context['variable'],
-                    }
+                    })
                     continue
                 elif token in ("<", ">", "!"):
-                    current_context = {
+                    current_context = copy_context({
                         "type": VARIABLE_EQUALITY,
                         "left_hand": [{
                             "type": VARIABLE_OR_METHOD,
                             "variable": current_context['variable'],
                         }],
                         "equality": token
-                    }
+                    })
                     continue
                 elif token == "\n":
+                    tokens.insert(0, token)
                     current_context = pop_context()
                     continue
             elif current_context['type'] == VARIABLE_SET:
@@ -1025,19 +1051,18 @@ def process_tokens2(tokens):
                     current_context = pop_context(True)
                     continue
                 elif token == "=":
-                    current_context = {
+                    current_context = copy_context({
                         "type": VARIABLE_EQUALITY,
                         "left_hand": [{
                             "type": VARIABLE_OR_METHOD,
                             "variable": current_context['variable'],
                         }],
                         "equality": '=='
-                    }
+                    })
                     continue
                 else:
                     tokens.insert(0, token)
-                    context_stack.append(current_context)
-                    current_context = None
+                    append_context_stack()
                     continue
             elif current_context['type'] == STRING_DOUBLE:
                 if token == "\"":
@@ -1089,8 +1114,7 @@ def process_tokens2(tokens):
                 else:
                     # handle condition, pushing token back onto the stack
                     tokens.insert(0, token)
-                    context_stack.append(current_context)
-                    current_context = None
+                    append_context_stack()
                     continue
             elif current_context['type'] == VARIABLE_EQUALITY:
                 if token == "=":
@@ -1103,8 +1127,7 @@ def process_tokens2(tokens):
                     continue
                 else:
                     tokens.insert(0, token)
-                    context_stack.append(current_context)
-                    current_context = None
+                    append_context_stack()
                     continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
@@ -1114,46 +1137,67 @@ def process_tokens2(tokens):
 
     return statements
 
-def build_tree(statements):
+def build_tree(statements,):
     tree_children = []
 
-    def unwrap_statement(statement):
+    def unwrap_statement(statement, remove_spaces = False):
         if isinstance(statement, Tree) and statement.name == 'statement':
-            return statement.children
+            children = statement.children
+            new_children = []
+            for child in children:
+                if isinstance(child, Tree) and child == Tree("spaces", [Token("SPACE", " ")]):
+                    continue
+                new_children.append(child)
+            return new_children
 
         return statement
+
+    def strip_spaces(child_arr):
+        result = []
+        for child in child_arr:
+            if isinstance(child, Tree) and child.name == "statement":
+                result.append(Tree("statement",unwrap_statement(child, True) ))
+            else:
+                result.append(child)
+        return result
+
+    def wrap_statement(statement, result):
+        children = []
+        if "spaces" in statement:
+            for i in range(statement['spaces']):
+                children.append(Tree("spaces", [Token("SPACE", " ")]))
+        children.append(result)
+
+        return Tree("statement", children)
+
+    def add_result(statement, result):
+        tree_children.append(wrap_statement(statement, result))
 
     for statement in statements:
         if statement['type'] == VARIABLE_SET:
             child = statement['children'][0]
             child_tree = build_tree([child])[0]
 
-            tree_children.append(Tree("statement", [Tree("variable_assignment", [
+            add_result(statement, Tree("variable_assignment", [
                 Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
                 child_tree,
-            ])]))
+            ]))
         elif statement['type'] == STRING_DOUBLE:
-            tree_children.append(Tree("statement", [Tree("string", [Token("STRING_CONTENTS_DOUBLE", statement['string'])])]))
+            add_result(statement, Tree("string", [Token("STRING_CONTENTS_DOUBLE", statement['string'])]))
         elif statement['type'] == STRING_SINGLE:
-            tree_children.append(Tree("statement", [Tree("string", [Token("STRING_CONTENTS_SINGLE", statement['string'])])]))
+            add_result(statement, Tree("string", [Token("STRING_CONTENTS_SINGLE", statement['string'])]))
         elif statement['type'] == NEWLINE:
             tree_children.append(Token("NEWLINE", "\n"))
         elif statement['type'] == NUMBER_STATE:
-            tree_children.append(Tree('statement', [
-                Token('NUMBER', statement['number']),
-            ]))
+            add_result(statement, Token('NUMBER', statement['number']))
         elif statement['type'] == VARIABLE_INCREMENT:
-            tree_children.append(Tree('statement', [
-                Tree('variable_increment', [
-                    Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
-                ]),
+            add_result(statement, Tree('variable_increment', [
+                Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
             ]))
         elif statement['type'] == VARIABLE_COERCION:
-            tree_children.append(Tree('statement', [
-                Tree('variable_coercion', [
-                    Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
-                    Token('TYPE', statement['new_type']),
-                ]),
+            add_result(statement,  Tree('variable_coercion', [
+                Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
+                Token('TYPE', statement['new_type']),
             ]))
         elif statement['type'] == IF_STATEMENT:
             child = statement['children'][0]
@@ -1162,19 +1206,16 @@ def build_tree(statements):
             condition_children = unwrap_statement(condition)
             condition = condition_children[0]
 
-            tree_children.append(Tree('statement', [
-                Tree('if_stat', [condition]),
-            ]))
+            add_result(statement, Tree('if_stat', [condition]))
         elif statement['type'] == VARIABLE_EQUALITY:
             left_hand_trees = build_tree(statement['left_hand'])
             children = build_tree(statement['children'])
+            children = strip_spaces(children)
             result = left_hand_trees + [Token("EQUALITY", statement['equality'])] + children
-            tree_children.append(Tree('statement', [Tree('condition', result)]))
+            add_result(statement, Tree('condition', result))
         elif statement['type'] == VARIABLE_OR_METHOD:
             # if we got here it's clearly a variable
-            tree_children.append(Tree('statement', [
-                Tree("variable", [Token('VARIABLE_NAME', statement['variable'])])
-            ]))
+            add_result(statement, Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
