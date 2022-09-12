@@ -1013,6 +1013,11 @@ def process_tokens2(tokens):
                     "type": FOR_STATEMENT,
                 })
                 continue
+            elif token == "while":
+                current_context = copy_context({
+                    "type": WHILE_STATEMENT,
+                })
+                continue
             else:
                 # default if it's not an operator or keyword, then it's probably a variable
                 # or a function name
@@ -1177,6 +1182,13 @@ def process_tokens2(tokens):
                 else:
                     current_context['value_name'] = token
                 continue
+        elif state == WHILE_STATEMENT:
+            if token == " ":
+                continue
+            else:
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1293,6 +1305,10 @@ def build_tree(statements,):
                 add_result(statement, Tree('for_object', final_children))
             else:
                 add_result(statement, Tree('for_array', final_children))
+        elif statement['type'] == WHILE_STATEMENT:
+            children = build_tree(statement['children'])
+            children = unwrap_statements(children)
+            add_result(statement, Tree('while_stat', children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
