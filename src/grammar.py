@@ -888,7 +888,7 @@ def process_statement(statement):
             
     log(tokens)
     
-    statements = process_tokens2(tokens)
+    statements = process_tokens(tokens)
     trees = build_tree(statements)
     return Tree("start", [Tree("statements", trees)])
 
@@ -908,7 +908,7 @@ def process_statement(statement):
     
     return Tree("start", [Tree("statements", statements)])"""
 
-def process_tokens2(tokens):
+def process_tokens(tokens):
     context_stack = []
     current_context = {
         "type": START,
@@ -1055,6 +1055,13 @@ def process_tokens2(tokens):
                 current_context = copy_context({
                     "type": VARIABLE_OR_METHOD,
                     "variable": token
+                })
+                continue
+            elif token == "#":
+                current_context = copy_context({
+                    "type": PRAGMA,
+                    "pragma_name": None,
+                    "pragma_value": None,
                 })
                 continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
