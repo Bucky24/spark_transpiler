@@ -158,6 +158,7 @@ VARIABLE_COERCION = "states/variable_coercion"
 IF_STATEMENT = "states/if_statement"
 VARIABLE_EQUALITY = "states/variable_equality"
 FOR_STATEMENT = "states/for_statement"
+FOR_AS = "states/for_as"
 WHILE_STATEMENT = "states/while_statement"
 CLASS_STATEMENT = "states/class"
 VARIABLE_CHAIN = 'states/variable_chain'
@@ -168,6 +169,7 @@ MAP_LINE = "states/map_line"
 NEWLINE = "states/newline"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+END_STATS = ["\n", ";"]
 
 # turn to true for debug logs
 LOG = True
@@ -964,7 +966,13 @@ def process_tokens2(tokens):
         }
 
     for token in tokens:
-        state = (current_context['type'] if current_context is not None else None)
+        state = current_context['type']
+        
+        parent_state = None
+        if len(context_stack) > 0:
+            parent = context_stack[-1]
+            parent_state = parent['type']
+
         log("handle token {}: \"{}\"".format(state, token))
         if token == "\n":
             line += 1
@@ -1000,6 +1008,11 @@ def process_tokens2(tokens):
                     "type": NEWLINE,
                 })
                 continue
+            elif token == "for":
+                current_context = copy_context({
+                    "type": FOR_STATEMENT,
+                })
+                continue
             else:
                 # default if it's not an operator or keyword, then it's probably a variable
                 # or a function name
@@ -1008,127 +1021,162 @@ def process_tokens2(tokens):
                     "variable": token
                 })
                 continue
-        else:
-            if current_context['type'] == VARIABLE_OR_METHOD:
-                if token == " ":
-                    continue
-                elif token == "=":
+        elif current_context['type'] == VARIABLE_OR_METHOD:
+            if token == " ":
+                continue
+            elif token == "=":
+                current_context = copy_context({
+                    "type": VARIABLE_SET,
+                    "variable": current_context['variable'],
+                })
+                continue
+            elif token == "+":
+                current_context = copy_context({
+                    "type": VARIABLE_ADD_OR_INCREMENT,
+                    "variable": current_context['variable'],
+                })
+                continue
+            elif token == "as":
+                if parent_state == FOR_STATEMENT:
                     current_context = copy_context({
-                        "type": VARIABLE_SET,
+                        "type": FOR_AS,
                         "variable": current_context['variable'],
+                        "is_object": False,
                     })
-                    continue
-                elif token == "+":
-                    current_context = copy_context({
-                        "type": VARIABLE_ADD_OR_INCREMENT,
-                        "variable": current_context['variable'],
-                    })
-                    continue
-                elif token == "as":
+                else:
                     current_context = copy_context({
                         "type": VARIABLE_COERCION,
                         "variable": current_context['variable'],
                     })
-                    continue
-                elif token in ("<", ">", "!"):
-                    current_context = copy_context({
-                        "type": VARIABLE_EQUALITY,
-                        "left_hand": [{
-                            "type": VARIABLE_OR_METHOD,
-                            "variable": current_context['variable'],
-                        }],
-                        "equality": token
-                    })
-                    continue
-                elif token == "\n":
-                    tokens.insert(0, token)
-                    current_context = pop_context()
-                    continue
-            elif current_context['type'] == VARIABLE_SET:
-                if token == " ":
-                    continue
-                elif token == "\n":
-                    current_context = pop_context(True)
-                    continue
-                elif token == "=":
-                    current_context = copy_context({
-                        "type": VARIABLE_EQUALITY,
-                        "left_hand": [{
-                            "type": VARIABLE_OR_METHOD,
-                            "variable": current_context['variable'],
-                        }],
-                        "equality": '=='
-                    })
-                    continue
-                else:
-                    tokens.insert(0, token)
-                    append_context_stack()
-                    continue
-            elif current_context['type'] == STRING_DOUBLE:
-                if token == "\"":
-                    current_context = pop_context()
-                    continue
-                else:
-                    current_context["string"] += token
-                    continue
-            elif current_context['type'] == VARIABLE_SET:
-                if token == "\n":
-                    current_context = pop_context(newline=True)
-                    continue
-            elif current_context['type'] == STRING_SINGLE:
-                if token == "'":
-                    current_context = pop_context()
-                    continue
-                else:
-                    current_context["string"] += token
-                    continue
-            elif current_context['type'] == NUMBER_STATE:
-                if token == '.' or len(token) > 0 and token[0] in NUMBERS:
-                    current_context['number'] += token
-                    continue
-                else:
-                    current_context = pop_context()
-                    continue
-            elif current_context['type'] == VARIABLE_ADD_OR_INCREMENT:
-                if token == "+":
-                    current_context = {
-                        "type": VARIABLE_INCREMENT,
+                continue
+            elif token in ("<", ">", "!"):
+                current_context = copy_context({
+                    "type": VARIABLE_EQUALITY,
+                    "left_hand": [{
+                        "type": VARIABLE_OR_METHOD,
                         "variable": current_context['variable'],
-                    }
-                    current_context = pop_context()
+                    }],
+                    "equality": token
+                })
+                continue
+            elif token in END_STATS:
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
+        elif current_context['type'] == VARIABLE_SET:
+            if token == " ":
+                continue
+            elif token in END_STATS:
+                current_context = pop_context(True)
+                continue
+            elif token == "=":
+                current_context = copy_context({
+                    "type": VARIABLE_EQUALITY,
+                    "left_hand": [{
+                        "type": VARIABLE_OR_METHOD,
+                        "variable": current_context['variable'],
+                    }],
+                    "equality": '=='
+                })
+                continue
+            else:
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+        elif current_context['type'] == STRING_DOUBLE:
+            if token == "\"":
+                current_context = pop_context()
+                continue
+            else:
+                current_context["string"] += token
+                continue
+        elif current_context['type'] == VARIABLE_SET:
+            if token in END_STATS:
+                current_context = pop_context(newline=token == "\n")
+                continue
+        elif current_context['type'] == STRING_SINGLE:
+            if token == "'":
+                current_context = pop_context()
+                continue
+            else:
+                current_context["string"] += token
+                continue
+        elif current_context['type'] == NUMBER_STATE:
+            if token == '.' or len(token) > 0 and token[0] in NUMBERS:
+                current_context['number'] += token
+                continue
+            elif token in END_STATS:
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
+            else:
+                current_context = pop_context()
+                continue
+        elif current_context['type'] == VARIABLE_ADD_OR_INCREMENT:
+            if token == "+":
+                current_context = {
+                    "type": VARIABLE_INCREMENT,
+                    "variable": current_context['variable'],
+                }
+                current_context = pop_context()
+                continue
+        elif current_context['type'] == VARIABLE_COERCION:
+            if token == " ":
+                continue
+            else:
+                current_context['new_type'] = token
+                current_context = pop_context()
+                continue
+        elif current_context['type'] == IF_STATEMENT:
+            if token == " ":
+                continue
+            elif token in END_STATS:
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
+            else:
+                # handle condition, pushing token back onto the stack
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+        elif current_context['type'] == VARIABLE_EQUALITY:
+            if token == "=":
+                if len(current_context['equality']) < 2:
+                    current_context['equality'] += token
                     continue
-            elif current_context['type'] == VARIABLE_COERCION:
-                if token == " ":
-                    continue
+            elif token in END_STATS:
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
+            else:
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+        elif current_context['type'] == FOR_STATEMENT:
+            if token == " ":
+                continue
+            elif token == ";":
+                if "params" not in current_context:
+                    current_context['params'] = []
+                current_context['params'].append(current_context['children'])
+                current_context['children'] = []
+                continue
+            else:
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+        elif state == FOR_AS:
+            if token == " ":
+                continue
+            elif token == ":":
+                current_context['is_object'] = True
+                continue
+            else:
+                if not current_context['is_object']:
+                    current_context['as_name'] = token
                 else:
-                    current_context['new_type'] = token
-                    current_context = pop_context()
-                    continue
-            elif current_context['type'] == IF_STATEMENT:
-                if token == " ":
-                    continue
-                elif token == "\n":
-                    tokens.insert(0, token)
-                    current_context = pop_context()
-                    continue
-                else:
-                    # handle condition, pushing token back onto the stack
-                    tokens.insert(0, token)
-                    append_context_stack()
-                    continue
-            elif current_context['type'] == VARIABLE_EQUALITY:
-                if token == "=":
-                    if len(current_context['equality']) < 2:
-                        current_context['equality'] += token
-                        continue
-                elif token == "\n":
-                    tokens.insert(0, token)
-                    current_context = pop_context()
-                    continue
-                else:
-                    tokens.insert(0, token)
-                    append_context_stack()
-                    continue
+                    current_context['value_name'] = token
+                continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1139,6 +1187,13 @@ def process_tokens2(tokens):
 
 def build_tree(statements,):
     tree_children = []
+
+    def unwrap_statements(children, remove_spaces = False):
+        result = []
+        for child in children:
+            result += unwrap_statement(child, remove_spaces)
+
+        return result
 
     def unwrap_statement(statement, remove_spaces = False):
         if isinstance(statement, Tree) and statement.name == 'statement':
@@ -1216,6 +1271,28 @@ def build_tree(statements,):
         elif statement['type'] == VARIABLE_OR_METHOD:
             # if we got here it's clearly a variable
             add_result(statement, Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]))
+        elif statement['type'] == FOR_STATEMENT:
+            if "params" in statement:
+                all_params = []
+                for param in statement['params']:
+                    all_params += build_tree(param)
+                all_params += build_tree(statement['children'])
+
+                add_result(statement, Tree('for_stat', [Tree('for_statement', all_params)]))
+            else:
+                children = build_tree(statement['children'])
+                children = unwrap_statements(children)
+                add_result(statement, Tree('for_stat', children))
+        elif statement['type'] == FOR_AS:
+            final_children = [
+                Tree('variable', [Token('VARIABLE_NAME', statement['variable'])]),
+                Tree('variable', [Token('VARIABLE_NAME', statement['as_name'])]),
+            ]
+            if statement['is_object']:
+                final_children.append(Tree('variable', [Token('VARIABLE_NAME', statement['value_name'])]))
+                add_result(statement, Tree('for_object', final_children))
+            else:
+                add_result(statement, Tree('for_array', final_children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

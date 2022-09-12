@@ -285,13 +285,13 @@ if foo == \"bar\"
                 Tree('statement', [
                     Tree('for_stat', [
                         Tree('for_statement', [
-                            Tree('statement_no_space', [
+                            Tree('statement', [
                                 Tree("variable", [Token('VARIABLE_NAME', 'foo')]),  
                             ]),
-                            Tree('statement_no_space', [
+                            Tree('statement', [
                                 Tree("variable", [Token('VARIABLE_NAME', 'bar')]),
                             ]),
-                            Tree('statement_no_space', [
+                            Tree('statement', [
                                 Tree("variable", [Token('VARIABLE_NAME', 'baz')]),
                             ]),
                         ]),
@@ -308,13 +308,13 @@ if foo == \"bar\"
                 Tree('statement', [
                     Tree('for_stat', [
                         Tree('for_statement', [
-                            Tree('statement_no_space', [
+                            Tree('statement', [
                                 Tree("variable_assignment", [
                                     Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
                                     Tree("statement", [Token("NUMBER", "0")]),
                                 ])  
                             ]),
-                            Tree('statement_no_space', [
+                            Tree('statement', [
                                 Tree("condition", [
                                     Tree("statement", [
                                         Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
@@ -323,7 +323,7 @@ if foo == \"bar\"
                                     Tree("statement", [Token("NUMBER", "5")]),
                                 ]),
                             ]),
-                            Tree('statement_no_space', [
+                            Tree('statement', [
                                 Tree("variable_increment", [
                                     Tree("variable", [Token('VARIABLE_NAME', 'foo')]),
                                 ]),
