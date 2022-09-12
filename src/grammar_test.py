@@ -406,7 +406,7 @@ if foo == \"bar\"
             Tree("statements", [
                 Tree("statement", [
                     Tree("function_definition", [
-                        Tree("first_param", [
+                        Tree("param", [
                             Tree("variable", [Token("VARIABLE_NAME", "a")]),
                         ]),
                         Tree("param", [
@@ -454,7 +454,7 @@ if foo == \"bar\"
                         Tree('function_name', [
                             Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                         ]),
-                        Tree("first_param", [
+                        Tree("param", [
                             Tree("variable", [Token("VARIABLE_NAME", "a")]),
                         ]),
                         Tree("param", [

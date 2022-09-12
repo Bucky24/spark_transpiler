@@ -147,7 +147,8 @@ def parse_statement(statement):
     return process_statement(statement)
     #return parser.parse(statement)
     
-START = "states/start";
+START = "states/start"
+END = "states/end"
 VARIABLE_OR_METHOD = "states/variable_or_method"
 VARIABLE_SET = "states/variable_set"
 STRING_DOUBLE = "states/string_double"
@@ -165,6 +166,7 @@ CLASS_STATEMENT = "states/class"
 VARIABLE_CHAIN = 'states/variable_chain'
 FUNCTION_DEFINITION = 'states/function_definition'
 FUNCTION_CALL = "states/function_call"
+END_FUNCTION_CALL = "states/end_function_call"
 PRAGMA = "states/pragma"
 MAP_LINE = "states/map_line"
 NEWLINE = "states/newline"
@@ -947,6 +949,11 @@ def process_tokens2(tokens):
 
     def pop_all_contexts():
         nonlocal current_context
+        if current_context['type'] == START:
+            # the only place it can go to None
+            current_context = {
+                "type": END
+            }
         while len(context_stack) > 0:
             current_context = pop_context()
         # pop one last time to get the last statement appended
@@ -969,7 +976,7 @@ def process_tokens2(tokens):
 
     for token in tokens:
         state = current_context['type']
-        
+
         parent_state = None
         if len(context_stack) > 0:
             parent = context_stack[-1]
@@ -1006,9 +1013,10 @@ def process_tokens2(tokens):
                 })
                 continue
             elif token == "\n":
-                statements.append({
-                    "type": NEWLINE,
-                })
+                if parent_state is None:
+                    statements.append({
+                        "type": NEWLINE,
+                    })
                 continue
             elif token == "for":
                 current_context = copy_context({
@@ -1027,7 +1035,21 @@ def process_tokens2(tokens):
                     "extends": None,
                 })
                 continue
-            else:
+            elif token == "function":
+                current_context = copy_context({
+                    "type": FUNCTION_DEFINITION,
+                    "in_params": False,
+                    'params': [],
+                    "waiting_for_param": False,
+                    "function_name": None,
+                })
+                continue
+            elif token == ")":
+                current_context = copy_context({
+                    "type": END_FUNCTION_CALL
+                })
+                continue
+            elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
                 # default if it's not an operator or keyword, then it's probably a variable
                 # or a function name
                 current_context = copy_context({
@@ -1073,7 +1095,7 @@ def process_tokens2(tokens):
                     "equality": token
                 })
                 continue
-            elif token in END_STATS:
+            elif token in END_STATS or ((token == "," or token == ')') and parent_state == FUNCTION_DEFINITION):
                 tokens.insert(0, token)
                 current_context = pop_context()
                 continue
@@ -1082,6 +1104,14 @@ def process_tokens2(tokens):
                     "type": VARIABLE_CHAIN,
                     "items": [current_context['variable']],
                     "found_dot": True,
+                })
+                continue
+            elif token == '(':
+                current_context = copy_context({
+                    "type": FUNCTION_CALL,
+                    "function": current_context['variable'],
+                    "params": [],
+                    "in_params": True,
                 })
                 continue
         elif current_context['type'] == VARIABLE_SET:
@@ -1232,6 +1262,40 @@ def process_tokens2(tokens):
                     "left_hand": current_context,
                 })
                 continue
+        elif state == FUNCTION_DEFINITION:
+            if token == ' ':
+                continue
+            elif token == '(':
+                if not current_context['in_params'] and len(current_context['params']) == 0:
+                    current_context['in_params'] = True
+                    current_context['waiting_for_param']: True
+                    continue
+            elif token == ",":
+                if not current_context['waiting_for_param'] and current_context['in_params']:
+                    current_context['waiting_for_param'] = True
+                    continue
+            elif token == ')':
+                if not current_context['waiting_for_param'] and current_context['in_params']:
+                    current_context['in_params'] = False
+                    continue
+            elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
+                if current_context['in_params']:
+                    current_context['params'].append(token)
+                    current_context['waiting_for_param'] = False
+                    continue
+                else:
+                    if current_context['function_name'] is None:
+                        current_context['function_name'] = token
+                        continue
+        elif state == FUNCTION_CALL:
+            if token == '\n':
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+        elif state == END_FUNCTION_CALL:
+            tokens.insert(0, token)
+            current_context = pop_context()
+            continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1240,7 +1304,7 @@ def process_tokens2(tokens):
 
     return statements
 
-def build_tree(statements,):
+def build_tree(statements):
     tree_children = []
 
     def unwrap_statements(children, remove_spaces = False):
@@ -1284,7 +1348,10 @@ def build_tree(statements,):
         tree_children.append(wrap_statement(statement, result))
 
     for statement in statements:
-        if statement['type'] == VARIABLE_SET:
+        if statement['type'] == END:
+            # noop
+            pass
+        elif statement['type'] == VARIABLE_SET:
             child = statement['children'][0]
             child_tree = build_tree([child])[0]
             left_hand = unwrap_statement(build_tree([statement['left_hand']])[0])
@@ -1360,6 +1427,36 @@ def build_tree(statements,):
             for item in statement['items']:
                 chain.append(Token("VARIABLE_NAME", item))
             add_result(statement, Tree("variable", [Tree("instance_variable_chain", chain)]))
+        elif statement['type'] == FUNCTION_DEFINITION:
+            params = []
+            for param in statement['params']:
+                params.append(Tree("param", [
+                    Tree("variable", [Token("VARIABLE_NAME", param)]),
+                ]))
+
+            if statement['function_name'] is not None:
+                params.insert(0, Tree('function_name', [
+                    Tree("variable", [Token("VARIABLE_NAME", statement['function_name'])]),
+                ]))
+            add_result(statement, Tree("function_definition", params))
+        elif statement['type'] == FUNCTION_CALL:
+            children = [Token("NEWLINE", "\n")]
+            for child in statement['children']:
+                results = build_tree([child])
+                children += results + [Token("NEWLINE", "\n")]
+
+            # remove the last newline since it's extraneous
+            if len(children) > 0:
+                children.pop()
+
+            add_result(statement, Tree("call_function", [
+                Tree("variable", [Token("VARIABLE_NAME", statement['function'])]),
+            ]))
+            
+            for child in children:
+                tree_children.append(child)
+        elif statement['type'] == END_FUNCTION_CALL:
+            add_result(statement, Tree("end_call_function", []))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
