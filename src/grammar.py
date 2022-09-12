@@ -1,3 +1,4 @@
+import string
 #from lark import Lark
 #from lark import tree
 #from lark import lexer
@@ -170,6 +171,7 @@ NEWLINE = "states/newline"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
+VALID_VARIABLE_START = list(string.ascii_lowercase) + list(string.ascii_uppercase) + ["_"]
 
 # turn to true for debug logs
 LOG = True
@@ -1018,6 +1020,13 @@ def process_tokens2(tokens):
                     "type": WHILE_STATEMENT,
                 })
                 continue
+            elif token == "class":
+                current_context = copy_context({
+                    "type": CLASS_STATEMENT,
+                    "class": None,
+                    "extends": None,
+                })
+                continue
             else:
                 # default if it's not an operator or keyword, then it's probably a variable
                 # or a function name
@@ -1032,7 +1041,7 @@ def process_tokens2(tokens):
             elif token == "=":
                 current_context = copy_context({
                     "type": VARIABLE_SET,
-                    "variable": current_context['variable'],
+                    "left_hand": current_context,
                 })
                 continue
             elif token == "+":
@@ -1067,6 +1076,13 @@ def process_tokens2(tokens):
             elif token in END_STATS:
                 tokens.insert(0, token)
                 current_context = pop_context()
+                continue
+            elif token == '.':
+                current_context = copy_context({
+                    "type": VARIABLE_CHAIN,
+                    "items": [current_context['variable']],
+                    "found_dot": True,
+                })
                 continue
         elif current_context['type'] == VARIABLE_SET:
             if token == " ":
@@ -1189,6 +1205,33 @@ def process_tokens2(tokens):
                 tokens.insert(0, token)
                 append_context_stack()
                 continue
+        elif state == CLASS_STATEMENT:
+            if token == " ":
+                continue
+            else:
+                if current_context['class'] is None:
+                    current_context['class'] = token
+                else:
+                    current_context['extends'] = token
+                continue
+        elif state == VARIABLE_CHAIN:
+            if token == " ":
+                continue
+            elif token == ".":
+                if not current_context['found_dot']:
+                    current_context['found_dot'] = True
+                    continue
+            elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
+                if current_context['found_dot']:
+                    current_context['items'].append(token)
+                    current_context['found_dot'] = False
+                    continue
+            elif token == '=':
+                current_context = copy_context({
+                    "type": VARIABLE_SET,
+                    "left_hand": current_context,
+                })
+                continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1244,11 +1287,9 @@ def build_tree(statements,):
         if statement['type'] == VARIABLE_SET:
             child = statement['children'][0]
             child_tree = build_tree([child])[0]
+            left_hand = unwrap_statement(build_tree([statement['left_hand']])[0])
 
-            add_result(statement, Tree("variable_assignment", [
-                Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]),
-                child_tree,
-            ]))
+            add_result(statement, Tree("variable_assignment", left_hand + [child_tree]))
         elif statement['type'] == STRING_DOUBLE:
             add_result(statement, Tree("string", [Token("STRING_CONTENTS_DOUBLE", statement['string'])]))
         elif statement['type'] == STRING_SINGLE:
@@ -1309,6 +1350,16 @@ def build_tree(statements,):
             children = build_tree(statement['children'])
             children = unwrap_statements(children)
             add_result(statement, Tree('while_stat', children))
+        elif statement['type'] == CLASS_STATEMENT:
+            children = [Tree("variable", [Token('VARIABLE_NAME', statement['class'])])]
+            if statement['extends'] is not None:
+                children.append(Tree("variable", [Token("VARIABLE_NAME", statement['extends'])]))
+            add_result(statement, Tree('class_stat', children))
+        elif statement['type'] == VARIABLE_CHAIN:
+            chain = []
+            for item in statement['items']:
+                chain.append(Token("VARIABLE_NAME", item))
+            add_result(statement, Tree("variable", [Tree("instance_variable_chain", chain)]))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
