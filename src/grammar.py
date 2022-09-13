@@ -171,7 +171,7 @@ PRAGMA = "states/pragma"
 MAP_LINE = "states/map_line"
 NEWLINE = "states/newline"
 ARRAY_START = "states/array_start"
-ARRAY_END = "states/array_end"
+MAP_START = "states/map_start"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -1086,6 +1086,13 @@ def process_tokens(tokens):
                     "last_newline": False,
                 })
                 continue
+            elif token == "{":
+                current_context = copy_context({
+                    "type": MAP_START,
+                    "has_key": False,
+                    "last_newline": False,
+                })
+                continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
             if token == " ":
                 continue
@@ -1357,6 +1364,44 @@ def process_tokens(tokens):
                     else:
                         current_context['buffer'].append(token)
                         continue
+        elif state == MAP_START:
+            if token == "\n":
+                current_context['last_newline'] = True
+                continue
+            if token == " " or token == "\t":
+                continue
+            elif token == "}":
+                current_context = pop_context()
+                continue
+            elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
+                if current_context['last_newline']:
+                    current_context['last_newline'] = False
+                    append_context_stack()
+                    current_context = {
+                        "type": MAP_LINE,
+                        "key": token,
+                        "spaces": 0,
+                        "tabs": 0,
+                        "have_colon": False,
+                        "processed": False,
+                    }
+                    continue
+        elif state == MAP_LINE:
+            if token == ":":
+                if not current_context['have_colon']:
+                    current_context['have_colon'] = True
+                    continue
+            else:
+                if not current_context['processed']:
+                    if current_context['have_colon']:
+                        current_context['processed'] = True
+                        tokens.insert(0, token)
+                        append_context_stack()
+                        continue
+                else:
+                    tokens.insert(0, token)
+                    current_context = pop_context()
+                    continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1529,6 +1574,14 @@ def build_tree(statements):
         elif statement['type'] == ARRAY_START:
             children = build_tree(statement['children'])
             add_result(statement, Tree("array", children))
+        elif statement['type'] == MAP_START:
+            children = build_tree(statement['children'])
+            add_result(statement, Tree("map", children))
+        elif statement['type'] == MAP_LINE:
+            children = build_tree(statement['children'])
+            children.insert(0, Token("VARIABLE_NAME", statement['key']))
+            children = strip_spaces(children)
+            add_result(statement, Tree("map_row", children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

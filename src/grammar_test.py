@@ -669,25 +669,20 @@ if foo == \"bar\"
                     Tree("variable_assignment", [
                         Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                         Tree("statement", [
-                            Tree("map_start", [])
+                            Tree("map", [
+                                Tree("statement", [
+                                    Tree("map_row", [
+                                        Token("VARIABLE_NAME", "abcd"),
+                                        Tree("statement", [
+                                            Tree("string", [
+                                                Token("STRING_CONTENTS_SINGLE", "foo"),
+                                            ]),
+                                        ]),
+                                    ]),
+                                ]),
+                            ])
                         ])
                     ])
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("map_row", [
-                        Token("VARIABLE_NAME", "abcd"),
-                        Tree("statement_no_space", [
-                            Tree("string", [
-                                Token("STRING_CONTENTS_SINGLE", "foo"),
-                            ]),
-                        ]),
-                    ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("map_end", []),
                 ]),
                 Token("NEWLINE", "\n"),
             ]),
