@@ -689,56 +689,42 @@ if foo == \"bar\"
         ]))
         
     def test_nested_map_array(self):
-        result = parse_statement("foo = {\n\t[\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
+        result = parse_statement("foo = {\n\tkey: [\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
         self.assertEqual(result, Tree("start", [
             Tree("statements", [
                 Tree("statement", [
                     Tree("variable_assignment", [
                         Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                         Tree("statement", [
-                            Tree("map_start", [])
-                        ])
-                    ])
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("array_start", []),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("map_start", []),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("map_row", [
-                        Token("VARIABLE_NAME", "foo"),
-                        Tree("statement_no_space", [
-                            Tree("string", [
-                                Token("STRING_CONTENTS_SINGLE", "bar"),
+                            Tree("map", [
+                                Tree("statement", [
+                                    Tree("map_row", [
+                                        Token("VARIABLE_NAME", "key"),
+                                        Tree("statement", [
+                                            Tree("array", [
+                                                Tree("statement", [
+                                                    Tree("spaces", [Token("TAB", "	")]),
+                                                    Tree("spaces", [Token("TAB", "	")]),
+                                                    Tree("map", [
+                                                        Tree("statement", [
+                                                            Tree("map_row", [
+                                                                Token("VARIABLE_NAME", "foo"),
+                                                                Tree("statement", [
+                                                                    Tree("string", [
+                                                                        Token("STRING_CONTENTS_SINGLE", "bar"),
+                                                                    ]),
+                                                                ]),
+                                                            ]),
+                                                        ]),
+                                                    ]),
+                                                ]),
+                                            ]),
+                                        ]),
+                                    ]),
+                                ]),
                             ]),
                         ]),
                     ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("map_end", []),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("array_end", []),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("map_end", []),
                 ]),
                 Token("NEWLINE", "\n"),
             ]),

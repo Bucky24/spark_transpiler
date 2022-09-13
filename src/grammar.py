@@ -1347,6 +1347,9 @@ def process_tokens(tokens):
                 current_context['last_newline'] = True
                 current_context['buffer'].append('\n')
                 continue
+            elif token == "\t" or token == " ":
+                current_context['buffer'].append(token)
+                continue
             else:
                 if token == "]":
                     current_context = pop_context()
@@ -1573,9 +1576,11 @@ def build_tree(statements):
             add_result(statement, Tree("pragma", children))
         elif statement['type'] == ARRAY_START:
             children = build_tree(statement['children'])
+            children = strip_spaces(children)
             add_result(statement, Tree("array", children))
         elif statement['type'] == MAP_START:
             children = build_tree(statement['children'])
+            children = strip_spaces(children)
             add_result(statement, Tree("map", children))
         elif statement['type'] == MAP_LINE:
             children = build_tree(statement['children'])
