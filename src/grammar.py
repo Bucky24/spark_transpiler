@@ -170,6 +170,8 @@ END_FUNCTION_CALL = "states/end_function_call"
 PRAGMA = "states/pragma"
 MAP_LINE = "states/map_line"
 NEWLINE = "states/newline"
+ARRAY_START = "states/array_start"
+ARRAY_END = "states/array_end"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -1077,6 +1079,13 @@ def process_tokens(tokens):
                     "pragma_value": None,
                 })
                 continue
+            elif token == "[":
+                current_context = copy_context({
+                    "type": ARRAY_START,
+                    "buffer": [],
+                    "last_newline": False,
+                })
+                continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
             if token == " ":
                 continue
@@ -1326,6 +1335,28 @@ def process_tokens(tokens):
                 else:
                     current_context['pragma_value'] = token
                     continue
+        elif state == ARRAY_START:
+            if token == "\n":
+                current_context['last_newline'] = True
+                current_context['buffer'].append('\n')
+                continue
+            else:
+                if token == "]":
+                    current_context = pop_context()
+                    continue
+                else:
+                    if current_context['last_newline']:
+                        current_context['buffer'].reverse()
+                        for item in current_context['buffer']:
+                            tokens.insert(0, item)
+                        tokens.insert(0, token)
+                        current_context['buffer'] = []
+                        current_context['last_newline'] = False
+                        append_context_stack()
+                        continue
+                    else:
+                        current_context['buffer'].append(token)
+                        continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1495,6 +1526,9 @@ def build_tree(statements):
             if statement['pragma_value'] is not None:
                 children.append(Token("PRAGMA_VALUE", statement['pragma_value']))
             add_result(statement, Tree("pragma", children))
+        elif statement['type'] == ARRAY_START:
+            children = build_tree(statement['children'])
+            add_result(statement, Tree("array", children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

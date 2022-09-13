@@ -644,23 +644,18 @@ if foo == \"bar\"
                     Tree("variable_assignment", [
                         Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                         Tree("statement", [
-                            Tree("array_start", []),
+                            Tree("array", [
+                                Tree("statement", [
+                                    Tree("spaces", [Token("TAB", "\t")]),
+                                    Tree("string", [Token("STRING_CONTENTS_SINGLE", "bar")])
+                                ]),
+                                Tree("statement", [
+                                Tree("spaces", [Token("TAB", "\t")]),
+                                Tree("string", [Token("STRING_CONTENTS_SINGLE", "baz")])
+                            ]),
+                            ]),
                         ]),
                     ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("string", [Token("STRING_CONTENTS_SINGLE", "bar")])
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("string", [Token("STRING_CONTENTS_SINGLE", "baz")])
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("array_end", []),
                 ]),
                 Token("NEWLINE", "\n"),
             ]),
