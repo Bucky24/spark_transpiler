@@ -172,6 +172,8 @@ MAP_LINE = "states/map_line"
 NEWLINE = "states/newline"
 ARRAY_START = "states/array_start"
 MAP_START = "states/map_start"
+JSX = "states/jsx"
+JSX_ATTRIBUTE = "states/jsx_attribute"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -875,7 +877,7 @@ def process_statement(statement):
             char = "\\" + char
             slash = False
 
-        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == "." or char == "(" or char == ")" or char == "," or char == "#" or char == "\t" or char == "[" or char == "]":
+        if char == " " or char == "\"" or char == "\n" or char == "'" or char == "=" or char == "+" or char == ":" or char == ";" or char == "<" or char == ">" or char == "." or char == "(" or char == ")" or char == "," or char == "#" or char == "\t" or char == "[" or char == "]" or char == "/":
             if len(token) > 0:
                 tokens.append(token)
                 token = ""
@@ -1091,6 +1093,14 @@ def process_tokens(tokens):
                     "type": MAP_START,
                     "has_key": False,
                     "last_newline": False,
+                })
+                continue
+            elif token == "<":
+                current_context = copy_context({
+                    "type": JSX,
+                    "self_close": False,
+                    "end_tag": False,
+                    "tag": None,
                 })
                 continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
@@ -1405,6 +1415,45 @@ def process_tokens(tokens):
                     tokens.insert(0, token)
                     current_context = pop_context()
                     continue
+        elif state == JSX:
+            if len(token) > 0 and token[0] in VALID_VARIABLE_START:
+                if current_context['tag'] == None:
+                    current_context['tag'] = token
+                    continue
+                else:
+                    # we assume it's the start of an attribute
+                    append_context_stack()
+                    current_context = copy_context({
+                        "type": JSX_ATTRIBUTE,
+                        "attr": token,
+                        "fetching_value": False
+                    })
+                    continue
+            elif token == ">":
+                current_context = pop_context()
+                continue
+            elif token == "/":
+                if current_context['tag'] == None:
+                    current_context['end_tag'] = True
+                    continue
+                elif current_context['end_tag'] == False:
+                    current_context['self_close'] = True
+                    continue
+            elif token == "\n" or token == "\t" or token == " ":
+                continue
+        elif state == JSX_ATTRIBUTE:
+            if token == "=":
+                if not current_context['fetching_value']:
+                    current_context['fetching_value'] = True
+                    continue
+            elif token == "\"":
+                if current_context['fetching_value']:
+                    tokens.insert(0, token)
+                    append_context_stack()
+                    continue
+            elif token == "\n":
+                current_context = pop_context()
+                continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1587,6 +1636,21 @@ def build_tree(statements):
             children.insert(0, Token("VARIABLE_NAME", statement['key']))
             children = strip_spaces(children)
             add_result(statement, Tree("map_row", children))
+        elif statement['type'] == JSX:
+            result = [Token("TAG_NAME", statement['tag'])]
+            if statement['end_tag']:
+                add_result(statement, Tree("jsx_tag_end", result))
+            else:
+                if "children" in statement:
+                    children = build_tree(statement['children'])
+                    result += children
+                if statement['self_close']:
+                    result.append(Token("TAG_SELF_CLOSE", "/"))
+                add_result(statement, Tree("jsx_tag_start", result))
+        elif statement['type'] == JSX_ATTRIBUTE:
+            children = build_tree(statement['children'])
+            children.insert(0, Tree("variable", [Token("VARIABLE_NAME", statement['attr'])]))
+            add_result(statement,Tree("variable_assignment", children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
