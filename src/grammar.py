@@ -913,6 +913,7 @@ def process_tokens(tokens):
     current_context = {
         "type": START,
         "spaces": 0,
+        "tabs": 0,
     }
 
     statements = []
@@ -928,6 +929,7 @@ def process_tokens(tokens):
             return {
                 "type": START,
                 "spaces": 0,
+                "tabs": 0,
             }
 
         # if we have no stack, then this is a top level statement so we just add
@@ -940,6 +942,7 @@ def process_tokens(tokens):
             return {
                 "type": START,
                 "spaces": 0,
+                "tabs": 0,
             }
         parent = context_stack.pop()
         if "children" not in parent:
@@ -960,10 +963,16 @@ def process_tokens(tokens):
         pop_context()
 
     def copy_context(new_context):
-        spaces = current_context['spaces']
         new_context.update({
-            "spaces": spaces,
+            "spaces": current_context['spaces'],
+            "tabs": current_context['tabs'],
         })
+        return new_context
+
+    def remove_spaces(context):
+        new_context = context.copy()
+        new_context['spaces'] = 0
+        new_context['tabs'] = 0
         return new_context
 
     def append_context_stack():
@@ -972,6 +981,7 @@ def process_tokens(tokens):
         current_context = {
             "type": START,
             "spaces": 0,
+            "tabs": 0,
         }
 
     for token in tokens:
@@ -982,12 +992,15 @@ def process_tokens(tokens):
             parent = context_stack[-1]
             parent_state = parent['type']
 
-        log("handle token {}: \"{}\"".format(state, token))
+        log("handle token {}: \"{}\" ({}, {})".format(state, token, current_context['spaces'], current_context['tabs']))
         if token == "\n":
             line += 1
         if current_context['type'] == START:
             if token == " ":
                 current_context['spaces'] += 1
+                continue
+            elif token == "\t":
+                current_context['tabs'] += 1
                 continue
             elif token == "\"":
                 current_context = copy_context({
@@ -1070,7 +1083,7 @@ def process_tokens(tokens):
             elif token == "=":
                 current_context = copy_context({
                     "type": VARIABLE_SET,
-                    "left_hand": current_context,
+                    "left_hand": remove_spaces(current_context),
                 })
                 continue
             elif token == "+":
@@ -1266,7 +1279,7 @@ def process_tokens(tokens):
             elif token == '=':
                 current_context = copy_context({
                     "type": VARIABLE_SET,
-                    "left_hand": current_context,
+                    "left_hand": remove_spaces(current_context),
                 })
                 continue
         elif state == FUNCTION_DEFINITION:
@@ -1357,6 +1370,9 @@ def build_tree(statements):
         if "spaces" in statement:
             for i in range(statement['spaces']):
                 children.append(Tree("spaces", [Token("SPACE", " ")]))
+        if "tabs" in statement:
+            for i in range(statement['tabs']):
+                children.append(Tree("spaces", [Token("TAB", "\t")]))
         children.append(result)
 
         return Tree("statement", children)
