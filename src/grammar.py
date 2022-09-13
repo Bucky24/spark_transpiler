@@ -1303,6 +1303,16 @@ def process_tokens(tokens):
             tokens.insert(0, token)
             current_context = pop_context()
             continue
+        elif state == PRAGMA:
+            if token == ' ':
+                continue
+            else:
+                if current_context['pragma_name'] is None:
+                    current_context['pragma_name'] = token
+                    continue
+                else:
+                    current_context['pragma_value'] = token
+                    continue
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1464,6 +1474,11 @@ def build_tree(statements):
                 tree_children.append(child)
         elif statement['type'] == END_FUNCTION_CALL:
             add_result(statement, Tree("end_call_function", []))
+        elif statement['type'] == PRAGMA:
+            children = [Token("PRAGMA_NAME", statement['pragma_name'])]
+            if statement['pragma_value'] is not None:
+                children.append(Token("PRAGMA_VALUE", statement['pragma_value']))
+            add_result(statement, Tree("pragma", children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
