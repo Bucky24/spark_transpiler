@@ -834,7 +834,7 @@ if foo == \"bar\"
             Tree("statements", [
                 Tree("statement", [
                     Tree("return_stmt", [
-                        Tree("statement_no_space", [
+                        Tree("statement", [
                             Tree("jsx_tag_start", [
                                 Token("TAG_NAME", "div"),
                             ]),
@@ -843,14 +843,8 @@ if foo == \"bar\"
                 ]),
                 Token("NEWLINE", "\n"),
                 Tree("statement", [
-                    Tree("jsx_tag_end", []),
+                    Tree("jsx_tag_end", [Token("TAG_NAME", "div")]),
                 ]), 
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("jsx_end", [
-                        Token("TAG_NAME", "div")
-                    ]),
-                ]),
                 Token("NEWLINE", "\n"),
             ]),
         ]))
