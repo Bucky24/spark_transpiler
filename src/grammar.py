@@ -174,6 +174,7 @@ ARRAY_START = "states/array_start"
 MAP_START = "states/map_start"
 JSX = "states/jsx"
 JSX_ATTRIBUTE = "states/jsx_attribute"
+RETURN = "states/return"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -1066,14 +1067,6 @@ def process_tokens(tokens):
                     "type": END_FUNCTION_CALL
                 })
                 continue
-            elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
-                # default if it's not an operator or keyword, then it's probably a variable
-                # or a function name
-                current_context = copy_context({
-                    "type": VARIABLE_OR_METHOD,
-                    "variable": token
-                })
-                continue
             elif token == "#":
                 current_context = copy_context({
                     "type": PRAGMA,
@@ -1101,6 +1094,21 @@ def process_tokens(tokens):
                     "self_close": False,
                     "end_tag": False,
                     "tag": None,
+                })
+                continue
+            elif token == "return":
+                current_context = copy_context({
+                    "type": RETURN
+                })
+                continue
+            # should always be at the very end
+            elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
+                # default if it's not an operator or keyword, then it's probably a variable
+                # or a function name
+                current_context = copy_context({
+                    "type": VARIABLE_OR_METHOD,
+                    "variable": token,
+                    "has_data": False,
                 })
                 continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
@@ -1333,6 +1341,9 @@ def process_tokens(tokens):
                     if current_context['function_name'] is None:
                         current_context['function_name'] = token
                         continue
+            elif token == "\n":
+                current_context = pop_context()
+                continue
         elif state == FUNCTION_CALL:
             if token == '\n':
                 tokens.insert(0, token)
@@ -1454,6 +1465,11 @@ def process_tokens(tokens):
             elif token == "\n":
                 current_context = pop_context()
                 continue
+        elif state == RETURN:
+            if token == " ":
+                continue
+            else:
+                
         
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
