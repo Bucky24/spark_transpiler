@@ -175,6 +175,7 @@ MAP_START = "states/map_start"
 JSX = "states/jsx"
 JSX_ATTRIBUTE = "states/jsx_attribute"
 RETURN = "states/return"
+VARIABLE_MANIPULATE = "states/variable_manipulate"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -1168,6 +1169,13 @@ def process_tokens(tokens):
                     "in_params": True,
                 })
                 continue
+            elif token == "-":
+                current_context = copy_context({
+                    "type": VARIABLE_MANIPULATE,
+                    "left_hand": current_context,
+                    "operator": token,
+                })
+                continue
         elif current_context['type'] == VARIABLE_SET:
             if token == " ":
                 continue
@@ -1224,6 +1232,17 @@ def process_tokens(tokens):
                     "variable": current_context['variable'],
                 }
                 current_context = pop_context()
+                continue
+            else:
+                tokens.insert(0, token)
+                current_context = copy_context({
+                    "type": VARIABLE_MANIPULATE,
+                    "left_hand": {
+                        "type": VARIABLE_OR_METHOD,
+                        "variable": current_context['variable'],
+                    },
+                    "operator": "+",
+                })
                 continue
         elif current_context['type'] == VARIABLE_COERCION:
             if token == " ":
@@ -1477,6 +1496,11 @@ def process_tokens(tokens):
                 tokens.insert(0, token)
                 append_context_stack()
                 continue
+        elif state == VARIABLE_MANIPULATE:
+            if current_context['operator'] is not None:
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
 
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1678,6 +1702,19 @@ def build_tree(statements):
             children = build_tree(statement['children'])
             children = strip_spaces(children)
             add_result(statement, Tree("return_stmt", children))
+        elif statement['type'] == VARIABLE_MANIPULATE:
+            result = []
+            left_hand = build_tree([statement['left_hand']])
+            left_hand = strip_spaces(left_hand)
+            result += left_hand
+
+            result.append(Token("OPERATOR", statement['operator']))
+
+            children = build_tree(statement['children'])
+            children = strip_spaces(children)
+            result += children
+
+            add_result(statement, Tree("value_manipulation", result))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

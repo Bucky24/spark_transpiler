@@ -854,13 +854,13 @@ if foo == \"bar\"
         self.assertEqual(tree, _get_start([
             Tree("statement", [
                 Tree("value_manipulation", [
-                    Tree("statement_no_space_no_value_manip", [
+                    Tree("statement", [
                         Tree("variable", [
                             Token("VARIABLE_NAME", "bar"),
                         ]),
                     ]),
                     Token("OPERATOR", "+"),
-                    Tree("statement_no_space_no_value_manip", [
+                    Tree("statement", [
                         Tree("variable", [
                             Token("VARIABLE_NAME", "baz"),
                         ]),
@@ -873,13 +873,13 @@ if foo == \"bar\"
         self.assertEqual(tree, _get_start([
             Tree("statement", [
                 Tree("value_manipulation", [
-                    Tree("statement_no_space_no_value_manip", [
+                    Tree("statement", [
                         Tree("variable", [
                             Token("VARIABLE_NAME", "bar"),
                         ]),
                     ]),
                     Token("OPERATOR", "-"),
-                    Tree("statement_no_space_no_value_manip", [
+                    Tree("statement", [
                         Tree("string", [
                             Token("STRING_CONTENTS_DOUBLE", "string"),
                         ]),
@@ -892,21 +892,25 @@ if foo == \"bar\"
         self.assertEqual(tree, _get_start([
             Tree("statement", [
                 Tree("value_manipulation", [
-                    Tree("statement_no_space_no_value_manip", [
+                    Tree("statement", [
                         Tree("variable", [
                             Token("VARIABLE_NAME", "bar"),
                         ]),
                     ]),
                     Token("OPERATOR", "+"),
-                    Tree("statement_no_space_no_value_manip", [
-                        Tree("variable", [
-                            Token("VARIABLE_NAME", "baz"),
-                        ]),
-                    ]),
-                    Token("OPERATOR", "+"),
-                    Tree("statement_no_space_no_value_manip", [
-                        Tree("string", [
-                            Token("STRING_CONTENTS_SINGLE", "foo"),
+                    Tree("statement", [
+                        Tree("value_manipulation", [
+                            Tree("statement", [
+                                Tree("variable", [
+                                    Token("VARIABLE_NAME", "baz"),
+                                ]),
+                            ]),
+                            Token("OPERATOR", "+"),
+                            Tree("statement", [
+                                Tree("string", [
+                                    Token("STRING_CONTENTS_SINGLE", "foo"),
+                                ]),
+                            ]),
                         ]),
                     ]),
                 ]),
