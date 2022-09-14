@@ -924,7 +924,7 @@ if foo == \"bar\"
                 Tree("variable_assignment", [
                     Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                     Tree("statement", [
-                        Tree("call_function_one_line", [
+                        Tree("call_function", [
                             Tree("variable", [Token("VARIABLE_NAME", "bar")]),
                         ]),
                     ]),
@@ -936,8 +936,19 @@ if foo == \"bar\"
         tree = parse_statement("foo[5]")
         self.assertEqual(tree, _get_start([
             Tree("statement", [
-                Tree("variable", [
-                    Token("VARIABLE_NAME", "foo[5]"),
+                Tree("array_object_indexing", [
+                    Tree("left_hand", [
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "foo"),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("index", [
+                        Tree("statement", [
+                            Token("NUMBER", "5"),
+                        ]),
+                    ]),
                 ]),
             ]),
         ]))

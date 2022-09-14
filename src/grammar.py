@@ -176,6 +176,7 @@ JSX = "states/jsx"
 JSX_ATTRIBUTE = "states/jsx_attribute"
 RETURN = "states/return"
 VARIABLE_MANIPULATE = "states/variable_manipulate"
+ARRAY_OBJECT_INDEXING = "states/array_object_indexing"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -1001,6 +1002,13 @@ def process_tokens(tokens):
         log("handle token {}: \"{}\" ({}, {})".format(state, token, current_context['spaces'], current_context['tabs']))
         if token == "\n":
             line += 1
+
+        # tokens that we handle a specific way regardless of current state
+        if token == "]" and parent_state == ARRAY_OBJECT_INDEXING:
+            tokens.insert(0, token)
+            current_context = pop_context()
+            continue
+
         if current_context['type'] == START:
             if token == " ":
                 current_context['spaces'] += 1
@@ -1174,6 +1182,12 @@ def process_tokens(tokens):
                     "type": VARIABLE_MANIPULATE,
                     "left_hand": current_context,
                     "operator": token,
+                })
+                continue
+            elif token == "[":
+                current_context = copy_context({
+                    "type": ARRAY_OBJECT_INDEXING,
+                    "left_hand": current_context,
                 })
                 continue
         elif current_context['type'] == VARIABLE_SET:
@@ -1369,6 +1383,9 @@ def process_tokens(tokens):
                 tokens.insert(0, token)
                 append_context_stack()
                 continue
+            elif token == ")":
+                current_context = pop_context()
+                continue
         elif state == END_FUNCTION_CALL:
             tokens.insert(0, token)
             current_context = pop_context()
@@ -1498,6 +1515,14 @@ def process_tokens(tokens):
                 continue
         elif state == VARIABLE_MANIPULATE:
             if current_context['operator'] is not None:
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+        elif state == ARRAY_OBJECT_INDEXING:
+            if token == "]":
+                current_context = pop_context()
+                continue
+            else:
                 tokens.insert(0, token)
                 append_context_stack()
                 continue
@@ -1649,9 +1674,10 @@ def build_tree(statements):
             add_result(statement, Tree("function_definition", params))
         elif statement['type'] == FUNCTION_CALL:
             children = [Token("NEWLINE", "\n")]
-            for child in statement['children']:
-                results = build_tree([child])
-                children += results + [Token("NEWLINE", "\n")]
+            if "children" in statement:
+                for child in statement['children']:
+                    results = build_tree([child])
+                    children += results + [Token("NEWLINE", "\n")]
 
             # remove the last newline since it's extraneous
             if len(children) > 0:
@@ -1715,6 +1741,14 @@ def build_tree(statements):
             result += children
 
             add_result(statement, Tree("value_manipulation", result))
+        elif statement['type'] == ARRAY_OBJECT_INDEXING:
+            left_hand = build_tree([statement['left_hand']])
+            left_hand = strip_spaces(left_hand)
+            
+            children = build_tree(statement['children'])
+            children = strip_spaces(children)
+
+            add_result(statement, Tree("array_object_indexing", [Tree("left_hand", left_hand), Tree("index", children)]))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
