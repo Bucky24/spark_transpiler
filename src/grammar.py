@@ -1342,6 +1342,7 @@ def process_tokens(tokens):
                         current_context['function_name'] = token
                         continue
             elif token == "\n":
+                tokens.insert(0, token)
                 current_context = pop_context()
                 continue
         elif state == FUNCTION_CALL:
@@ -1468,9 +1469,15 @@ def process_tokens(tokens):
         elif state == RETURN:
             if token == " ":
                 continue
+            elif token == "\n":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
             else:
-                
-        
+                tokens.insert(0, token)
+                append_context_stack()
+                continue
+
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
     # pop at the very end just to make sure we handle any final contexts
@@ -1667,6 +1674,10 @@ def build_tree(statements):
             children = build_tree(statement['children'])
             children.insert(0, Tree("variable", [Token("VARIABLE_NAME", statement['attr'])]))
             add_result(statement,Tree("variable_assignment", children))
+        elif statement['type'] == RETURN:
+            children = build_tree(statement['children'])
+            children = strip_spaces(children)
+            add_result(statement, Tree("return_stmt", children))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

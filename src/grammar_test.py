@@ -817,7 +817,7 @@ if foo == \"bar\"
                 Tree("statement", [
                     Tree("spaces", [Token("TAB", "\t")]),
                     Tree("return_stmt", [
-                        Tree("statement_no_space", [
+                        Tree("statement", [
                             Tree("variable", [
                                 Token("VARIABLE_NAME", "bar"),
                             ]),
