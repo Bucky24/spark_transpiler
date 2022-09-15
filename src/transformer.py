@@ -161,7 +161,6 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["CALL_FUNC"],
             "function": name[0],
-            "no_params": False,
         }
 
     def end_call_function(self, _):
@@ -280,7 +279,6 @@ class SparkTransformer(Transformer):
     def map(self, values):
         return {
             "type": TYPES["MAP"],
-            "self_closes": False,
             "children": values,
         }
         
@@ -292,16 +290,10 @@ class SparkTransformer(Transformer):
         }
         
     def jsx_tag_end(self, values):
-        if len(values) > 0 and values[0]["type"] == TYPES["JSX_TAG_SELF_CLOSE"]:
-            return {
-                "type": TYPES["JSX_TAG_END"],
-                "self_closes": True,
-            }
-        else:
-            return {
-                "type": TYPES["JSX_TAG_END"],
-                "self_closes": False,
-            }
+        return {
+            "type": TYPES["JSX_TAG_END"],
+            "tag": values[0],
+        }
 
     def TAG_NAME(self, value):
         return {
@@ -317,22 +309,23 @@ class SparkTransformer(Transformer):
         
     def jsx_tag_start(self, values):
         tag = None
-        tag_ends = False
         self_closes = False
+
+        attributes = []
         
         for value in values:
             if value["type"] == TYPES["TAG_NAME"]:
                 tag = value["tag"]
-            elif value["type"] == TYPES["JSX_TAG_END"]:
-                tag_ends = True
             elif value["type"] == TYPES["JSX_TAG_SELF_CLOSE"]:
                 self_closes = True
+            else:
+                attributes.append(value)
         
         return {
             "type": TYPES["JSX_START_TAG"],
             "tag": tag,
-            "tag_ends": tag_ends,
             "self_closes": self_closes,
+            "attributes": attributes,
         }
         
     def TAG_SELF_CLOSE(self, _):
@@ -355,13 +348,6 @@ class SparkTransformer(Transformer):
             "values": values,
         }
 
-    def call_function_one_line(self, values):
-        return {
-            "type": TYPES["CALL_FUNC"],
-            "function": values[0],
-            "no_params": True,
-        }
-
     def else_stat(self, _):
         return {
             "type": TYPES["ELSE"],
@@ -370,12 +356,6 @@ class SparkTransformer(Transformer):
     def PRAGMA_VALUE(self, value):
         return str(value)
 
-    def map_one_line(self, _):
-        return {
-            "type": TYPES["MAP"],
-            "self_closes": True,
-        }
-        
     def FALSE(self, _):
         return "false"
         

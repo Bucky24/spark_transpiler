@@ -61,8 +61,7 @@ if foo == "string"
             }, 0),
             statement({
                 "type": TYPES["CALL_FUNC"],
-                "function": "print",
-                "no_params": False,
+                "function": statement("print", 4),
             }, 4),
             statement("foo", 8),
             statement({
@@ -250,7 +249,6 @@ class bar
                     "type": TYPES["VARIABLE_CHAIN"],
                     "chain": ["foo", "bar", "baz"],
                 }, 0),
-                "no_params": False,
             }, 0),
             statement({
                 "type": TYPES["CALL_FUNC_END"],
@@ -324,7 +322,6 @@ class bar
                 "name": "foo",
                 "value": statement({
                     "type": TYPES["MAP"],
-                    "self_closes": False,
                     "children": [
                         statement({
                             "type": TYPES["MAP_ROW"],
@@ -342,13 +339,16 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["JSX_START_TAG"],
-                "tag_ends": True,
                 "tag": "div",
                 "self_closes": False,
+                "attributes": [],
             }, 0),
             statement({
-                "type": TYPES["JSX_END_TAG"],
-                "tag": "div",
+                "type": TYPES["JSX_TAG_END"],
+                "tag": {
+                    "type": TYPES['TAG_NAME'],
+                    "tag": "div",
+                },
             }, 0),
         ])
         
@@ -357,9 +357,9 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["JSX_START_TAG"],
-                "tag_ends": True,
                 "tag": "div",
                 "self_closes": True,
+                "attributes": [],
             }, 0),
         ])
         
@@ -368,22 +368,22 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["JSX_START_TAG"],
-                "tag_ends": False,
                 "tag": "div",
                 "self_closes": False,
+                "attributes": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("\"bar\"", 0),
+                    }, 0),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("\"bar\"", 0),
-            }, 4),
             statement({
                 "type": TYPES["JSX_TAG_END"],
-                "self_closes": False,
-            }, 0),
-            statement({
-                "type": TYPES["JSX_END_TAG"],
-                "tag": "div",
+                "tag": {
+                    "type": TYPES['TAG_NAME'],
+                    "tag": "div",
+                },
             }, 0),
         ])
         
@@ -392,13 +392,9 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["JSX_START_TAG"],
-                "tag_ends": False,
                 "tag": "input",
-                "self_closes": False,
-            }, 0),
-            statement({
-                "type": TYPES["JSX_TAG_END"],
                 "self_closes": True,
+                "attributes": [],
             }, 0),
         ])
         
@@ -452,9 +448,14 @@ class bar
                 "values": [
                     statement("bar", 0),
                     "+",
-                    statement("baz", 0),
-                    "+",
-                    statement("\"foo\"", 0),
+                    statement({
+                        "type": TYPES["VALUE_MANIPULATION"],
+                        "values": [
+                            statement("baz", 0),
+                            "+",
+                            statement("\"foo\"", 0),
+                        ]
+                    }, 0),
                 ],
             }, 0),
         ])
@@ -468,8 +469,7 @@ class bar
                 "name": "foo",
                 "value": statement({
                     "type": TYPES["CALL_FUNC"],
-                    "function": "bar",
-                    "no_params": True,
+                    "function": statement("bar", 0),
                 }, 0),
             }, 0),
         ])
@@ -498,7 +498,7 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["MAP"],
-                "self_closes": True,
+                "children": [],
             }, 0),
         ])
         
