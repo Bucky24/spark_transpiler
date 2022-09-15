@@ -1,6 +1,7 @@
 import ast
 
-from lark import Transformer
+#from lark import Transformer
+from grammar import Tree, Token
 
 TYPES = {
     "VARIABLE_ASSIGNMENT": "types/variable_assignment",
@@ -36,6 +37,28 @@ TYPES = {
     "VALUE_MANIPULATION": "types/value_manipulation",
     "ELSE": "types/else",
 }
+
+# turn to true for debug logs
+LOG = True
+
+def log(str):
+    if LOG:
+        print(str)
+    
+
+class Transformer:
+    def transform(self, tree):
+        func = getattr(self, tree.name)
+        if isinstance(tree, Tree):
+            log("Tree " + tree.name)
+            tokens = []
+            for child in tree.children:
+                result = self.transform(child)
+                tokens.append(result)
+            return func(tokens)
+        elif isinstance(tree, Token):
+            log("Token " + tree.name)
+            return func(tree.value)
 
 class SparkTransformer(Transformer):
     def _get_statement(self, tokens):

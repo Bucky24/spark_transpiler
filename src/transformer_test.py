@@ -1,5 +1,9 @@
 import unittest
 
+if 'unittest.util' in __import__('sys').modules:
+    # Show full diff in self.assertEqual.
+    __import__('sys').modules['unittest.util']._MAX_LENGTH = 999999999
+
 from grammar import parse_statement
 from transformer import process_tree, TYPES
 
