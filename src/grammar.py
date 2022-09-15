@@ -177,6 +177,8 @@ JSX_ATTRIBUTE = "states/jsx_attribute"
 RETURN = "states/return"
 VARIABLE_MANIPULATE = "states/variable_manipulate"
 ARRAY_OBJECT_INDEXING = "states/array_object_indexing"
+BOOLEAN = "states/boolean"
+ELSE_STATEMENT = "states/else_statement"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -1110,6 +1112,18 @@ def process_tokens(tokens):
                     "type": RETURN
                 })
                 continue
+            elif token == "false" or token == "true":
+                current_context = copy_context({
+                    "type": BOOLEAN,
+                    "boolean": token,
+                })
+                continue
+            elif token == "else":
+                current_context = copy_context({
+                    "type": ELSE_STATEMENT,
+                    "condition": None,
+                })
+                continue
             # should always be at the very end
             elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
                 # default if it's not an operator or keyword, then it's probably a variable
@@ -1199,10 +1213,7 @@ def process_tokens(tokens):
             elif token == "=":
                 current_context = copy_context({
                     "type": VARIABLE_EQUALITY,
-                    "left_hand": [{
-                        "type": VARIABLE_OR_METHOD,
-                        "variable": current_context['variable'],
-                    }],
+                    "left_hand": current_context['left_hand'],
                     "equality": '=='
                 })
                 continue
@@ -1526,6 +1537,14 @@ def process_tokens(tokens):
                 tokens.insert(0, token)
                 append_context_stack()
                 continue
+        elif state == BOOLEAN:
+            tokens.insert(0, token)
+            current_context = pop_context()
+            continue
+        elif state == ELSE_STATEMENT:
+            tokens.insert(0, token)
+            current_context = pop_context()
+            continue
 
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1616,7 +1635,7 @@ def build_tree(statements):
 
             add_result(statement, Tree('if_stat', [condition]))
         elif statement['type'] == VARIABLE_EQUALITY:
-            left_hand_trees = build_tree(statement['left_hand'])
+            left_hand_trees = build_tree([statement['left_hand']])
             children = build_tree(statement['children'])
             children = strip_spaces(children)
             result = left_hand_trees + [Token("EQUALITY", statement['equality'])] + children
@@ -1749,6 +1768,12 @@ def build_tree(statements):
             children = strip_spaces(children)
 
             add_result(statement, Tree("array_object_indexing", [Tree("left_hand", left_hand), Tree("index", children)]))
+        elif statement['type'] == BOOLEAN:
+            add_result(statement, Tree("boolean", [
+                Token(statement['boolean'].upper(), statement['boolean']),
+            ]))
+        elif statement['type'] == ELSE_STATEMENT:
+            add_result(statement, Tree("else_stat", []))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 
