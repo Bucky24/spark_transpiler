@@ -261,6 +261,7 @@ def process_tokens(tokens):
                 "tabs": 0,
             }
 
+        log("popping context " + str(len(context_stack)))
         # if we have no stack, then this is a top level statement so we just add
         # it to the list and reset the context
         if len(context_stack) == 0:
@@ -306,6 +307,7 @@ def process_tokens(tokens):
 
     def append_context_stack():
         nonlocal current_context
+        log("Appending context " + current_context['type'])
         context_stack.append(current_context)
         current_context = {
             "type": START,
@@ -524,6 +526,10 @@ def process_tokens(tokens):
                     "left_hand": [current_context],
                 })
                 continue
+            elif token == "\n":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
         elif current_context['type'] == VARIABLE_SET:
             if token == " ":
                 continue
@@ -630,6 +636,10 @@ def process_tokens(tokens):
                 current_context['params'].append(current_context['children'])
                 current_context['children'] = []
                 continue
+            elif token == "\n":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
             else:
                 tokens.insert(0, token)
                 append_context_stack()
@@ -640,6 +650,10 @@ def process_tokens(tokens):
             elif token == ":":
                 current_context['is_object'] = True
                 continue
+            elif token == "\n":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
             else:
                 if not current_context['is_object']:
                     current_context['as_name'] = token
@@ -648,6 +662,10 @@ def process_tokens(tokens):
                 continue
         elif state == WHILE_STATEMENT:
             if token == " ":
+                continue
+            elif token == "\n":
+                tokens.insert(0, token)
+                current_context = pop_context()
                 continue
             else:
                 tokens.insert(0, token)

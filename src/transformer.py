@@ -171,7 +171,7 @@ class SparkTransformer(Transformer):
 
     def for_array(self, values):
         return {
-            "type": TYPES["FOR_OF"],
+        "type": TYPES["FOR_OF"],
             "variable": values[0],
             "value": values[1]
         }
