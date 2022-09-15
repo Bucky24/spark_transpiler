@@ -1,5 +1,9 @@
 import unittest
 
+if 'unittest.util' in __import__('sys').modules:
+    # Show full diff in self.assertEqual.
+    __import__('sys').modules['unittest.util']._MAX_LENGTH = 999999999
+
 from generator import generate, process_external_exports
 from grammar import parse_statement
 from transformer import process_tree
@@ -312,10 +316,13 @@ class TestGeneratorJs(unittest.TestCase):
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    return bar;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
         
-        tree = parse_statement("#frontend\nfunction foo()\n\treturn <div\n\t\tstyle=style\n\t>\n\t</div>\n")
+        tree = parse_statement("#frontend\nfunction foo()\n\treturn <div\n\t\tstyle={style}\n\t>\n\t</div>\n")
+        print(tree)
         processed = process_tree(tree)
+        print(processed)
         result = generate(processed, "js")
         result = result["code"]
+        print ("result! " + str(result))
         self.assertEqual(result["frontend"], _wrap_front("async function foo() {\n    return new Component(\"div\", {\n        style: style,\n    \n    }, [\n    \n    ]);\n}\n\nreturn {\n\tfoo\n};\n"))
         
     def test_multiple_block_closures(self):

@@ -376,7 +376,6 @@ def process_statement(statement, args):
 
 
     log("Processing for " + statement['type'])
-    print(statement)
 
     if statement["type"] == TYPES["STATEMENT"]:
         return process_statement(statement["statement"], args)

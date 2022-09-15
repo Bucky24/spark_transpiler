@@ -754,6 +754,10 @@ def process_tokens(tokens):
         elif state == PRAGMA:
             if token == ' ':
                 continue
+            elif token == '\n':
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
             else:
                 if current_context['pragma_name'] is None:
                     current_context['pragma_name'] = token
