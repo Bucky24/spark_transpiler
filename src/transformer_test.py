@@ -61,11 +61,22 @@ if foo == "string"
             }, 0),
             statement({
                 "type": TYPES["CALL_FUNC"],
-                "function": statement("print", 4),
-            }, 4),
-            statement("foo", 8),
-            statement({
-                "type": TYPES["CALL_FUNC_END"],
+                "function": {
+                    "type": TYPES["FUNCTION_NAME"],
+                    "name": statement("print", 4),
+                },
+                "parameters": {
+                    'type': TYPES['FUNCTION_PARAMS'],
+                    'params': [
+                        TYPES['NEWLINE'],
+                        statement("foo", 0),
+                        TYPES['NEWLINE'],
+                        statement({
+                            "type": TYPES["CALL_FUNC_END"],
+                        }, 0),
+                        TYPES['NEWLINE'],
+                    ],
+                },
             }, 4),
         ])
 
@@ -245,13 +256,23 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["CALL_FUNC"],
-                "function": statement({
-                    "type": TYPES["VARIABLE_CHAIN"],
-                    "chain": ["foo", "bar", "baz"],
-                }, 0),
-            }, 0),
-            statement({
-                "type": TYPES["CALL_FUNC_END"],
+                "function": {
+                    'type': TYPES['FUNCTION_NAME'],
+                    'name': statement({
+                        "type": TYPES["VARIABLE_CHAIN"],
+                        "chain": ["foo", "bar", "baz"],
+                    }, 0),
+                },
+                "parameters": {
+                    'type': TYPES['FUNCTION_PARAMS'],
+                    "params": [
+                        TYPES['NEWLINE'],
+                        statement({
+                            "type": TYPES["CALL_FUNC_END"],
+                        }, 0),
+                        TYPES['NEWLINE'],
+                    ],
+                } ,
             }, 0),
         ])
 
@@ -469,7 +490,11 @@ class bar
                 "name": "foo",
                 "value": statement({
                     "type": TYPES["CALL_FUNC"],
-                    "function": statement("bar", 0),
+                    "function": {
+                        "type": TYPES['FUNCTION_NAME'],
+                        "name": statement("bar", 0),
+                    },
+                    "parameters": {'type': 'types/function_params', 'params': []},
                 }, 0),
             }, 0),
         ])

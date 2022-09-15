@@ -17,6 +17,7 @@ TYPES = {
     "WHILE": "types/while",
     "FUNCTION_NAME": "types/function_name",
     "FUNCTION_PARAM": "types/function_param",
+    "FUNCTION_PARAMS": "types/function_params",
     "FUNCTION": "types/function",
     "CLASS": "types/class",
     "VARIABLE_CHAIN": "types/variable_chain",
@@ -161,6 +162,7 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["CALL_FUNC"],
             "function": name[0],
+            "parameters": name[1] if len(name) > 1 else [],
         }
 
     def end_call_function(self, _):
@@ -364,6 +366,12 @@ class SparkTransformer(Transformer):
         
     def boolean(self, value):
         return value[0]
+
+    def function_params(self, values):
+        return {
+            "type": TYPES['FUNCTION_PARAMS'],
+            "params": values,
+        }
 
 _spark_transformer = SparkTransformer()
 

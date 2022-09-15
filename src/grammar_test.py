@@ -405,15 +405,18 @@ if foo == \"bar\"
             Tree('statements', [
                 Tree('statement', [
                     Tree('call_function', [
-                        Tree('statement',[
-                            Tree("variable", [
-                                Tree("instance_variable_chain", [
-                                    Token("VARIABLE_NAME", "bar"),
-                                    Token("VARIABLE_NAME", "baz"),
-                                    Token("VARIABLE_NAME", "foo"),
+                        Tree("function_name", [
+                            Tree("statement", [
+                                Tree("variable", [
+                                    Tree("instance_variable_chain", [
+                                        Token("VARIABLE_NAME", "bar"),
+                                        Token("VARIABLE_NAME", "baz"),
+                                        Token("VARIABLE_NAME", "foo"),
+                                    ]),
                                 ]),
                             ]),
                         ]),
+                        Tree("function_params", []),
                     ]),
                 ]),
             ]),
@@ -493,36 +496,26 @@ if foo == \"bar\"
             Tree("statements", [
                 Tree("statement", [
                     Tree("call_function", [
-                        Tree('statement', [
-                            Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("function_name", [
+                            Tree('statement', [
+                                Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                            ]),
+                        ]),
+                        Tree("function_params", [
+                            Token("NEWLINE", "\n"),
+                            Tree("statement", [
+                                Tree("variable", [Token("VARIABLE_NAME", "a")]),
+                            ]),
+                            Token("NEWLINE", "\n"),
+                            Tree("statement", [
+                                Tree("variable", [Token("VARIABLE_NAME", "b")]),
+                            ]),
+                            Token("NEWLINE", "\n"),
+                            Tree("statement", [Tree("end_call_function", [])]),
+                            Token("NEWLINE", "\n"),
                         ]),
                     ]),
                 ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [
-                        Token("SPACE", " "),
-                    ]),
-                    Tree("spaces", [
-                        Token("SPACE", " "),
-                    ]),
-                    Tree("variable", [Token("VARIABLE_NAME", "a")]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [
-                        Token("SPACE", " "),
-                    ]),
-                    Tree("spaces", [
-                        Token("SPACE", " "),
-                    ]),
-                    Tree("variable", [Token("VARIABLE_NAME", "b")]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("end_call_function", []),
-                ]),
-                Token("NEWLINE", "\n"),
             ]),
         ]))
 
@@ -945,9 +938,12 @@ if foo == \"bar\"
                     Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                     Tree("statement", [
                         Tree("call_function", [
-                            Tree('statement', [
-                                Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                            Tree("function_name", [
+                                Tree('statement', [
+                                    Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                                ]),
                             ]),
+                            Tree("function_params", []),
                         ]),
                     ]),
                 ]),

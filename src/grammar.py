@@ -1052,12 +1052,14 @@ def build_tree(statements):
             if len(children) > 0:
                 children.pop()
 
+            children = strip_spaces(children)
+
             left_hand = build_tree(statement['function'])
 
-            add_result(statement, Tree("call_function", left_hand))
-            
-            for child in children:
-                tree_children.append(child)
+            add_result(statement, Tree("call_function", [
+                Tree("function_name", left_hand),
+                Tree("function_params", children),
+            ]))
         elif statement['type'] == END_FUNCTION_CALL:
             add_result(statement, Tree("end_call_function", []))
         elif statement['type'] == PRAGMA:

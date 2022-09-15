@@ -34,6 +34,13 @@ _PLATFORMS = [
     "frontend",
 ]
 
+# turn to true for debug logs
+LOG = True
+
+def log(str):
+    if LOG:
+        print(str)
+
 def _add_spaces(spaces):
     code = ""
     # I hate for loops in Python
@@ -367,6 +374,10 @@ def process_statement(statement, args):
             "statement": statement,
         }
 
+
+    log("Processing for " + statement['type'])
+    print(statement)
+
     if statement["type"] == TYPES["STATEMENT"]:
         return process_statement(statement["statement"], args)
     elif statement["type"] == TYPES["VARIABLE_ASSIGNMENT"]:
@@ -503,9 +514,6 @@ def process_statement(statement, args):
         name = name["statement"]
         start_block = "function_call"
         code = "{}(".format(name)
-        if statement["no_params"]:
-            start_block = False
-            code += ")"
 
         name_path = name.split(".")
         first_name = name_path[0]
@@ -667,6 +675,9 @@ def process_statement(statement, args):
                 code += " {} ".format(statement["values"][i])
             else:
                 value = process_statement(statement["values"][i], args)
+                print("value!!")
+                print(statement['values'][i])
+                print(value)
                 start_block = value.get("start_block", None)
                 new_function_calls += value.get("new_function_calls", [])
                 new_class_calls += value.get("new_class_calls", [])
@@ -684,6 +695,8 @@ def process_statement(statement, args):
             "statement": "else {",
             "start_block": "if",
         }
+    else:
+        raise Exception("Can't generate for type " + statement['type'])
 
 def generate_external_exports(exports):
     package_json = {
