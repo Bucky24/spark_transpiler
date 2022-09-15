@@ -984,14 +984,14 @@ if foo == \"bar\"
         tree = parse_statement("{}")
         self.assertEqual(tree, _get_start([
             Tree("statement", [
-                Tree("map_one_line", []),
+                Tree("map", []),
             ]),
         ]))
 
         tree = parse_statement("{  }")
         self.assertEqual(tree, _get_start([
             Tree("statement", [
-                Tree("map_one_line", []),
+                Tree("map", []),
             ]),
         ]))
         
