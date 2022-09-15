@@ -508,7 +508,7 @@ def process_tokens(tokens):
             elif token == '(':
                 current_context = copy_context({
                     "type": FUNCTION_CALL,
-                    "function": current_context['variable'],
+                    "function": [current_context],
                     "params": [],
                     "in_params": True,
                 })
@@ -674,6 +674,10 @@ def process_tokens(tokens):
         elif state == CLASS_STATEMENT:
             if token == " ":
                 continue
+            elif token == "\n":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
             else:
                 if current_context['class'] is None:
                     current_context['class'] = token
@@ -696,6 +700,14 @@ def process_tokens(tokens):
                 current_context = copy_context({
                     "type": VARIABLE_SET,
                     "left_hand": [remove_spaces(current_context)],
+                })
+                continue
+            elif token == "(":
+                current_context = copy_context({
+                    "type": FUNCTION_CALL,
+                    "function": [current_context],
+                    "params": [],
+                    "in_params": True,
                 })
                 continue
         elif state == FUNCTION_DEFINITION:
@@ -1040,9 +1052,9 @@ def build_tree(statements):
             if len(children) > 0:
                 children.pop()
 
-            add_result(statement, Tree("call_function", [
-                Tree("variable", [Token("VARIABLE_NAME", statement['function'])]),
-            ]))
+            left_hand = build_tree(statement['function'])
+
+            add_result(statement, Tree("call_function", left_hand))
             
             for child in children:
                 tree_children.append(child)

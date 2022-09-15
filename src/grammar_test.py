@@ -399,7 +399,25 @@ if foo == \"bar\"
                 ]),
             ]),
         ]))
-
+        
+        result = parse_statement("bar.baz.foo()")
+        self.assertEqual(result, Tree('start', [
+            Tree('statements', [
+                Tree('statement', [
+                    Tree('call_function', [
+                        Tree('statement',[
+                            Tree("variable", [
+                                Tree("instance_variable_chain", [
+                                    Token("VARIABLE_NAME", "bar"),
+                                    Token("VARIABLE_NAME", "baz"),
+                                    Token("VARIABLE_NAME", "foo"),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
     def test_function(self):
         result = parse_statement("function(a, b, c)")
         self.assertEqual(result, Tree("start", [
@@ -475,7 +493,9 @@ if foo == \"bar\"
             Tree("statements", [
                 Tree("statement", [
                     Tree("call_function", [
-                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree('statement', [
+                            Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        ]),
                     ]),
                 ]),
                 Token("NEWLINE", "\n"),
@@ -925,7 +945,9 @@ if foo == \"bar\"
                     Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                     Tree("statement", [
                         Tree("call_function", [
-                            Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                            Tree('statement', [
+                                Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                            ]),
                         ]),
                     ]),
                 ]),

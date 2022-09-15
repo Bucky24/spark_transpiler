@@ -271,20 +271,17 @@ class SparkTransformer(Transformer):
                 "value": values[1],
             }
         
-    def array_start(self, _):
+    def array(self, values):
         return {
             "type": TYPES["ARRAY"],
+            "children": values,
         }
         
-    def array_end(self, _):
-        return {
-            "type": TYPES["ARRAY_END"],
-        }    
-        
-    def map_start(self, _):
+    def map(self, values):
         return {
             "type": TYPES["MAP"],
             "self_closes": False,
+            "children": values,
         }
         
     def map_row(self, values):
@@ -292,11 +289,6 @@ class SparkTransformer(Transformer):
             "type": TYPES["MAP_ROW"],
             "key": values[0],
             "value": values[1],
-        }
-        
-    def map_end(self, _):
-        return {
-            "type": TYPES["MAP_END"],
         }
         
     def jsx_tag_end(self, values):

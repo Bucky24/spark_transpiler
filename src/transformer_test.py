@@ -246,10 +246,10 @@ class bar
         self.assertEqual(processed, [
             statement({
                 "type": TYPES["CALL_FUNC"],
-                "function": {
+                "function": statement({
                     "type": TYPES["VARIABLE_CHAIN"],
                     "chain": ["foo", "bar", "baz"],
-                },
+                }, 0),
                 "no_params": False,
             }, 0),
             statement({
@@ -307,12 +307,11 @@ class bar
                 "name": "foo",
                 "value": statement({
                     "type": TYPES["ARRAY"],
+                    "children": [
+                        statement("\"bar\"", 4),
+                        statement("\"baz\"", 4),
+                    ]
                 }, 0),
-            }, 0),
-            statement("\"bar\"", 4),
-            statement("\"baz\"", 4),
-            statement({
-                "type": TYPES["ARRAY_END"],
             }, 0),
         ])
         
@@ -326,15 +325,14 @@ class bar
                 "value": statement({
                     "type": TYPES["MAP"],
                     "self_closes": False,
+                    "children": [
+                        statement({
+                            "type": TYPES["MAP_ROW"],
+                            "key": "abcd",
+                            "value": statement("\"foo\"", 0),
+                        }, 0),
+                    ],
                 }, 0),
-            }, 0),
-            statement({
-                "type": TYPES["MAP_ROW"],
-                "key": "abcd",
-                "value": statement("\"foo\"", 0),
-            }, 4),
-            statement({
-                "type": TYPES["MAP_END"],
             }, 0),
         ])
         
