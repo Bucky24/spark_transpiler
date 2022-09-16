@@ -511,7 +511,6 @@ def process_statement(statement, args):
     elif statement["type"] == TYPES["CALL_FUNC"]:
         name = process_statement(statement["function"], args)
         name = name["statement"]
-        start_block = "function_call"
         code = "{}(".format(name)
 
         name_path = name.split(".")
@@ -533,9 +532,15 @@ def process_statement(statement, args):
         else:
             code = "new {}".format(code)
 
+        params = process_statement(statement['parameters'], args)
+        if params['statement'] == '':
+            code += ")"
+        else:
+            # the end parhen is part of the parameters
+            code += "\n" + params['statement']
+
         return {
             "statement": "{}".format(code),
-            "start_block": start_block,
             "new_class_calls": new_class_calls,
             "new_function_calls": new_function_calls,
         }
@@ -692,6 +697,29 @@ def process_statement(statement, args):
 
         return {
             "statement": _add_spaces(args['spaces']) + statement['name'] + ": " + right_hand['statement'] + ",",
+        }
+    elif statement['type'] == TYPES['FUNCTION_NAME']:
+        return process_statement(statement['name'], args)
+    elif statement['type'] == TYPES['FUNCTION_PARAMS']:
+        results = []
+        for param in statement['params']:
+            # where is this even coming from?
+            if param == "types/newline":
+                continue
+
+            param_processed = process_statement(param, args)
+            param_code = param_processed['statement']
+            if param_code is not None:
+                if param_code == ")":
+                    results.append(param_processed['statement'])
+                else:
+                    results.append(_add_spaces(_DEFAULT_SPACES) + param_processed['statement'])
+        if len(results) == 1:
+            return {
+                "statement": results[0]
+            }
+        return {
+            "statement": ",\n".join(results),
         }
     else:
         raise Exception("Can't generate for type " + statement['type'])
