@@ -532,12 +532,13 @@ def process_statement(statement, args):
         else:
             code = "new {}".format(code)
 
-        params = process_statement(statement['parameters'], args)
+        new_args = args.copy()
+        new_args['spaces'] += _DEFAULT_SPACES
+        params = process_statement(statement['parameters'], new_args)
         if params['statement'] == '':
             code += ")"
         else:
-            # the end parhen is part of the parameters
-            code += "\n" + params['statement']
+            code += "\n" + params['statement'] + "\n)"
 
         return {
             "statement": "{}".format(code),
@@ -601,14 +602,19 @@ def process_statement(statement, args):
             "statement": "]",
         }
     elif statement["type"] == TYPES["MAP"]:
-        if statement["self_closes"]:
+        if len(statement['children']) > 0:
+            childs = []
+            for child in statement['children']:
+                child_result = process_statement(child, args)
+                childs.append(_add_spaces(_DEFAULT_SPACES) + child_result['statement'])
+             
+            code = "{\n" + ",\n".join(childs) + "\n}"
             return {
-                "statement": "{}",
+                "statement": code,
             }
         else:
             return {
-                "statement": "{",
-                "start_block": "map",
+                "statement": "{}",
             }
     elif statement["type"] == TYPES["MAP_END"]:
         return {
@@ -676,9 +682,6 @@ def process_statement(statement, args):
                 code += " {} ".format(statement["values"][i])
             else:
                 value = process_statement(statement["values"][i], args)
-                print("value!!")
-                print(statement['values'][i])
-                print(value)
                 start_block = value.get("start_block", None)
                 new_function_calls += value.get("new_function_calls", [])
                 new_class_calls += value.get("new_class_calls", [])
@@ -714,10 +717,13 @@ def process_statement(statement, args):
             param_processed = process_statement(param, args)
             param_code = param_processed['statement']
             if param_code is not None:
-                if param_code == ")":
-                    results.append(param_processed['statement'])
-                else:
-                    results.append(_add_spaces(_DEFAULT_SPACES) + param_processed['statement'])
+                lines = param_code.split("\n")
+                # we now have to add the spaces to each line in the output because this is
+                # a function param. Need a better way to do this honestly :D
+                fixed_lines = []
+                for line in lines:
+                    fixed_lines.append(_add_spaces(_DEFAULT_SPACES) + line)
+                results.append("\n".join(fixed_lines))
         if len(results) == 1:
             return {
                 "statement": results[0]
