@@ -365,7 +365,7 @@ class bar
                 "attributes": [],
             }, 0),
             statement({
-                "type": TYPES["JSX_TAG_END"],
+                "type": TYPES["JSX_END_TAG"],
                 "tag": {
                     "type": TYPES['TAG_NAME'],
                     "tag": "div",
@@ -400,7 +400,7 @@ class bar
                 ],
             }, 0),
             statement({
-                "type": TYPES["JSX_TAG_END"],
+                "type": TYPES["JSX_END_TAG"],
                 "tag": {
                     "type": TYPES['TAG_NAME'],
                     "tag": "div",
