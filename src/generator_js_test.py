@@ -163,13 +163,13 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = await bar.baz(\n\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("var foo = await bar.baz();\n"))
         
         tree = parse_statement("foo = bar.baz.biz.buzz(\n\n)\n")
         processed = process_tree(tree)
         result = generate(processed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = await bar.baz.biz.buzz(\n\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("var foo = await bar.baz.biz.buzz();\n"))
         
     def test_imports(self):
         tree = parse_statement("print(\n    foo\n)\n")
