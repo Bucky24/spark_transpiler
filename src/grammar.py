@@ -1084,7 +1084,8 @@ def build_tree(statements):
                 Tree("function_params", children),
             ]))
         elif statement['type'] == END_FUNCTION_CALL:
-            add_result(statement, Tree("end_call_function", []))
+            # noop
+            pass
         elif statement['type'] == PRAGMA:
             children = [Token("PRAGMA_NAME", statement['pragma_name'])]
             if statement['pragma_value'] is not None:

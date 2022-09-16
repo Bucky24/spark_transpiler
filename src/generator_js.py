@@ -628,14 +628,18 @@ def process_statement(statement, args):
         if statement["tag"] in classes:
             code = "new {}(".format(statement["tag"])
 
-        attribute_code = "{\n"
+        attribute_code = "{"
+        if len(statement['attributes']) > 0:
+            attribute_code += "\n"
         new_args = args.copy()
         new_args['spaces'] += _DEFAULT_SPACES
         for attribute in statement['attributes']:
             processed = process_statement(attribute, new_args)
             attribute_code += processed['statement'] + "\n"
 
-        attribute_code += _add_spaces(args['spaces']) + "}"
+        if len(statement['attributes']) > 0:
+            attribute_code += _add_spaces(args['spaces'])
+        attribute_code += "}"
 
         new_classes = ["Component"]
         if statement["self_closes"]:

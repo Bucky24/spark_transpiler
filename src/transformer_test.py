@@ -68,13 +68,7 @@ if foo == "string"
                 "parameters": {
                     'type': TYPES['FUNCTION_PARAMS'],
                     'params': [
-                        TYPES['NEWLINE'],
                         statement("foo", 0),
-                        TYPES['NEWLINE'],
-                        statement({
-                            "type": TYPES["CALL_FUNC_END"],
-                        }, 0),
-                        TYPES['NEWLINE'],
                     ],
                 },
             }, 4),
@@ -208,6 +202,26 @@ function()
             }, 4),
         ])
 
+        tree = parse_statement("bar = foo(\n)\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES['VARIABLE_ASSIGNMENT'],
+                "name": "bar",
+                "value": statement({
+                    "type": TYPES["CALL_FUNC"],
+                    "function": {
+                        "type": TYPES['FUNCTION_NAME'],
+                        "name": statement("foo", 0),
+                    },
+                    "parameters": {
+                        "type": TYPES['FUNCTION_PARAMS'],
+                        "params": [],
+                    },
+                }, 0),
+            }, 0),
+        ])
+
     def test_class(self):
         tree = parse_statement("""class foo extends bar
     function abba()
@@ -265,13 +279,7 @@ class bar
                 },
                 "parameters": {
                     'type': TYPES['FUNCTION_PARAMS'],
-                    "params": [
-                        TYPES['NEWLINE'],
-                        statement({
-                            "type": TYPES["CALL_FUNC_END"],
-                        }, 0),
-                        TYPES['NEWLINE'],
-                    ],
+                    "params": [],
                 } ,
             }, 0),
         ])

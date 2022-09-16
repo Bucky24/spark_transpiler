@@ -149,7 +149,7 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         result = generate(processed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n}\nvar bar = new Foo(\n\n);\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n}\nvar bar = new Foo();\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_class_variables(self):
         tree = parse_statement("foo = bar.baz.biz")
@@ -291,7 +291,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(processed, "js")
         result = output["code"]
         imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], _wrap_front("new Component(\"div\", {\n    foo: \"bar\",\n\n}, [\n\n]);\n"))
+        self.assertEqual(result["frontend"], _wrap_front("new Component(\"div\", {\n    foo: \"bar\",\n}, [\n\n]);\n"))
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<input\n/>\n")
@@ -299,7 +299,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(processed, "js")
         result = output["code"]
         imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], _wrap_front("new Component(\"input\", {\n\n}, []);\n"))
+        self.assertEqual(result["frontend"], _wrap_front("new Component(\"input\", {}, []);\n"))
         self.assertEqual(imports["frontend"], expected_imports)
         
     def test_jsx_component(self):

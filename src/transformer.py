@@ -377,9 +377,14 @@ class SparkTransformer(Transformer):
         return value[0]
 
     def function_params(self, values):
+        filtered = []
+        for value in values:
+            # new lines are not helpful at this point
+            if value != TYPES['NEWLINE']:
+                filtered.append(value)
         return {
             "type": TYPES['FUNCTION_PARAMS'],
-            "params": values,
+            "params": filtered,
         }
 
 _spark_transformer = SparkTransformer()
