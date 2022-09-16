@@ -754,7 +754,7 @@ if foo == \"bar\"
                 ]),
                 Token("NEWLINE", "\n"),
                 Tree("statement", [
-                    Tree("jsx_tag_end", [
+                    Tree("jsx_end_tag", [
                         Token("TAG_NAME", "div"),
                     ])
                 ]),
@@ -796,7 +796,7 @@ if foo == \"bar\"
                 ]),
                 Token("NEWLINE", "\n"),
                 Tree("statement", [
-                    Tree("jsx_tag_end", [
+                    Tree("jsx_end_tag", [
                         Token("TAG_NAME", "div"),
                     ])
                 ]),
@@ -918,7 +918,7 @@ if foo == \"bar\"
                 ]),
                 Token("NEWLINE", "\n"),
                 Tree("statement", [
-                    Tree("jsx_tag_end", [Token("TAG_NAME", "div")]),
+                    Tree("jsx_end_tag", [Token("TAG_NAME", "div")]),
                 ]), 
                 Token("NEWLINE", "\n"),
             ]),

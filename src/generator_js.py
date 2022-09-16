@@ -623,38 +623,31 @@ def process_statement(statement, args):
         if statement["tag"] in classes:
             code = "new {}(".format(statement["tag"])
 
+        attribute_code = "{\n"
+        new_args = args.copy()
+        new_args['spaces'] += _DEFAULT_SPACES
+        for attribute in statement['attributes']:
+            processed = process_statement(attribute, new_args)
+            attribute_code += processed['statement'] + "\n"
+
+        attribute_code += _add_spaces(args['spaces']) + "}"
+
         new_classes = ["Component"]
         if statement["self_closes"]:
             return {
-                "statement": code + "{}, [])",
-                "new_class_calls": new_classes,
-            }
-        elif statement["tag_ends"]:
-            return {
-                "statement": code + "{}, [",
-                "start_block": "jsx_children",
+                "statement": code + attribute_code + ", [])",
                 "new_class_calls": new_classes,
             }
         else:
             return {
-                "statement": code + "{",
-                "start_block": "jsx_attributes",
+                "statement": code + attribute_code +", [",
+                "start_block": "jsx_children",
                 "new_class_calls": new_classes,
             }
     elif statement["type"] == TYPES["JSX_END_TAG"]:
         return {
             "statement": "])",
         }
-    elif statement["type"] == TYPES["JSX_TAG_END"]:
-        if statement["self_closes"]:
-            return {
-                "statement": "}, [])",
-            }
-        else:
-            return {
-                "statement": "}, [",
-                "start_block": "jsx_children",
-            }
     elif statement["type"] == TYPES["RETURN"]:
         value = process_statement(statement["value"], args)
         return {
@@ -693,6 +686,12 @@ def process_statement(statement, args):
         return {
             "statement": "else {",
             "start_block": "if",
+        }
+    elif statement['type'] == TYPES['JSX_ATTRIBUTE']:
+        right_hand = process_statement(statement['right_hand'], args)
+
+        return {
+            "statement": _add_spaces(args['spaces']) + statement['name'] + ": " + right_hand['statement'] + ",",
         }
     else:
         raise Exception("Can't generate for type " + statement['type'])

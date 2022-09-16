@@ -1108,7 +1108,7 @@ def build_tree(statements):
         elif statement['type'] == JSX:
             result = [Token("TAG_NAME", statement['tag'])]
             if statement['end_tag']:
-                add_result(statement, Tree("jsx_tag_end", result))
+                add_result(statement, Tree("jsx_end_tag", result))
             else:
                 if "children" in statement:
                     children = build_tree(statement['children'])

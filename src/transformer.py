@@ -29,7 +29,7 @@ TYPES = {
     "MAP": "types/map_start",
     "MAP_END": "types/map_end",
     "MAP_ROW": "types/map_row",
-    "JSX_TAG_END": "types/jsx_tag_end",
+    "JSX_END_TAG": "types/jsx_end_tag",
     "TAG_NAME": "types/tag_name",
     "JSX_END_TAG": "types/jsx_end_tag",
     "JSX_START_TAG": "types/jsx_start_tag",
@@ -292,9 +292,9 @@ class SparkTransformer(Transformer):
             "value": values[1],
         }
         
-    def jsx_tag_end(self, values):
+    def jsx_end_tag(self, values):
         return {
-            "type": TYPES["JSX_TAG_END"],
+            "type": TYPES["JSX_END_TAG"],
             "tag": values[0],
         }
 
