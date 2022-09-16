@@ -781,7 +781,7 @@ if foo == \"bar\"
                     Tree("jsx_tag_start", [
                         Token("TAG_NAME", "div"),
                         Tree("statement", [
-                            Tree("variable_assignment", [
+                            Tree("jsx_attribute", [
                                 Tree("variable", [
                                     Token("VARIABLE_NAME", "foo"),
                                 ]),
@@ -799,6 +799,68 @@ if foo == \"bar\"
                     Tree("jsx_tag_end", [
                         Token("TAG_NAME", "div"),
                     ])
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
+
+        result = parse_statement("<div foo={bar} />\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("jsx_tag_start", [
+                        Token("TAG_NAME", "div"),
+                        Tree("statement", [
+                            Tree("jsx_attribute", [
+                                Tree("variable", [
+                                    Token("VARIABLE_NAME", "foo"),
+                                ]),
+                                Tree("statement", [
+                                    Tree("variable", [
+                                        Token("VARIABLE_NAME", "bar"),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                        Token("TAG_SELF_CLOSE", "/")
+                    ]),
+                ]),
+                Token("NEWLINE", "\n"),
+            ]),
+        ]))
+
+        result = parse_statement("<div foo={bar} baz=\"foo\" />\n")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("jsx_tag_start", [
+                        Token("TAG_NAME", "div"),
+                        Tree("statement", [
+                            Tree("jsx_attribute", [
+                                Tree("variable", [
+                                    Token("VARIABLE_NAME", "foo"),
+                                ]),
+                                Tree("statement", [
+                                    Tree("variable", [
+                                        Token("VARIABLE_NAME", "bar"),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                        Tree("statement", [
+                            Tree("jsx_attribute", [
+                                Tree("variable", [
+                                    Token("VARIABLE_NAME", "baz"),
+                                ]),
+                                Tree("statement", [
+                                    Tree("string", [
+                                        Token("STRING_CONTENTS_DOUBLE", "foo"),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                        Token("TAG_SELF_CLOSE", "/")
+                    ]),
                 ]),
                 Token("NEWLINE", "\n"),
             ]),

@@ -327,8 +327,12 @@ def process_tokens(tokens):
         if token == "\n":
             line += 1
 
-        # tokens that we handle a specific way regardless of current state
+        # tokens that we handle a specific way based on parent
         if token == "]" and parent_state == ARRAY_OBJECT_INDEXING:
+            tokens.insert(0, token)
+            current_context = pop_context()
+            continue
+        elif token == "}" and parent_state == JSX_ATTRIBUTE:
             tokens.insert(0, token)
             current_context = pop_context()
             continue
@@ -862,9 +866,24 @@ def process_tokens(tokens):
             elif token == "\"":
                 if current_context['fetching_value']:
                     tokens.insert(0, token)
+                    current_context['fetching_value'] = False
                     append_context_stack()
                     continue
+            elif token == "{":
+                append_context_stack()
+                continue
+            elif token == "}":
+                current_context['fetching_value'] = False
+                current_context = pop_context()
+                continue
+            elif token == " ":
+                if not current_context['fetching_value']:
+                    continue
             elif token == "\n":
+                current_context = pop_context()
+                continue
+            elif token == "/":
+                tokens.insert(0, token)
                 current_context = pop_context()
                 continue
         elif state == RETURN:
@@ -1100,7 +1119,7 @@ def build_tree(statements):
         elif statement['type'] == JSX_ATTRIBUTE:
             children = build_tree(statement['children'])
             children.insert(0, Tree("variable", [Token("VARIABLE_NAME", statement['attr'])]))
-            add_result(statement,Tree("variable_assignment", children))
+            add_result(statement,Tree("jsx_attribute", children))
         elif statement['type'] == RETURN:
             children = build_tree(statement['children'])
             children = strip_spaces(children)
