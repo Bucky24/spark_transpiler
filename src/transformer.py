@@ -37,10 +37,11 @@ TYPES = {
     "RETURN": "types/return",
     "VALUE_MANIPULATION": "types/value_manipulation",
     "ELSE": "types/else",
+    "JSX_ATTRIBUTE": "types/jsx_attribute",
 }
 
 # turn to true for debug logs
-LOG = True
+LOG = False
 
 def log(str):
     if LOG:
@@ -295,6 +296,14 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["JSX_TAG_END"],
             "tag": values[0],
+        }
+
+    def jsx_attribute(self, values):
+        name = values[0]
+        return {
+            "type": TYPES['JSX_ATTRIBUTE'],
+            "name": name,
+            "right_hand": values[1],
         }
 
     def TAG_NAME(self, value):

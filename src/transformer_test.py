@@ -393,9 +393,9 @@ class bar
                 "self_closes": False,
                 "attributes": [
                     statement({
-                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "type": TYPES["JSX_ATTRIBUTE"],
                         "name": "foo",
-                        "value": statement("\"bar\"", 0),
+                        "right_hand": statement("\"bar\"", 0),
                     }, 0),
                 ],
             }, 0),
