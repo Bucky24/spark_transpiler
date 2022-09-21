@@ -38,6 +38,8 @@ TYPES = {
     "VALUE_MANIPULATION": "types/value_manipulation",
     "ELSE": "types/else",
     "JSX_ATTRIBUTE": "types/jsx_attribute",
+    # used in preprocessor
+    "BLOCK": "types/block",
 }
 
 # turn to true for debug logs

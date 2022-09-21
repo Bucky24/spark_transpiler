@@ -83,5 +83,31 @@ class TestPreprocessor(unittest.TestCase):
             }, 0)
         ])
 
+    def test_for_nesting(self):
+        tree = parse_statement("for a as b\n\tfoo = bar\nbar=baz")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['backend'], [
+            {
+                "type": TYPES['BLOCK'],
+                "statement": statement({
+                    "type": TYPES['FOR_OF'],
+                    "variable": "a",
+                    "value": "b",
+                }, 0),
+                "children": [statement({
+                    "type": TYPES['VARIABLE_ASSIGNMENT'],
+                    "name": "foo",
+                    "value": statement("bar", 0),
+                }, 4)]
+            },
+            statement({
+                "type": TYPES['VARIABLE_ASSIGNMENT'],
+                "name": "bar",
+                "value": statement("baz", 0),
+            }, 0)
+        ])
+
 if __name__ == "__main__":
     unittest.main()
