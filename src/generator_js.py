@@ -782,15 +782,18 @@ def generate_code(tree, context = None):
         code_lines.append(code)
 
     for statement in tree:
+        space_code = "" if 'spaces' not in context else " "*context['spaces']
         log("Generating for " + statement['type'])
         if statement['type'] == TYPES['STATEMENT']:
             if isinstance(statement['statement'], str) or isinstance(statement['statement'], float) or isinstance(statement['statement'], int):
                 add_code(str(statement['statement']))
                 continue
-            add_code(generate_code(statement['statement'], context))
+            new_context = context.copy()
+            new_context['spaces'] = statement['spaces']
+            add_code(generate_code(statement['statement'], new_context))
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)
-            code = ""
+            code = space_code
             if statement['name'] not in context['generated_variables']:
                 code += "let "
                 context['generated_variables'].append(statement['name'])
@@ -798,6 +801,20 @@ def generate_code(tree, context = None):
             add_code(code)
         elif statement['type'] == TYPES['INCREMENT']:
             add_code(statement['variable'] + "++")
+        elif statement['type'] == TYPES['BLOCK']:
+            opening_statement = generate_code(statement['statement'], context)
+            child_code = generate_code(statement['children'], context)
+            add_code(opening_statement + " {\n" + child_code + "\n}")
+        elif statement['type'] == TYPES['IF']:
+            condition_code = generate_code(statement['condition'], context)
+            add_code("if (" + condition_code + ")")
+        elif statement['type'] == TYPES['CONDITION']:
+            left_hand = generate_code(statement['left_hand'], context)
+            right_hand = generate_code(statement['right_hand'], context)
+
+            add_code(left_hand + " " + statement['condition'] + " " + right_hand)
+        elif statement['type'] == TYPES['FOR_OF']:
+            add_code("for (let " + statement['value'] + ' of ' + statement['variable'] + ")")
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
 

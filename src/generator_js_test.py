@@ -49,16 +49,18 @@ class TestGeneratorJs(unittest.TestCase):
     def test_conditionals(self):
         tree = parse_statement("foo = 10\nif foo == bar\n    foo = bar\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = 10;\nif (foo == bar) {\n    foo = bar;\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = 10;\nif (foo == bar) {\n    foo = bar;\n}"))
         
     def test_for_as_array(self):
         tree = parse_statement("for foo as bar\n    baz = bar\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("for (var bar of foo) {\n    var baz = bar;\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("for (let bar of foo) {\n    let baz = bar;\n}"))
         
     def test_for_as_object(self):
         tree = parse_statement("for foo as bar : baz\n")
