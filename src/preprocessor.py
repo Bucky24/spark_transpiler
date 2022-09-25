@@ -1,5 +1,12 @@
 from transformer import TYPES
 
+# turn to true for debug logs
+LOG = True
+
+def log(str):
+    if LOG:
+        print(str)
+
 def unwrap_statement(statement):
     if statement['type'] == TYPES['STATEMENT']:
         # a statement should only ever have 1 child
@@ -21,6 +28,7 @@ def preprocess(tree):
         if current_context is None:
             active.append(statement)
         else:
+            log("Appending " + statement['type'] + " to context")
             current_context['children'].append(statement)
 
     def append_context(statement):
@@ -44,6 +52,8 @@ def preprocess(tree):
 
     def pop_context():
         nonlocal current_context
+        
+        log("popping context")
 
         new_statement = None
 
@@ -56,25 +66,28 @@ def preprocess(tree):
 
         if len(context_list) == 0:
             current_context = None
+        else:
+            current_context = context_list.pop()
 
         if new_statement:
             append_statement(new_statement)
 
     for statement in tree:
+        unwrapped_statement = unwrap_statement(statement)
+        log("Proccessing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
+
         if current_context is not None:
             if statement['spaces'] <= current_context['spaces']:
                 pop_context()
-        
-        unwrapped_statement = unwrap_statement(statement)
+
         if unwrapped_statement['type'] == TYPES['PRAGMA']:
             pragma = unwrapped_statement['pragma']
             if pragma == 'frontend' or pragma == "backend":
                 switch_env(pragma)
-        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF']):
+        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF']):
             append_context(statement)
         else:
             append_statement(statement)
-
     pop_context()
 
     return {
