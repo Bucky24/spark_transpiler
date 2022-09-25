@@ -41,6 +41,7 @@ def log(str):
     if LOG:
         print(str)
 
+"""
 def _add_spaces(spaces):
     code = ""
     # I hate for loops in Python
@@ -746,3 +747,58 @@ def generate_external_exports(exports):
         package_json['dependencies'][module] = version
 
     return json.dumps(package_json, indent=4), "package.json", "npm install"
+"""
+
+def generate_js(tree, env):
+    if len(tree) == 0:
+        return {
+            "code": None,
+        }
+
+    code = generate_code(tree)
+
+    if env == "backend":
+        code = wrap_backend(code)
+    
+    return {
+        "code": code,
+    }
+
+def wrap_backend(code):
+    return "(async () => {\n" + code + "\n})();\n"
+
+def generate_code(tree, context = None):
+    if not isinstance(tree, list):
+        tree = [tree]
+
+    code_lines = []
+
+    if context is None:
+        context = {
+            "generated_variables": []
+        }
+
+    def add_code(code):
+        code_lines.append(code)
+
+    for statement in tree:
+        log("Generating for " + statement['type'])
+        if statement['type'] == TYPES['STATEMENT']:
+            if isinstance(statement['statement'], str) or isinstance(statement['statement'], float) or isinstance(statement['statement'], int):
+                add_code(str(statement['statement']))
+                continue
+            add_code(generate_code(statement['statement'], context))
+        elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
+            value = generate_code(statement['value'], context)
+            code = ""
+            if statement['name'] not in context['generated_variables']:
+                code += "let "
+                context['generated_variables'].append(statement['name'])
+            code += statement['name'] + " = " + value + ";"
+            add_code(code)
+        elif statement['type'] == TYPES['INCREMENT']:
+            add_code(statement['variable'] + "++")
+        else:
+            raise Exception("Generation: don't know how to handle " + statement['type'])
+
+    return "\n".join(code_lines)

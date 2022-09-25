@@ -7,7 +7,7 @@ if 'unittest.util' in __import__('sys').modules:
 from generator import generate, process_external_exports
 from grammar import parse_statement
 from transformer import process_tree
-
+from preprocessor import preprocess
 
 def _wrap_front(code, imports = None, label = "label"):
     if imports is None:
@@ -20,27 +20,31 @@ class TestGeneratorJs(unittest.TestCase):
     def test_variables(self):
         tree = parse_statement("foo = 'abcd'\nbar = foo\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = \"abcd\";\nvar bar = foo;\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = \"abcd\";\nlet bar = foo;"))
 
         tree = parse_statement("foo = 5.45\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = 5.45;\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = 5.45;"))
 
         tree = parse_statement("foo = 5\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = 5;\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = 5;"))
 
         tree = parse_statement("foo = 5\nfoo = foo ++\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = 5;\nfoo = foo++;\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = 5;\nfoo = foo++;"))
         
     def test_conditionals(self):
         tree = parse_statement("foo = 10\nif foo == bar\n    foo = bar\n")

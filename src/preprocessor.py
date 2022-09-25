@@ -1,7 +1,7 @@
 from transformer import TYPES
 
 # turn to true for debug logs
-LOG = True
+LOG = False
 
 def log(str):
     if LOG:
