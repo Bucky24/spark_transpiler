@@ -833,6 +833,9 @@ def generate_code(tree, context = None):
                 condition_list.append(condition_code)
             conditions = ";".join(condition_list)
             add_code("for (" + conditions + ") {")
+        elif statement['type'] == TYPES['WHILE']:
+            condition_code = generate_code(statement['condition'], context)
+            add_code("while (" + condition_code + ") {")
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:

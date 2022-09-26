@@ -81,9 +81,11 @@ class TestGeneratorJs(unittest.TestCase):
     def test_while(self):
         tree = parse_statement("foo = 5\nwhile foo > bar\n    foo = bar\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        print(preprocessed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = 5;\nwhile (foo > bar) {\n    foo = bar;\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = 5;\nwhile (foo > bar) {\n    foo = bar;\n}"))
 
     def test_function_definition(self):
         tree = parse_statement("function foo()\n    bar = baz\n")

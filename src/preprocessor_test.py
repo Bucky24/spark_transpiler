@@ -188,5 +188,35 @@ class TestPreprocessor(unittest.TestCase):
             }, 0)
         ])
 
+    def test_while_nesting(self):
+        tree = parse_statement("while a == b\n\tfoo = bar\nbar=baz")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['backend'], [
+            {
+                "type": TYPES['BLOCK'],
+                "statement": statement({
+                    "type": TYPES['WHILE'],
+                    "condition": {
+                        "type": TYPES['CONDITION'],
+                        "left_hand": statement("a", 0),
+                        "right_hand": statement("b", 0),
+                        "condition": "==",
+                    },
+                }, 0),
+                "children": [statement({
+                    "type": TYPES['VARIABLE_ASSIGNMENT'],
+                    "name": "foo",
+                    "value": statement("bar", 0),
+                }, 4)]
+            },
+            statement({
+                "type": TYPES['VARIABLE_ASSIGNMENT'],
+                "name": "bar",
+                "value": statement("baz", 0),
+            }, 0)
+        ])
+
 if __name__ == "__main__":
     unittest.main()
