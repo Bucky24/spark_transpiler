@@ -803,19 +803,38 @@ def generate_code(tree, context = None):
             add_code(statement['variable'] + "++")
         elif statement['type'] == TYPES['BLOCK']:
             opening_statement = generate_code(statement['statement'], context)
+            if opening_statement[-1] == "\n":
+                opening_statement = opening_statement[:-1]
             child_code = generate_code(statement['children'], context)
-            add_code(opening_statement + " {\n" + child_code + "\n}")
+            if child_code != "":
+                add_code(opening_statement + "\n" + child_code + "\n}")
+            else:
+                add_code(opening_statement + "\n}")
         elif statement['type'] == TYPES['IF']:
             condition_code = generate_code(statement['condition'], context)
-            add_code("if (" + condition_code + ")")
+            add_code("if (" + condition_code + ") {")
         elif statement['type'] == TYPES['CONDITION']:
             left_hand = generate_code(statement['left_hand'], context)
             right_hand = generate_code(statement['right_hand'], context)
 
             add_code(left_hand + " " + statement['condition'] + " " + right_hand)
         elif statement['type'] == TYPES['FOR_OF']:
-            add_code("for (let " + statement['value'] + ' of ' + statement['variable'] + ")")
+            if "key" in statement:
+                add_code("for (let " + statement['key'] + ' in ' + statement['variable'] + ") {")
+                add_code(" "*4 + "let " + statement['value'] + " = " + statement['variable'] + "[" + statement['key'] + "];")
+            else:
+                add_code("for (let " + statement['value'] + ' of ' + statement['variable'] + ")")
+        elif statement['type'] == TYPES['FOR']:
+            condition_list = []
+            for condition_str in statement['conditions']:
+                condition_code = generate_code(condition_str, context)
+                if condition_code[-1] == ";":
+                    condition_code = condition_code[:-1]
+                condition_list.append(condition_code)
+            conditions = ";".join(condition_list)
+            add_code("for (" + conditions + ") {")
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
-
+    if len(code_lines) == 1:
+        return code_lines[0]
     return "\n".join(code_lines)

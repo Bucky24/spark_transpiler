@@ -65,16 +65,18 @@ class TestGeneratorJs(unittest.TestCase):
     def test_for_as_object(self):
         tree = parse_statement("for foo as bar : baz\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("for (var bar in foo) {\n    var baz = foo[bar];\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("for (let bar in foo) {\n    let baz = foo[bar];\n}"))
         
     def test_for_normal(self):
         tree = parse_statement("for i=0;i<5;i++\n    foo = i\n")
         processed = process_tree(tree)
-        result= generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result= generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("for (var i = 0;i < 5;i++) {\n    var foo = i;\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("for (let i = 0;i < 5;i++) {\n    let foo = i;\n}"))
         
     def test_while(self):
         tree = parse_statement("foo = 5\nwhile foo > bar\n    foo = bar\n")
