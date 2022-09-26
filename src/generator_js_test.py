@@ -82,7 +82,6 @@ class TestGeneratorJs(unittest.TestCase):
         tree = parse_statement("foo = 5\nwhile foo > bar\n    foo = bar\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
-        print(preprocessed)
         result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("let foo = 5;\nwhile (foo > bar) {\n    foo = bar;\n}"))
@@ -90,19 +89,22 @@ class TestGeneratorJs(unittest.TestCase):
     def test_function_definition(self):
         tree = parse_statement("function foo()\n    bar = baz\n")
         processed = process_tree(tree)
-        result= generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result= generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    var bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
         
         tree = parse_statement("function()\n    bar = baz\n")
         processed = process_tree(tree)
-        result= generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result= generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async () => {\n    var bar = baz;\n}\n"))
         
         tree = parse_statement("function foo(bar, baz)\n    bar = baz\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async function foo(bar, baz) {\n    var bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
         
