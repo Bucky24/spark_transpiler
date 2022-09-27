@@ -119,16 +119,18 @@ class TestGeneratorJs(unittest.TestCase):
     def test_function_call_in_assignment(self):
         tree = parse_statement("foo = func(\n    foo\n    bar\n    baz\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = await func(\n    foo,\n    bar,\n    baz\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = await func(\n    foo,\n    bar,\n    baz\n);"))
         
     def test_nested_function_call(self):
         tree = parse_statement("func(\n    foo(\n        bar\n    )\n    baz\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("await func(\n    await foo(\n        bar,\n        baz\n    )\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("await func(\n    await foo(\n        bar,\n        baz\n    )\n);"))
         
     def test_function_with_function_call(self):
         tree = parse_statement("function foo()\n    printt(\n    )\n")

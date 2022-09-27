@@ -791,6 +791,13 @@ def generate_code(tree, context = None):
     def add_export(export):
         exports.append(export)
 
+    def indent_code(code, indent):
+        lines = code.split("\n")
+        new_lines = []
+        for line in lines:
+            new_lines.append(" "*indent + line)
+        return "\n".join(new_lines)
+
     for statement in tree:
         space_code = "" if 'spaces' not in context else " "*context['spaces']
         log("Generating for " + statement['type'])
@@ -799,7 +806,7 @@ def generate_code(tree, context = None):
                 add_code(str(statement['statement']))
                 continue
             new_context = context.copy()
-            new_context['spaces'] = statement['spaces']
+            new_context['spaces'] = statement['spaces'] + (context['spaces'] if "spaces" in context else 0)
             result = generate_code(statement['statement'], new_context)
             add_code(result['code'])
             for export in result['exports']:
@@ -807,6 +814,9 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
             code = space_code
+            if value[-1] == ";":
+                # we handle the semicolon ourselves
+                value = value[:-1]
             if statement['name'] not in context['generated_variables']:
                 code += "let "
                 context['generated_variables'].append(statement['name'])
@@ -867,8 +877,12 @@ def generate_code(tree, context = None):
             param_codes = []
             for param in statement['params']:
                 new_context = context.copy()
-                param_code = generate_code(param, context)['code']
-                param_codes.append(" "*4 + param_code)
+                new_context['spaces'] += 4
+                param_code = generate_code(param, new_context)['code']
+                if param_code[-1] == ";":
+                    param_code = param_code[:-1]
+                param_code = indent_code(param_code, 4)
+                param_codes.append(param_code)
             add_code(",\n".join(param_codes))
         elif statement['type'] == TYPES['FUNCTION_NAME']:
             result = generate_code(statement['name'])
