@@ -92,28 +92,29 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result= generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    var bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    let bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
         
         tree = parse_statement("function()\n    bar = baz\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result= generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async () => {\n    var bar = baz;\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("async () => {\n    let bar = baz;\n}"))
         
         tree = parse_statement("function foo(bar, baz)\n    bar = baz\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo(bar, baz) {\n    var bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo(bar, baz) {\n    let bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
         
     def test_function_call(self):
         tree = parse_statement("func(\n    foo\n    bar\n    baz\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("await func(\n    foo,\n    bar,\n    baz\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("await func(\n    foo,\n    bar,\n    baz\n);"))
         
     def test_function_call_in_assignment(self):
         tree = parse_statement("foo = func(\n    foo\n    bar\n    baz\n)\n")

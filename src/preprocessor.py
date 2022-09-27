@@ -84,7 +84,7 @@ def preprocess(tree):
             pragma = unwrapped_statement['pragma']
             if pragma == 'frontend' or pragma == "backend":
                 switch_env(pragma)
-        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE']):
+        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION']):
             append_context(statement)
         else:
             append_statement(statement)

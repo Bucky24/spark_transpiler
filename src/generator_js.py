@@ -755,9 +755,15 @@ def generate_js(tree, env):
             "code": None,
         }
 
-    code = generate_code(tree)
+    result = generate_code(tree)
 
     if env == "backend":
+        code = result['code']
+        if len(result['exports']) > 0:
+            if len(result['exports']) == 1:
+                code += "\n\nmodule.exports = {\n\t" + result['exports'][0] + "\n};\n"
+            else:
+                code += "\n\nmodule.exports = {\n\t" + "\n\t".join(result['exports']) + "};\n"
         code = wrap_backend(code)
     
     return {
@@ -772,6 +778,7 @@ def generate_code(tree, context = None):
         tree = [tree]
 
     code_lines = []
+    exports = []
 
     if context is None:
         context = {
@@ -780,6 +787,9 @@ def generate_code(tree, context = None):
 
     def add_code(code):
         code_lines.append(code)
+
+    def add_export(export):
+        exports.append(export)
 
     for statement in tree:
         space_code = "" if 'spaces' not in context else " "*context['spaces']
@@ -790,9 +800,12 @@ def generate_code(tree, context = None):
                 continue
             new_context = context.copy()
             new_context['spaces'] = statement['spaces']
-            add_code(generate_code(statement['statement'], new_context))
+            result = generate_code(statement['statement'], new_context)
+            add_code(result['code'])
+            for export in result['exports']:
+                add_export(export)
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
-            value = generate_code(statement['value'], context)
+            value = generate_code(statement['value'], context)['code']
             code = space_code
             if statement['name'] not in context['generated_variables']:
                 code += "let "
@@ -802,20 +815,24 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['INCREMENT']:
             add_code(statement['variable'] + "++")
         elif statement['type'] == TYPES['BLOCK']:
-            opening_statement = generate_code(statement['statement'], context)
+            opening_statement_result = generate_code(statement['statement'], context)
+            opening_statement = opening_statement_result['code']
             if opening_statement[-1] == "\n":
                 opening_statement = opening_statement[:-1]
-            child_code = generate_code(statement['children'], context)
+            child_code = generate_code(statement['children'], context)['code']
             if child_code != "":
                 add_code(opening_statement + "\n" + child_code + "\n}")
             else:
                 add_code(opening_statement + "\n}")
+
+            for export in opening_statement_result['exports']:
+                add_export(export)
         elif statement['type'] == TYPES['IF']:
-            condition_code = generate_code(statement['condition'], context)
+            condition_code = generate_code(statement['condition'], context)['code']
             add_code("if (" + condition_code + ") {")
         elif statement['type'] == TYPES['CONDITION']:
-            left_hand = generate_code(statement['left_hand'], context)
-            right_hand = generate_code(statement['right_hand'], context)
+            left_hand = generate_code(statement['left_hand'], context)['code']
+            right_hand = generate_code(statement['right_hand'], context)['code']
 
             add_code(left_hand + " " + statement['condition'] + " " + right_hand)
         elif statement['type'] == TYPES['FOR_OF']:
@@ -823,21 +840,48 @@ def generate_code(tree, context = None):
                 add_code("for (let " + statement['key'] + ' in ' + statement['variable'] + ") {")
                 add_code(" "*4 + "let " + statement['value'] + " = " + statement['variable'] + "[" + statement['key'] + "];")
             else:
-                add_code("for (let " + statement['value'] + ' of ' + statement['variable'] + ")")
+                add_code("for (let " + statement['value'] + ' of ' + statement['variable'] + ") {")
         elif statement['type'] == TYPES['FOR']:
             condition_list = []
             for condition_str in statement['conditions']:
-                condition_code = generate_code(condition_str, context)
+                condition_code = generate_code(condition_str, context)['code']
                 if condition_code[-1] == ";":
                     condition_code = condition_code[:-1]
                 condition_list.append(condition_code)
             conditions = ";".join(condition_list)
             add_code("for (" + conditions + ") {")
         elif statement['type'] == TYPES['WHILE']:
-            condition_code = generate_code(statement['condition'], context)
+            condition_code = generate_code(statement['condition'], context)['code']
             add_code("while (" + condition_code + ") {")
+        elif statement['type'] == TYPES['FUNCTION']:
+            if statement['name'] is not None:
+                add_code("async function " + statement['name'] + "(" + ", ".join(statement['params']) + ") {")
+                add_export(statement['name'])
+            else:
+                add_code("async (" + ",".join(statement['params']) + ") => {")
+        elif statement['type'] == TYPES['CALL_FUNC']:
+            parameter_code = generate_code(statement['parameters'], context)['code']
+            func_name = generate_code(statement['function'], context)['code']
+            add_code("await " + func_name + "(\n" + parameter_code + "\n);")
+        elif statement['type'] == TYPES['FUNCTION_PARAMS']:
+            param_codes = []
+            for param in statement['params']:
+                new_context = context.copy()
+                param_code = generate_code(param, context)['code']
+                param_codes.append(" "*4 + param_code)
+            add_code(",\n".join(param_codes))
+        elif statement['type'] == TYPES['FUNCTION_NAME']:
+            result = generate_code(statement['name'])
+            add_code(result['code'])
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
-        return code_lines[0]
-    return "\n".join(code_lines)
+        return {
+            "code": code_lines[0],
+            "exports": exports,
+        }
+
+    return {
+        "code": "\n".join(code_lines),
+        "exports": exports,
+    }
