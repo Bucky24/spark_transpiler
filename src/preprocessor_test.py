@@ -244,5 +244,34 @@ class TestPreprocessor(unittest.TestCase):
             }, 0)
         ])
 
+    def test_class_nesting(self):
+        tree = parse_statement("class Foo\n\tfunction Foo()\n\t\tfoo = bar")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['backend'], [
+            {
+                "type": TYPES['BLOCK'],
+                "statement": statement({
+                    "type": TYPES['CLASS'],
+                    "name": "Foo",
+                    "extends": None,
+                }, 0),
+                "children": [{
+                    "type": TYPES['BLOCK'],
+                    "statement": statement({
+                        "type": TYPES['FUNCTION'],
+                        "name": "Foo",
+                        "params": [],
+                    }, 4),
+                    "children": [statement({
+                        "type": TYPES['VARIABLE_ASSIGNMENT'],
+                        "name": "foo",
+                        "value": statement("bar", 0)
+                    }, 8)],
+                }]
+            },
+        ])
+
 if __name__ == "__main__":
     unittest.main()

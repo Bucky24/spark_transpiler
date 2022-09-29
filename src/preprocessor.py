@@ -72,6 +72,10 @@ def preprocess(tree):
         if new_statement:
             append_statement(new_statement)
 
+    def pop_all_context():
+        while current_context is not None:
+            pop_context()
+
     for statement in tree:
         unwrapped_statement = unwrap_statement(statement)
         log("Proccessing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
@@ -84,11 +88,11 @@ def preprocess(tree):
             pragma = unwrapped_statement['pragma']
             if pragma == 'frontend' or pragma == "backend":
                 switch_env(pragma)
-        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION']):
+        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION'], TYPES['CLASS']):
             append_context(statement)
         else:
             append_statement(statement)
-    pop_context()
+    pop_all_context()
 
     return {
         "frontend": frontend,

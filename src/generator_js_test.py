@@ -143,21 +143,25 @@ class TestGeneratorJs(unittest.TestCase):
     def test_class_definition(self):
         tree = parse_statement("class Foo")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("class Foo {\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
         tree = parse_statement("class Foo extends Bar")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("class Foo extends Bar {\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_class_functions(self):
         tree = parse_statement("class Foo\n    function constructor(a, b, c)\n        printt(\n        )\n\n    function foo()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
+        print(result['backend'])
         self.assertEqual(result["backend"], _wrap_back("class Foo {\n    constructor(a, b, c) {\n        printt(\n        \n        );\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_new_instance(self):

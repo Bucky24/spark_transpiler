@@ -865,7 +865,10 @@ def generate_code(tree, context = None):
             condition_code = generate_code(statement['condition'], context)['code']
             add_code("while (" + condition_code + ") {")
         elif statement['type'] == TYPES['FUNCTION']:
-            if statement['name'] is not None:
+            if statement['name'] == 'constructor':
+                # we must handle this one specifically, its a class constructor
+                add_code("constructor(" + ", ".join(statement['params']) + ") {")
+            elif statement['name'] is not None:
                 add_code("async function " + statement['name'] + "(" + ", ".join(statement['params']) + ") {")
                 add_export(statement['name'])
             else:
@@ -894,6 +897,13 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['FUNCTION_NAME']:
             result = generate_code(statement['name'])
             add_code(result['code'])
+        elif statement['type'] == TYPES['CLASS']:
+            code = "class " + statement['name']
+            if statement['extends'] is not None:
+                code += " extends " + statement['extends']
+            code += " {"
+            add_code(code)
+            add_export(statement['name'])
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
