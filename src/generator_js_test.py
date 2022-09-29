@@ -135,7 +135,8 @@ class TestGeneratorJs(unittest.TestCase):
     def test_function_with_function_call(self):
         tree = parse_statement("function foo()\n    printt(\n    )\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    await printt();\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
 
