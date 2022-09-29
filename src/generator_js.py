@@ -786,7 +786,8 @@ def generate_code(tree, context = None):
         }
 
     def add_code(code):
-        code_lines.append(code)
+        spaces = context['spaces'] if 'spaces' in context else 0
+        code_lines.append(" "*spaces + code)
 
     def add_export(export):
         exports.append(export)
@@ -870,14 +871,20 @@ def generate_code(tree, context = None):
             else:
                 add_code("async (" + ",".join(statement['params']) + ") => {")
         elif statement['type'] == TYPES['CALL_FUNC']:
-            parameter_code = generate_code(statement['parameters'], context)['code']
-            func_name = generate_code(statement['function'], context)['code']
-            add_code("await " + func_name + "(\n" + parameter_code + "\n);")
+            new_context = context.copy()
+            new_context['spaces'] = 0
+            parameter_code = generate_code(statement['parameters'], new_context)['code']
+            func_name = generate_code(statement['function'], new_context)['code']
+            code = "await " + func_name + "("
+            if parameter_code != "":
+                code += "\n" + parameter_code + "\n"
+            code += ");"
+            add_code(code)
         elif statement['type'] == TYPES['FUNCTION_PARAMS']:
             param_codes = []
             for param in statement['params']:
                 new_context = context.copy()
-                new_context['spaces'] += 4
+                new_context['spaces'] = 0
                 param_code = generate_code(param, new_context)['code']
                 if param_code[-1] == ";":
                     param_code = param_code[:-1]
