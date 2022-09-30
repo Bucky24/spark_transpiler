@@ -16,6 +16,17 @@ def _wrap_front(code, imports = None, label = "label"):
 def _wrap_back(code):
     return "(async () => {\n" + code + "\n})();\n"
 
+def _get_class_new(class_name):
+    code = """    static async function __new() {
+        const instance = new {name}();
+        if (typeof instance.__construct !== 'undefined') {
+            await instance.__construct.apply(instance, arguments);
+        }
+        return instance;
+    }"""
+
+    return code.replace("{name}", class_name)
+
 class TestGeneratorJs(unittest.TestCase):
     def test_variables(self):
         tree = parse_statement("foo = 'abcd'\nbar = foo\n")
@@ -146,14 +157,14 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
         tree = parse_statement("class Foo extends Bar")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo extends Bar {\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo extends Bar {\n" + _get_class_new("Foo") + "\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_class_functions(self):
         tree = parse_statement("class Foo\n    function constructor(a, b, c)\n        printt(\n        )\n\n    function foo()\n")
@@ -162,7 +173,7 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(preprocessed, "js")
         result = result["code"]
         print(result['backend'])
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n    constructor(a, b, c) {\n        printt(\n        \n        );\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n    async function __construct(a, b, c) {\n        await printt(\n        \n        );\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_new_instance(self):
         tree = parse_statement("class Foo\nbar = Foo(\n)\n")

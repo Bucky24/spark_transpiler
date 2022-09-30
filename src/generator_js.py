@@ -785,8 +785,9 @@ def generate_code(tree, context = None):
             "generated_variables": []
         }
 
-    def add_code(code):
+    def add_code(code, additional_spaces = 0):
         spaces = context['spaces'] if 'spaces' in context else 0
+        spaces += additional_spaces
         code_lines.append(" "*spaces + code)
 
     def add_export(export):
@@ -867,7 +868,9 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['FUNCTION']:
             if statement['name'] == 'constructor':
                 # we must handle this one specifically, its a class constructor
-                add_code("constructor(" + ", ".join(statement['params']) + ") {")
+                # we call it "construct" because a JS constructor can't actually do async.
+                # the actual constructor we create for the class will handle calling this
+                add_code("async function __construct(" + ", ".join(statement['params']) + ") {")
             elif statement['name'] is not None:
                 add_code("async function " + statement['name'] + "(" + ", ".join(statement['params']) + ") {")
                 add_export(statement['name'])
@@ -903,6 +906,14 @@ def generate_code(tree, context = None):
                 code += " extends " + statement['extends']
             code += " {"
             add_code(code)
+            # now add in the method that makes the new class
+            add_code("static async function __new() {", 4)
+            add_code("const instance = new " + statement['name'] + "();", 8)
+            add_code("if (typeof instance.__construct !== 'undefined') {", 8)
+            add_code("await instance.__construct.apply(instance, arguments);", 12)
+            add_code("}", 8)
+            add_code("return instance;", 8)
+            add_code("}", 4)
             add_export(statement['name'])
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
