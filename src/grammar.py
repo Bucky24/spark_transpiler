@@ -255,6 +255,10 @@ def process_tokens(tokens):
             if newline:
                 # if we have a newline we still want to insert it
                 statements.append({"type": NEWLINE})
+            if len(context_stack) > 0:
+                # if we have something on the stack just move up without appending the child
+                return context_stack.pop()
+
             return {
                 "type": START,
                 "spaces": 0,
@@ -323,7 +327,7 @@ def process_tokens(tokens):
             parent = context_stack[-1]
             parent_state = parent['type']
 
-        log("handle token {}: \"{}\" ({}, {})".format(state, token, current_context['spaces'], current_context['tabs']))
+        log("handle token {}: \"{}\" ({}, {}) context stack: {}".format(state, token, current_context['spaces'], current_context['tabs'], len(context_stack)))
         if token == "\n":
             line += 1
 
@@ -400,9 +404,8 @@ def process_tokens(tokens):
                 })
                 continue
             elif token == ")":
-                current_context = copy_context({
-                    "type": END_FUNCTION_CALL
-                })
+                tokens.insert(0, token)
+                current_context = pop_context()
                 continue
             elif token == "#":
                 current_context = copy_context({

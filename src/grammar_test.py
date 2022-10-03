@@ -3,6 +3,7 @@ import unittest
 #from lark import lexer
 
 from grammar import parse_statement, Tree, Token
+from utils import print_tree
 
 if 'unittest.util' in __import__('sys').modules:
     # Show full diff in self.assertEqual.
@@ -511,11 +512,10 @@ if foo == \"bar\"
                             Tree("statement", [
                                 Tree("variable", [Token("VARIABLE_NAME", "b")]),
                             ]),
-                            Token("NEWLINE", "\n"),
-                            Token("NEWLINE", "\n"),
                         ]),
                     ]),
                 ]),
+                Token("NEWLINE", "\n"),
             ]),
         ]))
 
@@ -1104,6 +1104,26 @@ if foo == \"bar\"
                             Token("TRUE", "true"),
                         ]),
                     ]),
+                ]),
+            ]),
+        ]))
+
+    def test_function_def_after_call(self):
+        tree = parse_statement("foo(\n)\n\nfunction bar()")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("call_function", [
+                    Tree("function_name", [Tree("statement", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                    ])]),
+                    Tree("function_params", []),
+                ]),
+            ]),
+            Token("NEWLINE", "\n"),
+            Token("NEWLINE", "\n"),
+            Tree("statement", [
+                Tree("function_definition", [
+                    Tree("function_name", [Tree("variable", [Token("VARIABLE_NAME", "bar")])]),
                 ]),
             ]),
         ]))

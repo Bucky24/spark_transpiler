@@ -779,6 +779,7 @@ def generate_code(tree, context = None):
 
     code_lines = []
     exports = []
+    set_context_type = None
 
     if context is None:
         context = {
@@ -800,6 +801,17 @@ def generate_code(tree, context = None):
             new_lines.append(" "*indent + line)
         return "\n".join(new_lines)
 
+    def count_spaces(code):
+        spaces = 0
+        for char in code:
+            if char == " ":
+                spaces += 1
+            else:
+                return spaces
+        return spaces
+
+    parent_context_type = context['parent_type'] if "parent_type" in context else None
+
     for statement in tree:
         space_code = "" if 'spaces' not in context else " "*context['spaces']
         log("Generating for " + statement['type'])
@@ -813,6 +825,8 @@ def generate_code(tree, context = None):
             add_code(result['code'])
             for export in result['exports']:
                 add_export(export)
+            if "context_type" in result:
+                set_context_type = result['context_type']
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
             code = space_code
@@ -829,13 +843,18 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['BLOCK']:
             opening_statement_result = generate_code(statement['statement'], context)
             opening_statement = opening_statement_result['code']
+            new_context_type = opening_statement_result['context_type']
             if opening_statement[-1] == "\n":
                 opening_statement = opening_statement[:-1]
-            child_code = generate_code(statement['children'], context)['code']
+            new_context = context.copy()
+            new_context['parent_type'] = new_context_type
+            child_code = generate_code(statement['children'], new_context)['code']
+            # we can extrapolate the necessary indent for the end } by looking at the opening statement
+            end_spaces = count_spaces(opening_statement)
             if child_code != "":
-                add_code(opening_statement + "\n" + child_code + "\n}")
+                add_code(opening_statement + "\n" + child_code + "\n" + " "*end_spaces + "}")
             else:
-                add_code(opening_statement + "\n}")
+                add_code(opening_statement + "\n"  + " "*end_spaces + "}")
 
             for export in opening_statement_result['exports']:
                 add_export(export)
@@ -866,13 +885,16 @@ def generate_code(tree, context = None):
             condition_code = generate_code(statement['condition'], context)['code']
             add_code("while (" + condition_code + ") {")
         elif statement['type'] == TYPES['FUNCTION']:
+            start = "async "
+            if parent_context_type != "class":
+                start += "function "
             if statement['name'] == 'constructor':
                 # we must handle this one specifically, its a class constructor
                 # we call it "construct" because a JS constructor can't actually do async.
                 # the actual constructor we create for the class will handle calling this
-                add_code("async function __construct(" + ", ".join(statement['params']) + ") {")
+                add_code(start + "__construct(" + ", ".join(statement['params']) + ") {")
             elif statement['name'] is not None:
-                add_code("async function " + statement['name'] + "(" + ", ".join(statement['params']) + ") {")
+                add_code(start + statement['name'] + "(" + ", ".join(statement['params']) + ") {")
                 add_export(statement['name'])
             else:
                 add_code("async (" + ",".join(statement['params']) + ") => {")
@@ -907,7 +929,7 @@ def generate_code(tree, context = None):
             code += " {"
             add_code(code)
             # now add in the method that makes the new class
-            add_code("static async function __new() {", 4)
+            add_code("static async __new() {", 4)
             add_code("const instance = new " + statement['name'] + "();", 8)
             add_code("if (typeof instance.__construct !== 'undefined') {", 8)
             add_code("await instance.__construct.apply(instance, arguments);", 12)
@@ -915,15 +937,18 @@ def generate_code(tree, context = None):
             add_code("return instance;", 8)
             add_code("}", 4)
             add_export(statement['name'])
+            set_context_type = "class"
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
         return {
             "code": code_lines[0],
             "exports": exports,
+            "context_type": set_context_type,
         }
 
     return {
         "code": "\n".join(code_lines),
         "exports": exports,
+        "context_type": set_context_type,
     }

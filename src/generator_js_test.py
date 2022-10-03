@@ -8,6 +8,7 @@ from generator import generate, process_external_exports
 from grammar import parse_statement
 from transformer import process_tree
 from preprocessor import preprocess
+from utils import print_tree
 
 def _wrap_front(code, imports = None, label = "label"):
     if imports is None:
@@ -17,7 +18,7 @@ def _wrap_back(code):
     return "(async () => {\n" + code + "\n})();\n"
 
 def _get_class_new(class_name):
-    code = """    static async function __new() {
+    code = """    static async __new() {
         const instance = new {name}();
         if (typeof instance.__construct !== 'undefined') {
             await instance.__construct.apply(instance, arguments);
@@ -172,8 +173,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        print(result['backend'])
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n    async function __construct(a, b, c) {\n        await printt(\n        \n        );\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n    async __construct(a, b, c) {\n        await printt();\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_new_instance(self):
         tree = parse_statement("class Foo\nbar = Foo(\n)\n")
