@@ -822,7 +822,13 @@ def generate_code(tree, context = None):
     def add_code(code, additional_spaces = 0):
         spaces = context['spaces'] if 'spaces' in context else 0
         spaces += additional_spaces
-        code_lines.append(" "*spaces + code)
+        # apply spaces to all lines equally
+        lines = code.split("\n")
+        new_lines = []
+        for line in lines:
+            new_lines.append(" " * spaces + line)
+        code = "\n".join(new_lines)
+        code_lines.append(code)
 
     def add_export(export):
         exports.append(export)
@@ -900,11 +906,11 @@ def generate_code(tree, context = None):
                 add_code(opening_statement + "\n"  + " "*end_spaces + "}")
             passthrough_context(opening_statement_result)
         elif statement['type'] == TYPES['IF']:
-            condition_code = generate_code(statement['condition'], context)['code']
+            condition_code = generate_code(statement['condition'], context)['code'].lstrip()
             add_code("if (" + condition_code + ") {")
         elif statement['type'] == TYPES['CONDITION']:
-            left_hand = generate_code(statement['left_hand'], context)['code']
-            right_hand = generate_code(statement['right_hand'], context)['code']
+            left_hand = generate_code(statement['left_hand'], context)['code'].lstrip()
+            right_hand = generate_code(statement['right_hand'], context)['code'].lstrip()
 
             add_code(left_hand + " " + statement['condition'] + " " + right_hand)
         elif statement['type'] == TYPES['FOR_OF']:
@@ -944,8 +950,7 @@ def generate_code(tree, context = None):
             new_context['spaces'] = 0
 
             parameter_code = generate_code(statement['parameters'], new_context)['code']
-            func_name = generate_code(statement['function'], new_context)['code']
-
+            func_name = generate_code(statement['function'], new_context)['code']\
 
             code = "await " + func_name + "("
             # have to handle class instance creation here

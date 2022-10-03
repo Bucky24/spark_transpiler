@@ -21,6 +21,7 @@ def preprocess(tree):
     backend = []
 
     active = backend
+    env = "backend"
 
     context_list = []
     current_context = None
@@ -29,7 +30,7 @@ def preprocess(tree):
         if current_context is None:
             active.append(statement)
         else:
-            log("Appending " + statement['type'] + " to context")
+            log("Appending " + statement['type'] + " to context for env " + env)
             current_context['children'].append(statement)
 
     def append_context(statement):
@@ -44,8 +45,11 @@ def preprocess(tree):
             "children": [],
         }
 
-    def switch_env(env):
+    def switch_env(new_env):
         nonlocal active
+        pop_all_context()
+        env = new_env
+        log("changing env to " + env)
         if env == "frontend":
             active = frontend
         elif env == "backend":
@@ -79,7 +83,7 @@ def preprocess(tree):
 
     for statement in tree:
         unwrapped_statement = unwrap_statement(statement)
-        log("Proccessing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
+        log("Processing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
 
         if current_context is not None:
             if statement['spaces'] <= current_context['spaces']:

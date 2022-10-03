@@ -287,5 +287,51 @@ class TestPreprocessor(unittest.TestCase):
         
         self.assertEqual(preprocessed['frontend_imports'], {'stdlib': ['print']})
 
+    def test_backend_blocks_then_frontend(self):
+        tree = parse_statement("if foo == bar\n    if bar == baz\n        foo = bar\n#frontend\nfoo = bar\n")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        self.assertEqual(preprocessed['backend'], [
+            {
+                "type": TYPES["BLOCK"],
+                "statement": statement({
+                    "type": TYPES["IF"],
+                    "condition": {
+                        "type": TYPES["CONDITION"],
+                        "left_hand": statement('foo', 0),
+                        "condition": "==",
+                        "right_hand": statement('bar', 0),
+                    },
+                }, 0),
+                "children": [
+                    {
+                        "type": TYPES["BLOCK"],
+                        "statement": statement({
+                            "type": TYPES["IF"],
+                            "condition": {
+                                "type": TYPES["CONDITION"],
+                                "left_hand": statement("bar", 0),
+                                "condition": "==",
+                                "right_hand": statement('baz', 0),
+                            },
+                        }, 4),
+                        "children": [
+                            statement({
+                                "type": TYPES["VARIABLE_ASSIGNMENT"],
+                                "name": "foo",
+                                "value": statement("bar", 0),
+                            }, 8),
+                        ],
+                    }
+                ],
+            },
+        ])
+
+        self.assertEqual(preprocessed['frontend'], [statement({
+            "type": TYPES["VARIABLE_ASSIGNMENT"],
+            "name": "foo",
+            "value": statement("bar", 0),
+        }, 0)])
+
 if __name__ == "__main__":
     unittest.main()

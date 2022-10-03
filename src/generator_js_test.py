@@ -4,7 +4,7 @@ if 'unittest.util' in __import__('sys').modules:
     # Show full diff in self.assertEqual.
     __import__('sys').modules['unittest.util']._MAX_LENGTH = 999999999
 
-from generator import generate, process_external_exports
+from generator import generate
 from grammar import parse_statement
 from transformer import process_tree
 from preprocessor import preprocess
@@ -243,10 +243,11 @@ class TestGeneratorJs(unittest.TestCase):
     def test_platform_unwind_blocks(self):
         tree = parse_statement("if foo == bar\n    if bar == baz\n        baz(\n            bin\n        )\n#frontend\nfoo = bar\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("if (foo == bar) {\n    if (bar == baz) {\n        await baz(\n            bin,\n        \n        );\n    }\n}\n"))
-        self.assertEqual(result["frontend"], wrap_frontend("var foo = bar;\n"))
+        self.assertEqual(result["backend"], _wrap_back("if (foo == bar) {\n    if (bar == baz) {\n        await baz(\n            bin\n        );\n    }\n}"))
+        self.assertEqual(result["frontend"], wrap_frontend("let foo = bar;", "label"))
         
     def test_platform_class_imports(self):
         tree = parse_statement("#frontend\nfoo = Component(\n\t\"div\"\n)\n")
@@ -578,32 +579,6 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(processed, "js")
         imports = output['external_imports']
         self.assertEqual(imports, [])
-
-class TestGenerateExternalExports(unittest.TestCase):
-    def test_no_exports(self):
-        result = process_external_exports("js", [])
-        json = result["data"]
-        file = result["file"]
-        command = result["command"]
-
-        self.assertEqual(json, "{\n    \"dependencies\": {}\n}")
-        self.assertEqual(file, "package.json")
-        self.assertEqual(command, "npm install")
-
-    def test_with_exports(self):
-        result = process_external_exports("js", [
-            {
-                "module": "test",
-                "version": "1.0.0",
-            },
-            {
-                "module": "test2",
-                "version": "0.2.0",
-            }
-        ])
-        json = result["data"]
-
-        self.assertEqual(json, "{\n    \"dependencies\": {\n        \"test\": \"1.0.0\", \n        \"test2\": \"0.2.0\"\n    }\n}")
 
 if __name__ == "__main__":
     unittest.main()
