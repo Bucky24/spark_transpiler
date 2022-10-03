@@ -780,10 +780,12 @@ def generate_code(tree, context = None):
     code_lines = []
     exports = []
     set_context_type = None
+    new_classes = []
 
     if context is None:
         context = {
-            "generated_variables": []
+            "generated_variables": [],
+            "generated_classes": [],
         }
 
     def add_code(code, additional_spaces = 0):
@@ -793,6 +795,9 @@ def generate_code(tree, context = None):
 
     def add_export(export):
         exports.append(export)
+
+    def add_new_class(class_name):
+        new_classes.append(class_name)
 
     def indent_code(code, indent):
         lines = code.split("\n")
@@ -810,6 +815,16 @@ def generate_code(tree, context = None):
                 return spaces
         return spaces
 
+    def passthrough_context(result):
+        nonlocal set_context_type
+
+        for export in result['exports']:
+            add_export(export)
+        if "context_type" in result:
+            set_context_type = result['context_type']
+        for class_name in result['new_classes']:
+            add_new_class(class_name)
+
     parent_context_type = context['parent_type'] if "parent_type" in context else None
 
     for statement in tree:
@@ -823,10 +838,7 @@ def generate_code(tree, context = None):
             new_context['spaces'] = statement['spaces'] + (context['spaces'] if "spaces" in context else 0)
             result = generate_code(statement['statement'], new_context)
             add_code(result['code'])
-            for export in result['exports']:
-                add_export(export)
-            if "context_type" in result:
-                set_context_type = result['context_type']
+            passthrough_context(result)
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
             code = space_code
@@ -855,9 +867,7 @@ def generate_code(tree, context = None):
                 add_code(opening_statement + "\n" + child_code + "\n" + " "*end_spaces + "}")
             else:
                 add_code(opening_statement + "\n"  + " "*end_spaces + "}")
-
-            for export in opening_statement_result['exports']:
-                add_export(export)
+            passthrough_context(opening_statement_result)
         elif statement['type'] == TYPES['IF']:
             condition_code = generate_code(statement['condition'], context)['code']
             add_code("if (" + condition_code + ") {")
@@ -901,9 +911,16 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['CALL_FUNC']:
             new_context = context.copy()
             new_context['spaces'] = 0
+
             parameter_code = generate_code(statement['parameters'], new_context)['code']
             func_name = generate_code(statement['function'], new_context)['code']
+
+
             code = "await " + func_name + "("
+            # have to handle class instance creation here
+            if func_name in context['generated_classes']:
+                code = "await " + func_name + "::__new("
+
             if parameter_code != "":
                 code += "\n" + parameter_code + "\n"
             code += ");"
@@ -937,7 +954,11 @@ def generate_code(tree, context = None):
             add_code("return instance;", 8)
             add_code("}", 4)
             add_export(statement['name'])
+            add_new_class(statement['name'])
+            context['generated_classes'].append(statement['name'])
             set_context_type = "class"
+        elif statement['type'] == TYPES["VARIABLE_CHAIN"]:
+            add_code(".".join(statement['chain']))
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
@@ -945,10 +966,12 @@ def generate_code(tree, context = None):
             "code": code_lines[0],
             "exports": exports,
             "context_type": set_context_type,
+            "new_classes": new_classes,
         }
 
     return {
         "code": "\n".join(code_lines),
         "exports": exports,
         "context_type": set_context_type,
+        "new_classes": new_classes,
     }

@@ -178,29 +178,33 @@ class TestGeneratorJs(unittest.TestCase):
     def test_new_instance(self):
         tree = parse_statement("class Foo\nbar = Foo(\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n}\nvar bar = new Foo();\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n}\nlet bar = await Foo::__new();\n\nmodule.exports = {\n\tFoo\n};\n"))
         
     def test_class_variables(self):
         tree = parse_statement("foo = bar.baz.biz")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = bar.baz.biz;\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = bar.baz.biz;"))
         
     def test_class_method_call(self):
         tree = parse_statement("foo = bar.baz(\n\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = await bar.baz();\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = await bar.baz();"))
         
         tree = parse_statement("foo = bar.baz.biz.buzz(\n\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = await bar.baz.biz.buzz();\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = await bar.baz.biz.buzz();"))
         
     def test_imports(self):
         tree = parse_statement("print(\n    foo\n)\n")
