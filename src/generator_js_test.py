@@ -9,10 +9,7 @@ from grammar import parse_statement
 from transformer import process_tree
 from preprocessor import preprocess
 from utils import print_tree
-
-def _wrap_front(code, imports = None, label = "label"):
-    if imports is None:
-        return "Modules[\"" + label + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n//<IMPORTS>\n" + code + "\n})();\n"
+from generator_js import wrap_frontend
         
 def _wrap_back(code):
     return "(async () => {\n" + code + "\n})();\n"
@@ -224,24 +221,23 @@ class TestGeneratorJs(unittest.TestCase):
     def test_platforms_and_imports(self):
         tree = parse_statement("#frontend\nprint(\n    foo\n)\n#backend\nprint(\n    foo\n)\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib_js_backend_common.js\");\n\nawait print(\n    foo,\n\n);\n"))
+        imports = output["imports"]
+        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib_js_backend.js\");\n\nawait print(\n    foo\n);"))
         self.assertEqual(imports["backend"], [{
-            "category": "backend",
+            "env": "backend",
             "extension": "js",
-            "type": "stdlib",
             "lang": "js",
-            "library": "common",
+            "library": "stdlib",
         }])
-        self.assertEqual(result["frontend"], _wrap_front("await print(\n    foo,\n\n);\n"))
+        self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib_js_frontend.js\";\n\n" + wrap_frontend("await print(\n    foo\n);", "label"))
         self.assertEqual(imports["frontend"], [{
             "extension": "js",
-            "type": "stdlib",
             "lang": "js",
-            "library": "common",
-            "category": "frontend",
+            "library": "stdlib",
+            "env": "frontend",
         }])
 
     def test_platform_unwind_blocks(self):

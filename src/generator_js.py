@@ -750,7 +750,7 @@ def generate_external_exports(exports):
     return json.dumps(package_json, indent=4), "package.json", "npm install"
 """
 
-def generate_js(tree, imports, env):
+def generate_js(tree, imports, label, env):
     if len(tree) == 0:
         return {
             "code": None,
@@ -784,7 +784,15 @@ def generate_js(tree, imports, env):
             else:
                 code += "\n\nmodule.exports = {\n\t" + "\n\t".join(result['exports']) + "};\n"
         code = wrap_backend(code)
-    
+    elif env == "frontend":
+        code = wrap_frontend(result['code'], label)
+
+        for import_type in imports:
+            import_values = imports[import_type]
+            file = build_import_filename(import_files[import_type])
+            import_code = "import {\n    " + ",\n    ".join(import_values) + "\n} from \"./" + file + "\";\n\n"
+            code = import_code + code
+
     return {
         "code": code,
         "imports": list(import_files.values()),
@@ -792,6 +800,9 @@ def generate_js(tree, imports, env):
 
 def wrap_backend(code):
     return "(async () => {\n" + code + "\n})();\n"
+
+def wrap_frontend(code, label):
+    return "Modules[\"" + label + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n" + code + "\n})();\n"
 
 def generate_code(tree, context = None):
     if not isinstance(tree, list):
