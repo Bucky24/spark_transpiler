@@ -12,3 +12,6 @@ def print_tree(root, indent=0):
             for child in root.children:
                 print_tree(child, indent+1)
             print("\t"*indent + "])")
+
+def build_import_filename(data):
+    return data['library'] + "_" + data['lang'] + "_" + data['env'] + "." + data['extension']

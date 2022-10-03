@@ -209,16 +209,16 @@ class TestGeneratorJs(unittest.TestCase):
     def test_imports(self):
         tree = parse_statement("print(\n    foo\n)\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib_js_backend_common.js\");\n\nawait print(\n    foo,\n\n);\n"))
+        imports = output["imports"]
+        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib_js_backend.js\");\n\nawait print(\n    foo\n);"))
         self.assertEqual(imports["backend"], [{
-            "extension": "js",
-            "type": "stdlib",
+            "env": "backend",
             "lang": "js",
-            "library": "common",
-            "category": "backend",
+            "library": "stdlib",
+            "extension": "js",
         }])
 
     def test_platforms_and_imports(self):

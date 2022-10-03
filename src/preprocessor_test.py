@@ -273,5 +273,19 @@ class TestPreprocessor(unittest.TestCase):
             },
         ])
 
+    def test_backend_import_function(self):
+        tree = parse_statement("print(\n    'foo'\n)")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        
+        self.assertEqual(preprocessed['backend_imports'], {'stdlib': ['print']})
+
+    def test_frontend_import_function(self):
+        tree = parse_statement("#frontend\nprint(\n    'foo'\n)")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        
+        self.assertEqual(preprocessed['frontend_imports'], {'stdlib': ['print']})
+
 if __name__ == "__main__":
     unittest.main()

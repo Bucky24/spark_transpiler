@@ -1,6 +1,7 @@
 import json
 
 from transformer import TYPES
+from utils import build_import_filename
 
 _DEFAULT_SPACES = 4
 
@@ -749,16 +750,34 @@ def generate_external_exports(exports):
     return json.dumps(package_json, indent=4), "package.json", "npm install"
 """
 
-def generate_js(tree, env):
+def generate_js(tree, imports, env):
     if len(tree) == 0:
         return {
             "code": None,
+            "imports": [],
         }
 
     result = generate_code(tree)
 
+    import_files = {}
+
+    for import_type in imports:
+        import_files[import_type] = {
+            "env": env,
+            "lang": "js",
+            "library": import_type,
+            "extension": "js",
+        }
+
     if env == "backend":
         code = result['code']
+
+        for import_type in imports:
+            import_values = imports[import_type]
+            file = build_import_filename(import_files[import_type])
+            import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
+            code = import_code + code
+
         if len(result['exports']) > 0:
             if len(result['exports']) == 1:
                 code += "\n\nmodule.exports = {\n\t" + result['exports'][0] + "\n};\n"
@@ -768,6 +787,7 @@ def generate_js(tree, env):
     
     return {
         "code": code,
+        "imports": list(import_files.values()),
     }
 
 def wrap_backend(code):
