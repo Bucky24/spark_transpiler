@@ -17,10 +17,10 @@ _COMMON_CODE = {
     "{": [grammar.Tree('map_start', [])],
 }
 
-def generate(transformed, lang, label="label", import_data=None):
+def generate(transformed, lang, label="label"):
     if lang == "js":
-        frontend_result = generate_js(transformed['frontend'], transformed["frontend_imports"], "frontend")
-        backend_result = generate_js(transformed['backend'], transformed["backend_imports"], "backend")
+        frontend_result = generate_js(transformed['frontend'], transformed["frontend_imports"], label, "frontend")
+        backend_result = generate_js(transformed['backend'], transformed["backend_imports"], label, "backend")
 
         result = {
             "code": {
