@@ -142,7 +142,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("await func(\n    await foo(\n        bar,\n        baz\n    )\n);"))
+        self.assertEqual(result["backend"], _wrap_back("await func(\n    await foo(\n        bar\n    ),\n    baz\n);"))
         
     def test_function_with_function_call(self):
         tree = parse_statement("function foo()\n    printt(\n    )\n")

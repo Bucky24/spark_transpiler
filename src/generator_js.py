@@ -828,7 +828,6 @@ def generate_code(tree, context = None):
     parent_context_type = context['parent_type'] if "parent_type" in context else None
 
     for statement in tree:
-        space_code = "" if 'spaces' not in context else " "*context['spaces']
         log("Generating for " + statement['type'])
         if statement['type'] == TYPES['STATEMENT']:
             if isinstance(statement['statement'], str) or isinstance(statement['statement'], float) or isinstance(statement['statement'], int):
@@ -841,7 +840,8 @@ def generate_code(tree, context = None):
             passthrough_context(result)
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
-            code = space_code
+            value = value.lstrip()
+            code = ""
             if value[-1] == ";":
                 # we handle the semicolon ourselves
                 value = value[:-1]
