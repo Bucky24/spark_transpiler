@@ -278,14 +278,14 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         
-        self.assertEqual(preprocessed['backend_imports'], {'stdlib': ['print']})
+        self.assertEqual(preprocessed['backend_function_imports'], {'stdlib': ['print']})
 
     def test_frontend_import_function(self):
         tree = parse_statement("#frontend\nprint(\n    'foo'\n)")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         
-        self.assertEqual(preprocessed['frontend_imports'], {'stdlib': ['print']})
+        self.assertEqual(preprocessed['frontend_function_imports'], {'stdlib': ['print']})
 
     def test_backend_blocks_then_frontend(self):
         tree = parse_statement("if foo == bar\n    if bar == baz\n        foo = bar\n#frontend\nfoo = bar\n")
@@ -332,6 +332,13 @@ class TestPreprocessor(unittest.TestCase):
             "name": "foo",
             "value": statement("bar", 0),
         }, 0)])
+
+    def test_frontend_import_class(self):
+        tree = parse_statement("#frontend\nfoo = Component()")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        
+        self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib': ['Component']})
 
 if __name__ == "__main__":
     unittest.main()

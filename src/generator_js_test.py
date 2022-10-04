@@ -252,10 +252,11 @@ class TestGeneratorJs(unittest.TestCase):
     def test_platform_class_imports(self):
         tree = parse_statement("#frontend\nfoo = Component(\n\t\"div\"\n)\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], wrap_frontend("var foo = new Component(\n    \"div\",\n\n);\n"))
+        imports = output["imports"]
+        self.assertEqual(result["frontend"], wrap_frontend("let foo = await Component::__new(\n    \"div\",\n\n);\n", "label"))
         self.assertEqual(imports["frontend"], [
             {
                 "lang": "js",

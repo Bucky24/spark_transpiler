@@ -19,8 +19,20 @@ _COMMON_CODE = {
 
 def generate(transformed, lang, label="label"):
     if lang == "js":
-        frontend_result = generate_js(transformed['frontend'], transformed["frontend_imports"], label, "frontend")
-        backend_result = generate_js(transformed['backend'], transformed["backend_imports"], label, "backend")
+        frontend_result = generate_js(
+            transformed['frontend'],
+            transformed["frontend_function_imports"],
+            transformed['frontend_class_imports'],
+            label,
+            "frontend",
+        )
+        backend_result = generate_js(
+            transformed['backend'],
+            transformed["backend_function_imports"],
+            transformed['backend_class_imports'],
+            label,
+            "backend",
+        )
 
         result = {
             "code": {

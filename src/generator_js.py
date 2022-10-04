@@ -750,7 +750,7 @@ def generate_external_exports(exports):
     return json.dumps(package_json, indent=4), "package.json", "npm install"
 """
 
-def generate_js(tree, imports, label, env):
+def generate_js(tree, function_imports, class_imports, label, env):
     if len(tree) == 0:
         return {
             "code": None,
@@ -761,7 +761,7 @@ def generate_js(tree, imports, label, env):
 
     import_files = {}
 
-    for import_type in imports:
+    for import_type in function_imports:
         import_files[import_type] = {
             "env": env,
             "lang": "js",
@@ -772,8 +772,8 @@ def generate_js(tree, imports, label, env):
     if env == "backend":
         code = result['code']
 
-        for import_type in imports:
-            import_values = imports[import_type]
+        for import_type in function_imports:
+            import_values = function_imports[import_type]
             file = build_import_filename(import_files[import_type])
             import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
             code = import_code + code
@@ -787,8 +787,8 @@ def generate_js(tree, imports, label, env):
     elif env == "frontend":
         code = wrap_frontend(result['code'], label)
 
-        for import_type in imports:
-            import_values = imports[import_type]
+        for import_type in function_imports:
+            import_values = function_imports[import_type]
             file = build_import_filename(import_files[import_type])
             import_code = "import {\n    " + ",\n    ".join(import_values) + "\n} from \"./" + file + "\";\n\n"
             code = import_code + code

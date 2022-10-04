@@ -1,5 +1,5 @@
 from transformer import TYPES
-from constants import FUNCTION_IMPORTS
+from constants import FUNCTION_IMPORTS, CLASS_IMPORTS
 
 # turn to true for debug logs
 LOG = False
@@ -104,12 +104,20 @@ def preprocess(tree):
         "frontend": {},
         "backend": {},
     }
+    class_imports = {
+        "frontend": {},
+        "backend": {},
+    }
 
     def process_code(code, env):
         if not isinstance(code, list):
             code = [code]
 
         def add_import(function_name):
+            add_function_import(function_name)
+            add_class_import(function_name)
+
+        def add_function_import(function_name):
             if function_name not in FUNCTION_IMPORTS:
                 return
             
@@ -120,6 +128,18 @@ def preprocess(tree):
 
             if function_name not in existing_list[new_import]:
                 existing_list[new_import].append(function_name)
+
+        def add_class_import(class_name):
+            if class_name not in CLASS_IMPORTS:
+                return
+            
+            new_import = CLASS_IMPORTS[class_name]
+            existing_list = class_imports[env]
+            if new_import not in existing_list:
+                existing_list[new_import] = []
+
+            if class_name not in existing_list[new_import]:
+                existing_list[new_import].append(class_name)
         
         for item in code:
             log("Import processing: " + item['type'])
@@ -127,7 +147,8 @@ def preprocess(tree):
             if item['type'] == TYPES['BLOCK']:
                 process_code(item['children'], env)
             elif item['type'] == TYPES['STATEMENT']:
-                process_code(item['statement'], env)
+                if isinstance(item['statement'], dict):
+                    process_code(item['statement'], env)
             elif item['type'] == TYPES['CALL_FUNC']:
                 process_code(item['function'], env)
                 process_code(item['parameters'], env)
@@ -135,6 +156,8 @@ def preprocess(tree):
                 unwrapped = unwrap_statement(item['name'])
                 if isinstance(unwrapped, str):
                     add_import(unwrapped)
+            elif item['type'] == TYPES['VARIABLE_ASSIGNMENT']:
+                process_code(item['value'], env)
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")
@@ -142,6 +165,8 @@ def preprocess(tree):
     return {
         "frontend": frontend,
         "backend": backend,
-        "frontend_imports": imports['frontend'],
-        "backend_imports": imports['backend'],
+        "frontend_function_imports": imports['frontend'],
+        "backend_function_imports": imports['backend'],
+        "frontend_class_imports": class_imports['frontend'],
+        "backend_class_imports": class_imports['backend'],
     }
