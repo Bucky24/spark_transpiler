@@ -283,18 +283,20 @@ class TestGeneratorJs(unittest.TestCase):
         self.assertEqual(result["backend"], _wrap_back("let foo = {\n    \"abcd\": \"foo\"\n};"))
         
     def test_nested_map_array(self):
-        tree = parse_statement("foo = {\n\t[\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
+        tree = parse_statement("foo = {\n\tarray: [\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = {\n    [\n        {\n            \"foo\": \"bar\",\n        \n        },\n    \n    ],\n\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = {\n    \"array\": [\n        {\n            \"foo\": \"bar\"\n        }\n    ]\n};"))
         
     def test_function_call_with_maps_and_arrays(self):
         tree = parse_statement("foo(\n\t{\n\t\tbar: baz\n\t}\n\t[\n\t\tbaz\n\t]\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("await foo(\n    {\n        \"bar\": baz,\n    \n    },\n    [\n        baz,\n    \n    ],\n\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("await foo(\n    {\n        \"bar\": baz\n    },\n    [\n        baz\n    ]\n);"))
         
     def test_jsx(self):
         expected_imports = [{

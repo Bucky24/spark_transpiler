@@ -851,6 +851,19 @@ def generate_code(tree, context = None):
         code = "\n".join(new_lines)
         code_lines.append(code)
 
+    def remove_spaces(code):
+        lines = code.split("\n")
+        min_spaces = 0
+        for char in lines[0]:
+            if char == " ":
+                min_spaces += 1
+            else:
+                break
+        new_lines = []
+        for line in lines:
+            new_lines.append(line[min_spaces:])
+        return "\n".join(new_lines)
+
     def add_export(export):
         exports.append(export)
 
@@ -990,6 +1003,7 @@ def generate_code(tree, context = None):
                 param_code = generate_code(param, new_context)['code']
                 if param_code[-1] == ";":
                     param_code = param_code[:-1]
+                param_code = remove_spaces(param_code)
                 param_code = indent_code(param_code, 4)
                 param_codes.append(param_code)
             add_code(",\n".join(param_codes))
@@ -1019,20 +1033,25 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['ARRAY']:
             all_child_codes = []
             for child in statement['children']:
-                child_code = generate_code(child, context)['code']
-                all_child_codes.append(" "*4 + child_code)
+                new_context = context.copy()
+                new_context['spaces'] = 0
+                child_code = generate_code(child, new_context)['code']
+                child_code = remove_spaces(child_code)
+                child_code = indent_code(child_code, 4)
+                all_child_codes.append(child_code)
             final_child_code = ",\n".join(all_child_codes)
-            add_code("[\n" + final_child_code + "\n")
+            add_code("[\n" + final_child_code + "\n]")
         elif statement['type'] == TYPES['MAP']:
             all_child_codes = []
             for child in statement['children']:
                 child_code = generate_code(child, context)['code']
-                all_child_codes.append(" "*4 + child_code)
+                child_code = indent_code(child_code.lstrip(), 4)
+                all_child_codes.append(child_code)
             final_child_code = ",\n".join(all_child_codes)
             add_code("{\n" + final_child_code + "\n}")
         elif statement['type'] == TYPES["MAP_ROW"]:
             value_code = generate_code(statement['value'], context)['code']
-            add_code("\"" + statement['key'] + "\": " + value_code)
+            add_code("\"" + statement['key'] + "\": " + value_code.lstrip())
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
