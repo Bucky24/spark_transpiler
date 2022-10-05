@@ -1016,6 +1016,23 @@ def generate_code(tree, context = None):
             set_context_type = "class"
         elif statement['type'] == TYPES["VARIABLE_CHAIN"]:
             add_code(".".join(statement['chain']))
+        elif statement['type'] == TYPES['ARRAY']:
+            all_child_codes = []
+            for child in statement['children']:
+                child_code = generate_code(child, context)['code']
+                all_child_codes.append(" "*4 + child_code)
+            final_child_code = ",\n".join(all_child_codes)
+            add_code("[\n" + final_child_code + "\n")
+        elif statement['type'] == TYPES['MAP']:
+            all_child_codes = []
+            for child in statement['children']:
+                child_code = generate_code(child, context)['code']
+                all_child_codes.append(" "*4 + child_code)
+            final_child_code = ",\n".join(all_child_codes)
+            add_code("{\n" + final_child_code + "\n}")
+        elif statement['type'] == TYPES["MAP_ROW"]:
+            value_code = generate_code(statement['value'], context)['code']
+            add_code("\"" + statement['key'] + "\": " + value_code)
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:

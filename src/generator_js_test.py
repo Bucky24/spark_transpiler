@@ -269,16 +269,18 @@ class TestGeneratorJs(unittest.TestCase):
     def test_arrays(self):
         tree = parse_statement("foo = [\n\t'bar'\n\t'baz'\n]\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = [\n    \"bar\",\n    \"baz\",\n\n];\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = [\n    \"bar\",\n    \"baz\"\n];"))
         
     def test_maps(self):
         tree = parse_statement("foo = {\n\tabcd: 'foo'\n}\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = {\n    \"abcd\": \"foo\"\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = {\n    \"abcd\": \"foo\"\n};"))
         
     def test_nested_map_array(self):
         tree = parse_statement("foo = {\n\t[\n\t\t{\n\t\t\tfoo: 'bar'\n\t\t}\n\t]\n}\n")
