@@ -256,14 +256,13 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["frontend"], wrap_frontend("let foo = await Component::__new(\n    \"div\",\n\n);\n", "label"))
+        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n" + wrap_frontend("let foo = await Component::__new(\n    \"div\"\n);", "label"))
         self.assertEqual(imports["frontend"], [
             {
                 "lang": "js",
-                "category": "frontend",
-                "type": "stdlib",
+                "env": "frontend",
+                "library": "stdlib",
                 "extension": "js",
-                "library": "frontend",
             },
         ])
     

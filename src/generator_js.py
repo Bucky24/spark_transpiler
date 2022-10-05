@@ -757,11 +757,26 @@ def generate_js(tree, function_imports, class_imports, label, env):
             "imports": [],
         }
 
-    result = generate_code(tree)
+    all_imported_classes = []
+    for import_type in class_imports:
+        all_imported_classes += class_imports[import_type]
+
+    result = generate_code(tree, {
+        "generated_variables": [],
+        "generated_classes": all_imported_classes,
+    })
 
     import_files = {}
 
     for import_type in function_imports:
+        import_files[import_type] = {
+            "env": env,
+            "lang": "js",
+            "library": import_type,
+            "extension": "js",
+        }
+
+    for import_type in class_imports:
         import_files[import_type] = {
             "env": env,
             "lang": "js",
@@ -789,6 +804,12 @@ def generate_js(tree, function_imports, class_imports, label, env):
 
         for import_type in function_imports:
             import_values = function_imports[import_type]
+            file = build_import_filename(import_files[import_type])
+            import_code = "import {\n    " + ",\n    ".join(import_values) + "\n} from \"./" + file + "\";\n\n"
+            code = import_code + code
+
+        for import_type in class_imports:
+            import_values = class_imports[import_type]
             file = build_import_filename(import_files[import_type])
             import_code = "import {\n    " + ",\n    ".join(import_values) + "\n} from \"./" + file + "\";\n\n"
             code = import_code + code
