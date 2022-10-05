@@ -308,7 +308,8 @@ class TestGeneratorJs(unittest.TestCase):
         }]
         tree = parse_statement("#frontend\n<div>\n</div>\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["internal_imports"]
         self.assertEqual(result["frontend"], wrap_frontend("new Component(\"div\", {}, [\n\n]);\n"))  
@@ -316,7 +317,8 @@ class TestGeneratorJs(unittest.TestCase):
         
         tree = parse_statement("#frontend\n<div/>\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["internal_imports"]
         self.assertEqual(result["frontend"], wrap_frontend("new Component(\"div\", {}, []);\n"))
@@ -324,7 +326,8 @@ class TestGeneratorJs(unittest.TestCase):
         
         tree = parse_statement("#frontend\n<div\n\tfoo=\"bar\"\n>\n</div>\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["internal_imports"]
         self.assertEqual(result["frontend"], wrap_frontend("new Component(\"div\", {\n    foo: \"bar\",\n}, [\n\n]);\n"))
@@ -332,7 +335,8 @@ class TestGeneratorJs(unittest.TestCase):
         
         tree = parse_statement("#frontend\n<input\n/>\n")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["internal_imports"]
         self.assertEqual(result["frontend"], wrap_frontend("new Component(\"input\", {}, []);\n"))

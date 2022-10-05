@@ -1052,6 +1052,8 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES["MAP_ROW"]:
             value_code = generate_code(statement['value'], context)['code']
             add_code("\"" + statement['key'] + "\": " + value_code.lstrip())
+        elif statement['type'] == TYPES["JSX_START_TAG"]:
+            print(statement)
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
