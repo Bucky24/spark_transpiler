@@ -25,6 +25,8 @@ def _get_class_new(class_name):
 
     return code.replace("{name}", class_name)
 
+component_import_code = "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n"
+
 class TestGeneratorJs(unittest.TestCase):
     def test_variables(self):
         tree = parse_statement("foo = 'abcd'\nbar = foo\n")
@@ -300,19 +302,18 @@ class TestGeneratorJs(unittest.TestCase):
         
     def test_jsx(self):
         expected_imports = [{
-            "category": "frontend",
+            "env": "frontend",
             "extension": "js",
             "lang": "js",
-            "library": "frontend",
-            "type": "stdlib",
+            "library": "stdlib",
         }]
         tree = parse_statement("#frontend\n<div>\n</div>\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], wrap_frontend("new Component(\"div\", {}, [\n\n]);\n"))  
+        imports = output["imports"]
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"div\", {}, []);", "label"))  
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<div/>\n")
@@ -320,8 +321,8 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], wrap_frontend("new Component(\"div\", {}, []);\n"))
+        imports = output["imports"]
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"div\", {}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<div\n\tfoo=\"bar\"\n>\n</div>\n")
@@ -329,8 +330,9 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], wrap_frontend("new Component(\"div\", {\n    foo: \"bar\",\n}, [\n\n]);\n"))
+        imports = output["imports"]
+        print(result['frontend'])
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"div\", {\n    \"foo\": \"bar\"\n}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<input\n/>\n")
@@ -338,16 +340,17 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        imports = output["internal_imports"]
-        self.assertEqual(result["frontend"], wrap_frontend("new Component(\"input\", {}, []);\n"))
+        imports = output["imports"]
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"input\", {}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
         
     def test_jsx_component(self):
         tree = parse_statement("#frontend\nclass Foo extends Component\n<Foo>\n</Foo>\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("class Foo extends Component {\n}\nnew Foo({}, [\n\n]);\n\nreturn {\n\tFoo\n};\n"))
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("class Foo extends Component {\n}\nnew Foo({}, [\n\n]);\n\nreturn {\n\tFoo\n};\n", "label"))
         
     def test_return(self):
         tree = parse_statement("function foo()\n\treturn bar\n")

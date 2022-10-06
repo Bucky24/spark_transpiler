@@ -1053,7 +1053,23 @@ def generate_code(tree, context = None):
             value_code = generate_code(statement['value'], context)['code']
             add_code("\"" + statement['key'] + "\": " + value_code.lstrip())
         elif statement['type'] == TYPES["JSX_START_TAG"]:
-            print(statement)
+            code = "new Component(\"" + statement['tag'] + "\", {"
+
+            all_attributes = []
+            for attribute in statement['attributes']:
+                attribute_code = generate_code(attribute, context)['code']
+                attribute_code = indent_code(attribute_code, 4)
+                all_attributes.append(attribute_code)
+            if len(all_attributes) > 0:
+                code += "\n" + ",\n".join(all_attributes) + "\n"
+
+            code += "}, ["
+
+            code += "]);"
+            add_code(code)
+        elif statement['type'] == TYPES['JSX_ATTRIBUTE']:
+            right_hand_code = generate_code(statement['right_hand'], context)['code']
+            add_code("\"" + statement['name'] + "\": " + right_hand_code)
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
