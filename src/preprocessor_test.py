@@ -340,5 +340,12 @@ class TestPreprocessor(unittest.TestCase):
         
         self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib': ['Component']})
 
+    def test_jsx_import_class(self):
+        tree = parse_statement("#frontend\n<div/>")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        
+        self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib': ['Component']})
+
 if __name__ == "__main__":
     unittest.main()

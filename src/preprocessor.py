@@ -158,6 +158,8 @@ def preprocess(tree):
                     add_import(unwrapped)
             elif item['type'] == TYPES['VARIABLE_ASSIGNMENT']:
                 process_code(item['value'], env)
+            elif item['type'] == TYPES['JSX_START_TAG']:
+                add_import("Component")
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")
