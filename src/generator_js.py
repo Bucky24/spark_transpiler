@@ -800,7 +800,14 @@ def generate_js(tree, function_imports, class_imports, label, env):
                 code += "\n\nmodule.exports = {\n\t" + "\n\t".join(result['exports']) + "};\n"
         code = wrap_backend(code)
     elif env == "frontend":
-        code = wrap_frontend(result['code'], label)
+        code = result['code']
+        if len(result['exports']) > 0:
+            code += "\n\nreturn {\n"
+            if len(result['exports']) == 1:
+                code += "\t" + result['exports'][0] + "\n};\n"
+            else:
+                code += "\n\t".join(result['exports']) + "};\n"
+        code = wrap_frontend(code, label)
 
         for import_type in function_imports:
             import_values = function_imports[import_type]
@@ -1053,7 +1060,11 @@ def generate_code(tree, context = None):
             value_code = generate_code(statement['value'], context)['code']
             add_code("\"" + statement['key'] + "\": " + value_code.lstrip())
         elif statement['type'] == TYPES["JSX_START_TAG"]:
-            code = "new Component(\"" + statement['tag'] + "\", {"
+            code = ""
+            if statement['tag'] in context['generated_classes']:
+                code += "new " + statement['tag'] + "({"
+            else:
+                code += "new Component(\"" + statement['tag'] + "\", {"
 
             all_attributes = []
             for attribute in statement['attributes']:

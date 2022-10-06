@@ -26,6 +26,7 @@ def _get_class_new(class_name):
     return code.replace("{name}", class_name)
 
 component_import_code = "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n"
+class_creation_code = "    static async __new() {\n        const instance = new Foo();\n        if (typeof instance.__construct !== 'undefined') {\n            await instance.__construct.apply(instance, arguments);\n        }\n        return instance;\n    }\n"
 
 class TestGeneratorJs(unittest.TestCase):
     def test_variables(self):
@@ -350,7 +351,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("class Foo extends Component {\n}\nnew Foo({}, [\n\n]);\n\nreturn {\n\tFoo\n};\n", "label"))
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("class Foo extends Component {\n" + class_creation_code + "}\nnew Foo({}, []);\n\nreturn {\n\tFoo\n};\n", "label"))
         
     def test_return(self):
         tree = parse_statement("function foo()\n\treturn bar\n")
