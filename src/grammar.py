@@ -174,11 +174,17 @@ ARRAY_START = "states/array_start"
 MAP_START = "states/map_start"
 JSX = "states/jsx"
 JSX_ATTRIBUTE = "states/jsx_attribute"
+JSX_TAG_END = "states/jsx_tag_end"
 RETURN = "states/return"
 VARIABLE_MANIPULATE = "states/variable_manipulate"
 ARRAY_OBJECT_INDEXING = "states/array_object_indexing"
 BOOLEAN = "states/boolean"
 ELSE_STATEMENT = "states/else_statement"
+
+# sub-states for JSX parsing
+JSX_START = "jsx_states/start"
+JSX_ATTRIBUTES = "jsx_states/attributes"
+JSX_CHILDREN = "jsx_states/children"
 
 NUMBERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 END_STATS = ["\n", ";"]
@@ -434,6 +440,7 @@ def process_tokens(tokens):
                     "self_close": False,
                     "end_tag": False,
                     "tag": None,
+                    "substate": JSX_START,
                 })
                 continue
             elif token == "return":
@@ -492,15 +499,20 @@ def process_tokens(tokens):
                     })
                 continue
             elif token in ("<", ">", "!"):
-                current_context = copy_context({
-                    "type": VARIABLE_EQUALITY,
-                    "left_hand": [{
-                        "type": VARIABLE_OR_METHOD,
-                        "variable": current_context['variable'],
-                    }],
-                    "equality": token
-                })
-                continue
+                if parent_state != JSX:
+                    current_context = copy_context({
+                        "type": VARIABLE_EQUALITY,
+                        "left_hand": [{
+                            "type": VARIABLE_OR_METHOD,
+                            "variable": current_context['variable'],
+                        }],
+                        "equality": token
+                    })
+                    continue
+                else:
+                    tokens.insert(0, token)
+                    current_context = pop_context()
+                    continue
             elif token in END_STATS or ((token == "," or token == ')') and parent_state == FUNCTION_DEFINITION):
                 tokens.insert(0, token)
                 current_context = pop_context()
@@ -836,31 +848,50 @@ def process_tokens(tokens):
                     current_context = pop_context()
                     continue
         elif state == JSX:
-            if len(token) > 0 and token[0] in VALID_VARIABLE_START:
-                if current_context['tag'] == None:
-                    current_context['tag'] = token
+            substate = current_context['substate']
+            log("handle token {}".format(substate))
+            if substate == JSX_START:
+                if token == "/":
+                    current_context['end_tag'] = True
                     continue
                 else:
-                    # we assume it's the start of an attribute
+                    current_context['tag'] = token
+                    current_context['substate'] = JSX_ATTRIBUTES
+                    continue
+            elif substate == JSX_ATTRIBUTES:
+                if token == ">":
+                    if not current_context['end_tag']:
+                        # append a token so that we know we're at the end of the attributes
+                        if "children" not in current_context:
+                            current_context['children'] = []
+                        current_context['children'].append({
+                            "type": JSX_TAG_END,
+                        })
+                        current_context['substate'] = JSX_CHILDREN
+                    else:
+                        current_context = pop_context()
+                        # we also need to pop out of our previous jsx context since it's done
+                        current_context = pop_context()
+                        continue
+                    continue
+                elif token == "/":
+                    if not current_context['end_tag']:
+                        current_context['self_close'] = True
+                        continue
+                elif token == "\n" or token == " ":
                     append_context_stack()
                     current_context = copy_context({
                         "type": JSX_ATTRIBUTE,
-                        "attr": token,
+                        "attr": None,
                         "fetching_value": False
                     })
                     continue
-            elif token == ">":
-                current_context = pop_context()
+            elif substate == JSX_CHILDREN:
+                tokens.insert(0, token)
+                append_context_stack()
                 continue
-            elif token == "/":
-                if current_context['tag'] == None:
-                    current_context['end_tag'] = True
-                    continue
-                elif current_context['end_tag'] == False:
-                    current_context['self_close'] = True
-                    continue
-            elif token == "\n" or token == "\t" or token == " ":
-                continue
+            
+            raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state + " -> " + substate)
         elif state == JSX_ATTRIBUTE:
             if token == "=":
                 if not current_context['fetching_value']:
@@ -885,10 +916,16 @@ def process_tokens(tokens):
             elif token == "\n":
                 current_context = pop_context()
                 continue
-            elif token == "/":
+            elif token == "/" or token == ">":
                 tokens.insert(0, token)
                 current_context = pop_context()
                 continue
+            elif token == "\t":
+                continue
+            else:
+                if not current_context['fetching_value']:
+                    current_context['attr'] = token
+                    continue
         elif state == RETURN:
             if token == " ":
                 continue
@@ -1121,6 +1158,8 @@ def build_tree(statements):
                     result.append(Token("TAG_SELF_CLOSE", "/"))
                 add_result(statement, Tree("jsx_tag_start", result))
         elif statement['type'] == JSX_ATTRIBUTE:
+            if not statement['attr']:
+                continue
             children = build_tree(statement['children'])
             children.insert(0, Tree("variable", [Token("VARIABLE_NAME", statement['attr'])]))
             add_result(statement,Tree("jsx_attribute", children))
@@ -1155,6 +1194,8 @@ def build_tree(statements):
             ]))
         elif statement['type'] == ELSE_STATEMENT:
             add_result(statement, Tree("else_stat", []))
+        elif statement['type'] == JSX_TAG_END:
+            add_result(statement, Tree("jsx_tag_end", []))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

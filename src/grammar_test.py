@@ -750,13 +750,13 @@ if foo == \"bar\"
                 Tree("statement", [
                     Tree("jsx_tag_start", [
                         Token("TAG_NAME", "div"),
+                        Tree("statement", [Tree("jsx_tag_end", [])]),
+                        Tree("statement", [
+                            Tree("jsx_end_tag", [
+                                Token("TAG_NAME", "div"),
+                            ])
+                        ]),
                     ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("jsx_end_tag", [
-                        Token("TAG_NAME", "div"),
-                    ])
                 ]),
                 Token("NEWLINE", "\n"),
             ]),
@@ -768,6 +768,7 @@ if foo == \"bar\"
                 Tree("statement", [
                     Tree("jsx_tag_start", [
                         Token("TAG_NAME", "div"),
+                        Tree("statement", [Tree("jsx_tag_end", [])]),
                         Token("TAG_SELF_CLOSE", "/"),
                     ]),
                 ]),
@@ -792,13 +793,13 @@ if foo == \"bar\"
                                 ]),
                             ]),
                         ]),
+                        Tree("statement", [Tree("jsx_tag_end", [])]),
+                        Tree("statement", [
+                            Tree("jsx_end_tag", [
+                                Token("TAG_NAME", "div"),
+                            ])
+                        ]),
                     ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("jsx_end_tag", [
-                        Token("TAG_NAME", "div"),
-                    ])
                 ]),
                 Token("NEWLINE", "\n"),
             ]),
@@ -822,10 +823,10 @@ if foo == \"bar\"
                                 ]),
                             ]),
                         ]),
+                        Tree("statement", [Tree("jsx_tag_end", [])]),
                         Token("TAG_SELF_CLOSE", "/")
                     ]),
                 ]),
-                Token("NEWLINE", "\n"),
             ]),
         ]))
 
@@ -859,10 +860,10 @@ if foo == \"bar\"
                                 ]),
                             ]),
                         ]),
+                        Tree("statement", [Tree("jsx_tag_end", [])]),
                         Token("TAG_SELF_CLOSE", "/")
                     ]),
                 ]),
-                Token("NEWLINE", "\n"),
             ]),
         ]))
         
@@ -871,10 +872,55 @@ if foo == \"bar\"
             Tree("statement", [
                 Tree("jsx_tag_start", [
                     Token("TAG_NAME", "input"),
+                    Tree("statement", [Tree("jsx_tag_end", [])]),
                     Token("TAG_SELF_CLOSE", "/"),
                 ]),
             ]),
-            Token("NEWLINE", "\n"),
+        ]))
+
+        tree = parse_statement("<div>\n    <span>foo</span>\n</div>")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("jsx_tag_start", [
+                    Token("TAG_NAME", "div"),
+                    Tree("statement", [Tree("jsx_tag_end", [])]),
+                    Tree("statement", [
+                        Tree("spaces", [
+                            Token("SPACE", " "),
+                        ]),
+                        Tree("spaces", [
+                            Token("SPACE", " "),
+                        ]),
+                        Tree("spaces", [
+                            Token("SPACE", " "),
+                        ]),
+                        Tree("spaces", [
+                            Token("SPACE", " "),
+                        ]),
+                        Tree("jsx_tag_start", [
+                            Token("TAG_NAME", "span"),
+                            Tree("statement", [
+                                Tree("jsx_tag_end", []),
+                            ]),
+                            Tree("statement", [
+                                Tree("variable", [
+                                    Token("VARIABLE_NAME", "foo"),
+                                ]),
+                            ]),
+                            Tree("statement", [
+                                Tree("jsx_end_tag", [
+                                    Token("TAG_NAME", "span"),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("statement", [
+                        Tree("jsx_end_tag", [
+                            Token("TAG_NAME", "div"),
+                        ]),
+                    ]),
+                ]),
+            ]),
         ]))
         
     def test_return(self):
@@ -912,14 +958,14 @@ if foo == \"bar\"
                         Tree("statement", [
                             Tree("jsx_tag_start", [
                                 Token("TAG_NAME", "div"),
+                                Tree("statement", [Tree("jsx_tag_end", [])]),
+                                Tree("statement", [
+                                    Tree("jsx_end_tag", [Token("TAG_NAME", "div")]),
+                                ]), 
                             ]),
                         ]),
                     ]),
                 ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("jsx_end_tag", [Token("TAG_NAME", "div")]),
-                ]), 
                 Token("NEWLINE", "\n"),
             ]),
         ]))
