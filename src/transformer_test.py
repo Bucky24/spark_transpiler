@@ -371,13 +371,7 @@ class bar
                 "tag": "div",
                 "self_closes": False,
                 "attributes": [],
-            }, 0),
-            statement({
-                "type": TYPES["JSX_END_TAG"],
-                "tag": {
-                    "type": TYPES['TAG_NAME'],
-                    "tag": "div",
-                },
+                "children": [],
             }, 0),
         ])
         
@@ -389,6 +383,7 @@ class bar
                 "tag": "div",
                 "self_closes": True,
                 "attributes": [],
+                "children": [],
             }, 0),
         ])
         
@@ -406,13 +401,7 @@ class bar
                         "right_hand": statement("\"bar\"", 0),
                     }, 0),
                 ],
-            }, 0),
-            statement({
-                "type": TYPES["JSX_END_TAG"],
-                "tag": {
-                    "type": TYPES['TAG_NAME'],
-                    "tag": "div",
-                },
+                "children": [],
             }, 0),
         ])
         
@@ -424,6 +413,25 @@ class bar
                 "tag": "input",
                 "self_closes": True,
                 "attributes": [],
+                "children": [],
+            }, 0),
+        ])
+
+        tree = parse_statement("<div>\n<span>foo</span>\n</div>\n")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["JSX_START_TAG"],
+                "tag": "div",
+                "self_closes": False,
+                "attributes": [],
+                "children": [statement({
+                    "type": TYPES["JSX_START_TAG"],
+                    "tag": "span",
+                    "self_closes": False,
+                    "attributes": [],
+                    "children": [statement("foo", 0)],
+                }, 0)],
             }, 0),
         ])
         

@@ -34,6 +34,7 @@ TYPES = {
     "JSX_END_TAG": "types/jsx_end_tag",
     "JSX_START_TAG": "types/jsx_start_tag",
     "JSX_TAG_SELF_CLOSE": "types/jsx_tag_self_close",
+    "JSX_TAG_END": "types/jsx_tag_end",
     "RETURN": "types/return",
     "VALUE_MANIPULATION": "types/value_manipulation",
     "ELSE": "types/else",
@@ -325,20 +326,32 @@ class SparkTransformer(Transformer):
         self_closes = False
 
         attributes = []
+        children = []
         
+        found_attributes = False
         for value in values:
+            is_statement_with_object = value['type'] == TYPES["STATEMENT"] and isinstance(value['statement'], dict)
             if value["type"] == TYPES["TAG_NAME"]:
                 tag = value["tag"]
             elif value["type"] == TYPES["JSX_TAG_SELF_CLOSE"]:
                 self_closes = True
+            elif is_statement_with_object and value['statement']['type'] == TYPES["JSX_TAG_END"]:
+                found_attributes = True
+            elif is_statement_with_object and value['statement']['type'] == TYPES["JSX_END_TAG"]:
+                # at this point we're done, there should be no children left
+                break
             else:
-                attributes.append(value)
-        
+                if not found_attributes:
+                    attributes.append(value)
+                else:
+                    children.append(value)
+
         return {
             "type": TYPES["JSX_START_TAG"],
             "tag": tag,
             "self_closes": self_closes,
             "attributes": attributes,
+            "children": children,
         }
         
     def TAG_SELF_CLOSE(self, _):
@@ -387,6 +400,11 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES['FUNCTION_PARAMS'],
             "params": filtered,
+        }
+
+    def jsx_tag_end(self, _):
+        return {
+            "type": TYPES["JSX_TAG_END"],
         }
 
 _spark_transformer = SparkTransformer()
