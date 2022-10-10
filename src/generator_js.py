@@ -1069,6 +1069,7 @@ def generate_code(tree, context = None):
             all_attributes = []
             for attribute in statement['attributes']:
                 attribute_code = generate_code(attribute, context)['code']
+                attribute_code = remove_spaces(attribute_code)
                 attribute_code = indent_code(attribute_code, 4)
                 all_attributes.append(attribute_code)
             if len(all_attributes) > 0:
@@ -1080,7 +1081,17 @@ def generate_code(tree, context = None):
             add_code(code)
         elif statement['type'] == TYPES['JSX_ATTRIBUTE']:
             right_hand_code = generate_code(statement['right_hand'], context)['code']
+            right_hand_code = remove_spaces(right_hand_code)
             add_code("\"" + statement['name'] + "\": " + right_hand_code)
+        elif statement['type'] == TYPES['RETURN']:
+            value_result = generate_code(statement['value'], context)
+            passthrough_context(value_result)
+            value_code = value_result['code']
+            value_code = remove_spaces(value_code)
+            if value_code[-1] == ";":
+                value_code = value_code[:-1]
+
+            add_code("return " + value_code + ";")
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:

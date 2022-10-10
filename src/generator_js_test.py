@@ -356,15 +356,17 @@ class TestGeneratorJs(unittest.TestCase):
     def test_return(self):
         tree = parse_statement("function foo()\n\treturn bar\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    return bar;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
         
         tree = parse_statement("#frontend\nfunction foo()\n\treturn <div\n\t\tstyle={style}\n\t>\n\t</div>\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("async function foo() {\n    return new Component(\"div\", {\n        style: style,\n    }, [\n    \n    ]);\n}\n\nreturn {\n\tfoo\n};\n"))
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("async function foo() {\n    return new Component(\"div\", {\n        \"style\": style\n    }, []);\n}\n\nreturn {\n\tfoo\n};\n", "label"))
         
     def test_multiple_block_closures(self):
         tree = parse_statement("class Foo\n\tfunction bar()\n\t\tif foo == bar\n\t\t\tfoo = bar\n\nfoo(\n\tfoo\n)\n")
