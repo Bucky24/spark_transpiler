@@ -417,9 +417,10 @@ class TestGeneratorJs(unittest.TestCase):
     def test_imports_with_chain(self):
         tree = parse_statement("Api.post()")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    Api\n} = require(\"./stdlib_js_backend_common.js\");\n\nawait Api.post();\n"))
+        self.assertEqual(result["backend"], _wrap_back("const {\n    Api\n} = require(\"./stdlib_js_backend.js\");\n\nawait Api.post();"))
 
     def test_function_call_and_platform(self):
         tree = parse_statement("foo()\n#frontend\nfoo()\n")

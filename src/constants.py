@@ -4,4 +4,5 @@ FUNCTION_IMPORTS = {
 
 CLASS_IMPORTS = {
     "Component": "stdlib",
+    "Api": "stdlib",
 }

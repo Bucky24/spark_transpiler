@@ -793,6 +793,12 @@ def generate_js(tree, function_imports, class_imports, label, env):
             import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
             code = import_code + code
 
+        for import_type in class_imports:
+            import_values = class_imports[import_type]
+            file = build_import_filename(import_files[import_type])
+            import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
+            code = import_code + code
+
         if len(result['exports']) > 0:
             if len(result['exports']) == 1:
                 code += "\n\nmodule.exports = {\n\t" + result['exports'][0] + "\n};\n"

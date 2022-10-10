@@ -1,3 +1,4 @@
+from concurrent.futures import process
 from transformer import TYPES
 from constants import FUNCTION_IMPORTS, CLASS_IMPORTS
 
@@ -157,12 +158,17 @@ def preprocess(tree):
                 unwrapped = unwrap_statement(item['name'])
                 if isinstance(unwrapped, str):
                     add_import(unwrapped)
+                else:
+                    process_code(unwrapped, env)
             elif item['type'] == TYPES['VARIABLE_ASSIGNMENT']:
                 process_code(item['value'], env)
             elif item['type'] == TYPES['JSX_START_TAG']:
                 add_import("Component")
             elif item['type'] == TYPES['RETURN']:
                 process_code(item['value'], env)
+            elif item['type'] == TYPES["VARIABLE_CHAIN"]:
+                # should only be possible to have an import at the first level
+                add_import(item['chain'][0])
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")

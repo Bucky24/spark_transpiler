@@ -405,5 +405,12 @@ class TestPreprocessor(unittest.TestCase):
             }, 0),
         ])
 
+    def test_import_with_chain(self):
+        tree = parse_statement("Api.post()")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Api']})
+
 if __name__ == "__main__":
     unittest.main()
