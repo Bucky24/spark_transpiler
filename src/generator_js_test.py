@@ -369,28 +369,32 @@ class TestGeneratorJs(unittest.TestCase):
         self.assertEqual(result["frontend"], component_import_code + wrap_frontend("async function foo() {\n    return new Component(\"div\", {\n        \"style\": style\n    }, []);\n}\n\nreturn {\n\tfoo\n};\n", "label"))
         
     def test_multiple_block_closures(self):
-        tree = parse_statement("class Foo\n\tfunction bar()\n\t\tif foo == bar\n\t\t\tfoo = bar\n\nfoo(\n\tfoo\n)\n")
+        tree = parse_statement("class Foo\n    function bar()\n        if foo == bar\n            foo = bar\n\nfoo(\n    foo\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n    async bar() {\n        if (foo == bar) {\n            var foo = bar;\n        }\n    }\n}\nawait foo(\n    foo,\n\n);\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n        if (foo == bar) {\n            let foo = bar;\n        }\n    }\n}\nawait foo(\n    foo\n);\n\nmodule.exports = {\n\tFoo\n};\n"))
 
     def test_value_manipulation(self):
         tree = parse_statement("bar + baz")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("bar + baz;\n"))
 
         tree = parse_statement("bar    -    \"string\"")
         processed = process_tree(tree)
+        preprocessed = preprocess(preprocessed)
         result = generate(processed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("bar - \"string\";\n"))
 
         tree = parse_statement("bar + baz + 'foo'")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("bar + baz + \"foo\";\n"))
 
