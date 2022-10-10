@@ -871,6 +871,13 @@ def generate_code(tree, context = None):
             new_lines.append(line[min_spaces:])
         return "\n".join(new_lines)
 
+    def add_spaces(code, spaces):
+        lines = code.split("\n")
+        new_lines = []
+        for line in lines:
+            new_lines.append(" " * spaces + line)
+        return "\n".join(new_lines)
+
     def add_export(export):
         exports.append(export)
 
@@ -942,6 +949,8 @@ def generate_code(tree, context = None):
             # we can extrapolate the necessary indent for the end } by looking at the opening statement
             end_spaces = count_spaces(opening_statement)
             if child_code != "":
+                child_code = remove_spaces(child_code)
+                child_code = add_spaces(child_code, end_spaces + 4)
                 add_code(opening_statement + "\n" + child_code + "\n" + " "*end_spaces + "}")
             else:
                 add_code(opening_statement + "\n"  + " "*end_spaces + "}")
