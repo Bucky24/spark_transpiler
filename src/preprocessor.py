@@ -85,9 +85,10 @@ def preprocess(tree):
         unwrapped_statement = unwrap_statement(statement)
         log("Processing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
 
-        if current_context is not None:
-            if statement['spaces'] <= current_context['spaces']:
-                pop_context()
+        # if we have a space mismatch, pop context until we right it
+        while current_context is not None and statement['spaces'] <= current_context['spaces']:
+            log("Popping context, got {} <= {}".format(statement['spaces'], current_context['spaces']))
+            pop_context()
 
         if unwrapped_statement['type'] == TYPES['PRAGMA']:
             pragma = unwrapped_statement['pragma']

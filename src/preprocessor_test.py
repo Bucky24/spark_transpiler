@@ -347,5 +347,63 @@ class TestPreprocessor(unittest.TestCase):
         
         self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib': ['Component']})
 
+    def test_multiple_block_closures(self):
+        tree = parse_statement("class Foo\n    function bar()\n        if foo == bar\n            foo = bar\n\nfoo(\n    foo\n)\n")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        
+        self.assertEqual(preprocessed['backend'], [
+            {
+                "type": TYPES["BLOCK"],
+                "statement": statement({
+                    "type": TYPES["CLASS"],
+                    "name": "Foo",
+                    "extends": None,
+                }, 0),
+                "children": [
+                    {
+                        "type": TYPES["BLOCK"],
+                        "statement": statement({
+                            "type": TYPES["FUNCTION"],
+                            "name": "bar",
+                            "params": [],
+                        }, 4),
+                        "children": [
+                            {
+                                "type": TYPES["BLOCK"],
+                                "statement": statement({
+                                    "type": TYPES['IF'],
+                                    "condition": {
+                                        "type": TYPES["CONDITION"],
+                                        "left_hand": statement("foo", 0),
+                                        "condition": "==",
+                                        "right_hand": statement("bar", 0),
+                                    },
+                                }, 8),
+                                "children": [
+                                    statement({
+                                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                                        "name": "foo",
+                                        "value": statement("bar", 0),
+                                    }, 12),
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            statement({
+                "type": TYPES["CALL_FUNC"],
+                "function": {
+                    "type": TYPES["FUNCTION_NAME"],
+                    "name": statement("foo", 0),
+                },
+                "parameters": {
+                    "type": TYPES["FUNCTION_PARAMS"],
+                    "params": [statement("foo", 0)],
+                },
+            }, 0),
+        ])
+
 if __name__ == "__main__":
     unittest.main()
