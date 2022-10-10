@@ -382,35 +382,37 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("bar + baz;\n"))
+        self.assertEqual(result["backend"], _wrap_back("bar + baz;"))
 
         tree = parse_statement("bar    -    \"string\"")
         processed = process_tree(tree)
-        preprocessed = preprocess(preprocessed)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("bar - \"string\";\n"))
+        self.assertEqual(result["backend"], _wrap_back("bar - \"string\";"))
 
         tree = parse_statement("bar + baz + 'foo'")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("bar + baz + \"foo\";\n"))
+        self.assertEqual(result["backend"], _wrap_back("bar + baz + \"foo\";"))
 
     def test_value_manipulation_with_function(self):
         tree = parse_statement("bar + foo(\n\tbaz\n)\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("bar + await foo(\n    baz\n);\n"))
+        self.assertEqual(result["backend"], _wrap_back("bar + await foo(\n    baz\n);"))
 
     def test_one_line_function(self):
         tree = parse_statement("foo = bar()")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = await bar();\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = await bar();"))
 
     def test_imports_with_chain(self):
         tree = parse_statement("Api.post()")

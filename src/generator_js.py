@@ -1101,6 +1101,19 @@ def generate_code(tree, context = None):
                 value_code = value_code[:-1]
 
             add_code("return " + value_code + ";")
+        elif statement['type'] == TYPES["VALUE_MANIPULATION"]:
+            value_code = []
+            for value in statement['values']:
+                if isinstance(value, str):
+                    value_code.append(value)
+                else:
+                    result = generate_code(value, context)
+                    passthrough_context(result)
+                    result_code = result['code']
+                    if result_code[-1] == ";":
+                        result_code = result_code[:-1]
+                    value_code.append(result_code)
+            add_code(" ".join(value_code) + ";")
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
