@@ -425,17 +425,19 @@ class TestGeneratorJs(unittest.TestCase):
     def test_function_call_and_platform(self):
         tree = parse_statement("foo()\n#frontend\nfoo()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("await foo();\n"))
-        self.assertEqual(result["frontend"], wrap_frontend("await foo();\n"))
+        self.assertEqual(result["backend"], _wrap_back("await foo();"))
+        self.assertEqual(result["frontend"], wrap_frontend("await foo();", "label"))
       
     def test_else(self):
         tree = parse_statement("if foo == true\nelse\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("if (foo == true) {\n}\nelse {\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("if (foo == true) {\n}\nelse {\n}"))
         
     def test_pragma(self):
         tree = parse_statement("#foo bar\n")

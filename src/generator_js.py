@@ -1120,6 +1120,8 @@ def generate_code(tree, context = None):
                         result_code = result_code[:-1]
                     value_code.append(result_code)
             add_code(" ".join(value_code) + ";")
+        elif statement['type'] == TYPES["ELSE"]:
+            add_code ("else {")
         else:
             raise Exception("Generation: don't know how to handle " + statement['type'])
     if len(code_lines) == 1:
