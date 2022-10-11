@@ -951,7 +951,9 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
             value = value.lstrip()
-            name = generate_code(statement['name'], context)['code']
+            name = statement['name']
+            if isinstance(name, dict):
+                name = generate_code(statement['name'], context)['code']
             code = ""
             if value[-1] == ";":
                 # we handle the semicolon ourselves
