@@ -1077,6 +1077,8 @@ def generate_code(tree, context = None):
                 child_code = generate_code(child, new_context)['code']
                 child_code = remove_spaces(child_code)
                 child_code = indent_code(child_code, 4)
+                if child_code[-1] == ";":
+                    child_code = child_code[:-1]
                 all_child_codes.append(child_code)
             final_child_code = ",\n".join(all_child_codes)
             add_code("[\n" + final_child_code + "\n]")
@@ -1086,8 +1088,11 @@ def generate_code(tree, context = None):
                 child_code = generate_code(child, context)['code']
                 child_code = indent_code(child_code.lstrip(), 4)
                 all_child_codes.append(child_code)
-            final_child_code = ",\n".join(all_child_codes)
-            add_code("{\n" + final_child_code + "\n}")
+            if len(all_child_codes) == 0:
+                add_code("{};")
+            else:
+                final_child_code = ",\n".join(all_child_codes)
+                add_code("{\n" + final_child_code + "\n};")
         elif statement['type'] == TYPES["MAP_ROW"]:
             value_code = generate_code(statement['value'], context)['code']
             add_code("\"" + statement['key'] + "\": " + value_code.lstrip())

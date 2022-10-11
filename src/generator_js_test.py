@@ -472,9 +472,10 @@ class TestGeneratorJs(unittest.TestCase):
     def test_map_one_line(self):
         tree = parse_statement("{}")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("{};\n"))
+        self.assertEqual(result["backend"], _wrap_back("{};"))
 
     def test_export_functions_classes_backend(self):
         tree = parse_statement("function foo()\n")
