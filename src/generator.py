@@ -44,6 +44,10 @@ def generate(transformed, lang, label="label"):
             "imports": {
                 "frontend": frontend_result["imports"],
                 "backend": backend_result["imports"],
+            },
+            "classes": {
+                "frontend": frontend_result["classes"],
+                "backend": backend_result["classes"],
             }
         }
         return result

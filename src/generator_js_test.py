@@ -480,28 +480,32 @@ class TestGeneratorJs(unittest.TestCase):
     def test_export_functions_classes_backend(self):
         tree = parse_statement("function foo()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("async function foo() {\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
 
         tree = parse_statement("function()")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async () => {\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("async () => {\n}"))
 
         tree = parse_statement("class Foo\n\tfunction bar()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n    async bar() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
 
         tree = parse_statement("class Foo\nfunction bar()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         code = result["code"]
         classes = result["classes"]
-        self.assertEqual(code["backend"], _wrap_back("class Foo {\n}\nasync function bar() {\n}\n\nmodule.exports = {\n\tbar,\n\tFoo\n};\n"))
+        self.assertEqual(code["backend"], _wrap_back("class Foo {\n" + class_creation_code + "}\nasync function bar() {\n}\n\nmodule.exports = {\n\tFoo,\n\tbar\n};\n"))
         self.assertEqual(classes["backend"], ["Foo"])
 
     def test_export_functions_classes_frontend(self):
