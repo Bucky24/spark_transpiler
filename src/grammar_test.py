@@ -1174,5 +1174,54 @@ if foo == \"bar\"
             ]),
         ]))
 
+    def test_function_and_jsx(self):
+        tree = parse_statement("<input\n\tonChange={function(event)\n\t\tfoo()}\n\tvalue=\"bar\"\n/>")
+
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("jsx_tag_start", [
+                    Token("TAG_NAME", "input"),
+                    Tree("statement", [
+                        Tree("jsx_attribute", [
+                            Tree("variable", [Token("VARIABLE_NAME", "onChange")]),
+                            Tree("statement", [
+                                Tree("function_definition", [
+                                    Tree("param", [
+                                        Tree("variable", [Token("VARIABLE_NAME", "event")]),
+                                    ]),
+                                ]),
+                            ]),
+                            Tree("statement", [
+                                Tree("spaces", [Token("TAB", "\t")]),
+                                Tree("spaces", [Token("TAB", "\t")]),
+                                Tree("call_function", [
+                                    Tree("function_name", [
+                                        Tree("statement", [
+                                            Tree("spaces", [Token("TAB", "\t")]),
+                                            Tree("spaces", [Token("TAB", "\t")]),
+                                            Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                                        ]),
+                                    ]),
+                                    Tree("function_params", [])
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("statement", [
+                        Tree("jsx_attribute", [
+                            Tree("variable", [Token("VARIABLE_NAME", "value")]),
+                            Tree("statement", [
+                                Tree("string", [Token("STRING_CONTENTS_DOUBLE", "bar")]),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("statement", [
+                        Tree("jsx_tag_end", []),
+                    ]),
+                    Token("TAG_SELF_CLOSE", "/"),
+                ]),
+            ]),
+        ]))
+
 if __name__ == "__main__":
     unittest.main()

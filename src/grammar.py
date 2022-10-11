@@ -878,12 +878,13 @@ def process_tokens(tokens):
                     if not current_context['end_tag']:
                         current_context['self_close'] = True
                         continue
-                elif token == "\n" or token == " ":
+                elif token == "\n" or token == " " or token == "\t":
                     append_context_stack()
                     current_context = copy_context({
                         "type": JSX_ATTRIBUTE,
                         "attr": None,
-                        "fetching_value": False
+                        "fetching_value": False,
+                        "bracket": False,
                     })
                     continue
             elif substate == JSX_CHILDREN:
@@ -904,6 +905,7 @@ def process_tokens(tokens):
                     append_context_stack()
                     continue
             elif token == "{":
+                current_context['bracket'] = True
                 append_context_stack()
                 continue
             elif token == "}":
@@ -914,8 +916,12 @@ def process_tokens(tokens):
                 if not current_context['fetching_value']:
                     continue
             elif token == "\n":
-                current_context = pop_context()
-                continue
+                if not current_context['bracket']:
+                    current_context = pop_context()
+                    continue
+                else:
+                    append_context_stack()
+                    continue
             elif token == "/" or token == ">":
                 tokens.insert(0, token)
                 current_context = pop_context()
