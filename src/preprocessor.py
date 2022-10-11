@@ -47,7 +47,7 @@ def preprocess(tree):
         }
 
     def switch_env(new_env):
-        nonlocal active
+        nonlocal active, env
         pop_all_context()
         env = new_env
         log("changing env to " + env)
@@ -82,6 +82,20 @@ def preprocess(tree):
         while current_context is not None:
             pop_context()
 
+    custom_imports = {
+        "frontend": {},
+        "backend": {},
+    }
+
+    def add_custom_import(class_name, value):
+        existing_list = custom_imports[env]
+        if class_name not in existing_list:
+            existing_list[class_name] = []
+
+        if value not in existing_list[class_name]:
+            log("Adding custom import {} => {}".format(class_name, value))
+            existing_list[class_name].append(value)
+
     for statement in tree:
         unwrapped_statement = unwrap_statement(statement)
         log("Processing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
@@ -96,8 +110,10 @@ def preprocess(tree):
             if pragma == 'frontend' or pragma == "backend":
                 switch_env(pragma)
             else:
-                # if it's not an env pragma, handle it later
-                append_statement(statement)
+                if "value" in unwrapped_statement:
+                    add_custom_import(unwrapped_statement['pragma'], unwrapped_statement['value'])
+                else:
+                    add_custom_import(unwrapped_statement['pragma'], "*")
         elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION'], TYPES['CLASS'], TYPES["ELSE"]):
             append_context(statement)
         else:
@@ -110,10 +126,6 @@ def preprocess(tree):
         "backend": {},
     }
     class_imports = {
-        "frontend": {},
-        "backend": {},
-    }
-    custom_imports = {
         "frontend": {},
         "backend": {},
     }
@@ -149,14 +161,6 @@ def preprocess(tree):
 
             if class_name not in existing_list[new_import]:
                 existing_list[new_import].append(class_name)
-
-        def add_custom_import(class_name, value):
-            existing_list = custom_imports[env]
-            if class_name not in existing_list:
-                existing_list[class_name] = []
-
-            if value not in existing_list[class_name]:
-                existing_list[class_name].append(value)
         
         for item in code:
             log("Import processing: " + item['type'])
@@ -184,11 +188,6 @@ def preprocess(tree):
             elif item['type'] == TYPES["VARIABLE_CHAIN"]:
                 # should only be possible to have an import at the first level
                 add_import(item['chain'][0])
-            elif item['type'] == TYPES["PRAGMA"]:
-                if "value" in item:
-                    add_custom_import(item['pragma'], item['value'])
-                else:
-                    add_custom_import(item['pragma'], "*")
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")

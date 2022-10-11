@@ -425,5 +425,17 @@ class TestPreprocessor(unittest.TestCase):
 
         self.assertEqual(preprocessed['custom_imports_backend'], {"foo": ["*"]})
 
+        tree = parse_statement("#frontend\n#foo bar\n")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['custom_imports_frontend'], {"foo": ["bar"]})
+
+        tree = parse_statement("#frontend\n#foo\n")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['custom_imports_frontend'], {"foo": ["*"]})
+
 if __name__ == "__main__":
     unittest.main()
