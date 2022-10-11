@@ -23,6 +23,7 @@ def generate(transformed, lang, label="label"):
             transformed['frontend'],
             transformed["frontend_function_imports"],
             transformed['frontend_class_imports'],
+            transformed['custom_imports_frontend'],
             label,
             "frontend",
         )
@@ -30,6 +31,7 @@ def generate(transformed, lang, label="label"):
             transformed['backend'],
             transformed["backend_function_imports"],
             transformed['backend_class_imports'],
+            transformed['custom_imports_backend'],
             label,
             "backend",
         )

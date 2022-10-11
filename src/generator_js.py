@@ -750,7 +750,7 @@ def generate_external_exports(exports):
     return json.dumps(package_json, indent=4), "package.json", "npm install"
 """
 
-def generate_js(tree, function_imports, class_imports, label, env):
+def generate_js(tree, function_imports, class_imports, custom_imports, label, env):
     if len(tree) == 0:
         return {
             "code": None,
@@ -799,6 +799,14 @@ def generate_js(tree, function_imports, class_imports, label, env):
             import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
             code = import_code + code
 
+        for import_type in custom_imports:
+            import_values = custom_imports[import_type]
+            if len(import_values) == 1 and import_values[0] == "*":
+                import_code = "const " + import_type + " = require(\"" + import_type + ".js\");\n\n"
+            else:
+                import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"" + import_type + ".js\");\n\n"
+            code = import_code + code
+
         if len(result['exports']) > 0:
             if len(result['exports']) == 1:
                 code += "\n\nmodule.exports = {\n\t" + result['exports'][0] + "\n};\n"
@@ -807,6 +815,15 @@ def generate_js(tree, function_imports, class_imports, label, env):
         code = wrap_backend(code)
     elif env == "frontend":
         code = result['code']
+
+        for import_type in custom_imports:
+            import_values = custom_imports[import_type]
+            if len(import_values) == 1 and import_values[0] == "*":
+                import_code = "const " + import_type + " = await getModule(\"" + import_type + "\");\n\n"
+            else:
+                import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = await getModule(\"" + import_type + "\");\n\n"
+            code = import_code + code
+
         if len(result['exports']) > 0:
             code += "\n\nreturn {\n"
             if len(result['exports']) == 1:

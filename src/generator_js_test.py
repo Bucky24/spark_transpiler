@@ -439,28 +439,35 @@ class TestGeneratorJs(unittest.TestCase):
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("if (foo == true) {\n}\nelse {\n}"))
         
-    def test_pragma(self):
-        tree = parse_statement("#foo bar\n")
+    def test_pragma_backend(self):
+        tree = parse_statement("#foo bar\nfoo = bar")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
-        pragmas = output["pragmas"]
-        self.assertEqual(pragmas["backend"], [
-            {
-                "type": "foo",
-                "value": "bar",
-            },
-        ])
-        tree = parse_statement("#foo\n")
+        self.assertEqual(result["backend"], _wrap_back("const {\n    bar\n} = require(\"foo.js\");\n\nlet foo = bar;"))
+
+        tree = parse_statement("#foo\nfoo = bar")
         processed = process_tree(tree)
-        output = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
         result = output["code"]
-        pragmas = output["pragmas"]
-        self.assertEqual(pragmas["backend"], [
-            {
-                "type": "foo",
-            },
-        ])
+        self.assertEqual(result["backend"], _wrap_back("const foo = require(\"foo.js\");\n\nlet foo = bar;"))
+
+    def test_pragma_frontend(self):
+        tree = parse_statement("#frontend\n#foo bar\nfoo = bar")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
+        result = output["code"]
+        self.assertEqual(result["frontend"], wrap_frontend("const {\n    bar\n} = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
+
+        tree = parse_statement("#frontend\n#foo\nfoo = bar")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        output = generate(preprocessed, "js")
+        result = output["code"]
+        self.assertEqual(result["frontend"], wrap_frontend("const foo = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
 
     def test_map_one_line(self):
         tree = parse_statement("{}")
