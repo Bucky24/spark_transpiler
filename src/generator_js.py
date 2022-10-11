@@ -830,7 +830,7 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
             if len(result['exports']) == 1:
                 code += "\t" + result['exports'][0] + "\n};\n"
             else:
-                code += "\n\t".join(result['exports']) + "};\n"
+                code += "\t" + ",\n\t".join(result['exports']) + "\n};\n"
         code = wrap_frontend(code, label)
 
         for import_type in function_imports:

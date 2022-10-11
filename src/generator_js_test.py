@@ -511,28 +511,32 @@ class TestGeneratorJs(unittest.TestCase):
     def test_export_functions_classes_frontend(self):
         tree = parse_statement("#frontend\nfunction foo()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("async function foo() {\n}\n\nreturn {\n\tfoo\n};\n"))
+        self.assertEqual(result["frontend"], wrap_frontend("async function foo() {\n}\n\nreturn {\n\tfoo\n};\n", "label"))
 
         tree = parse_statement("#frontend\nfunction()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("async () => {\n}\n"))
+        self.assertEqual(result["frontend"], wrap_frontend("async () => {\n}", "label"))
 
         tree = parse_statement("#frontend\nclass Foo\n\tfunction bar()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("class Foo {\n    async bar() {\n    }\n}\n\nreturn {\n\tFoo\n};\n"))
+        self.assertEqual(result["frontend"], wrap_frontend("class Foo {\n" + class_creation_code + "    async bar() {\n    }\n}\n\nreturn {\n\tFoo\n};\n", "label"))
 
         tree = parse_statement("#frontend\nclass Foo\nfunction bar()\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         code = result["code"]
         classes = result["classes"]
-        self.assertEqual(code["frontend"], wrap_frontend("class Foo {\n}\nasync function bar() {\n}\n\nreturn {\n\tbar,\n\tFoo\n};\n"))
+        self.assertEqual(code["frontend"], wrap_frontend("class Foo {\n" + class_creation_code + "}\nasync function bar() {\n}\n\nreturn {\n\tFoo,\n\tbar\n};\n", "label"))
         self.assertEqual(classes["frontend"], ["Foo"])
 
     def test_labels(self):
