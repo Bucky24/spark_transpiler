@@ -951,14 +951,16 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
             value = value.lstrip()
+            name = generate_code(statement['name'], context)['code']
             code = ""
             if value[-1] == ";":
                 # we handle the semicolon ourselves
                 value = value[:-1]
-            if statement['name'] not in context['generated_variables']:
+            # dot cannot be a generated variable
+            if name not in context['generated_variables'] and "." not in name:
                 code += "let "
-                context['generated_variables'].append(statement['name'])
-            code += statement['name'] + " = " + value + ";"
+                context['generated_variables'].append(name)
+            code += name + " = " + value + ";"
             add_code(code)
         elif statement['type'] == TYPES['INCREMENT']:
             add_code(statement['variable'] + "++")
