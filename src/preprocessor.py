@@ -95,6 +95,9 @@ def preprocess(tree):
             pragma = unwrapped_statement['pragma']
             if pragma == 'frontend' or pragma == "backend":
                 switch_env(pragma)
+            else:
+                # if it's not an env pragma, handle it later
+                append_statement(statement)
         elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION'], TYPES['CLASS'], TYPES["ELSE"]):
             append_context(statement)
         else:
@@ -107,6 +110,10 @@ def preprocess(tree):
         "backend": {},
     }
     class_imports = {
+        "frontend": {},
+        "backend": {},
+    }
+    custom_imports = {
         "frontend": {},
         "backend": {},
     }
@@ -142,6 +149,14 @@ def preprocess(tree):
 
             if class_name not in existing_list[new_import]:
                 existing_list[new_import].append(class_name)
+
+        def add_custom_import(class_name, value):
+            existing_list = custom_imports[env]
+            if class_name not in existing_list:
+                existing_list[class_name] = []
+
+            if value not in existing_list[class_name]:
+                existing_list[class_name].append(value)
         
         for item in code:
             log("Import processing: " + item['type'])
@@ -169,6 +184,11 @@ def preprocess(tree):
             elif item['type'] == TYPES["VARIABLE_CHAIN"]:
                 # should only be possible to have an import at the first level
                 add_import(item['chain'][0])
+            elif item['type'] == TYPES["PRAGMA"]:
+                if "value" in item:
+                    add_custom_import(item['pragma'], item['value'])
+                else:
+                    add_custom_import(item['pragma'], "*")
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")
@@ -180,4 +200,6 @@ def preprocess(tree):
         "backend_function_imports": imports['backend'],
         "frontend_class_imports": class_imports['frontend'],
         "backend_class_imports": class_imports['backend'],
+        "custom_imports_frontend": custom_imports['frontend'],
+        "custom_imports_backend": custom_imports['backend'],
     }
