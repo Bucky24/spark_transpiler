@@ -3,7 +3,7 @@ from transformer import TYPES
 from constants import FUNCTION_IMPORTS, CLASS_IMPORTS
 
 # turn to true for debug logs
-LOG = False
+LOG = True
 
 def log(str):
     if LOG:
@@ -24,68 +24,24 @@ def preprocess(tree):
     active = backend
     env = "backend"
 
-    context_list = []
+    custom_imports = {
+        "frontend": {},
+        "backend": {},
+    }
+
     current_context = None
 
     def append_statement(statement):
-        if current_context is None:
-            active.append(statement)
-        else:
-            log("Appending " + statement['type'] + " to context for env " + env)
-            current_context['children'].append(statement)
-
-    def append_context(statement):
-        nonlocal current_context
-
-        if current_context is not None:
-            context_list.append(current_context)
-        
-        current_context = {
-            "statement": statement,
-            "spaces": statement["spaces"],
-            "children": [],
-        }
+        active.append(statement)
 
     def switch_env(new_env):
         nonlocal active, env
-        pop_all_context()
         env = new_env
         log("changing env to " + env)
         if env == "frontend":
             active = frontend
         elif env == "backend":
             active = backend
-
-    def pop_context():
-        nonlocal current_context
-        
-        log("popping context")
-
-        new_statement = None
-
-        if current_context is not None:
-            new_statement = {
-                "type": TYPES['BLOCK'],
-                "statement": current_context['statement'],
-                "children": current_context['children'],
-            }
-
-        if len(context_list) == 0:
-            current_context = None
-        else:
-            current_context = context_list.pop()
-
-        if new_statement:
-            append_statement(new_statement)
-
-    def pop_all_context():
-        while current_context is not None:
-            pop_context()
-
-    custom_imports = {
-        "frontend": {},
-        "backend": {},
-    }
 
     def add_custom_import(class_name, value):
         existing_list = custom_imports[env]
@@ -96,14 +52,10 @@ def preprocess(tree):
             log("Adding custom import {} => {}".format(class_name, value))
             existing_list[class_name].append(value)
 
+    # first split on frontend/backend and get custom imports out
     for statement in tree:
         unwrapped_statement = unwrap_statement(statement)
-        log("Processing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
-
-        # if we have a space mismatch, pop context until we right it
-        while current_context is not None and statement['spaces'] <= current_context['spaces']:
-            log("Popping context, got {} <= {}".format(statement['spaces'], current_context['spaces']))
-            pop_context()
+        log("Environment splitter processing " + unwrapped_statement['type'])
 
         if unwrapped_statement['type'] == TYPES['PRAGMA']:
             pragma = unwrapped_statement['pragma']
@@ -114,11 +66,26 @@ def preprocess(tree):
                     add_custom_import(unwrapped_statement['pragma'], unwrapped_statement['value'])
                 else:
                     add_custom_import(unwrapped_statement['pragma'], "*")
-        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION'], TYPES['CLASS'], TYPES["ELSE"]):
-            append_context(statement)
-        else:
-            append_statement(statement)
-    pop_all_context()
+
+    # next started nesting statements by identation
+    context_stack = []
+
+    def append_statement_context()
+
+    def bundle_code(tree):
+        if not isinstance(tree, list):
+            tree = [tree]
+
+        for statement in tree:
+            log("Processing " + statement['type'])
+
+            if statement['type'] == TYPES["STATEMENT"]:
+
+        return tree
+
+
+    frontend = bundle_code(frontend)
+    backend = bundle_code(backend)
 
     # now that we have them all in nice groups, let's figure out what imports we need
     imports = {
@@ -183,11 +150,14 @@ def preprocess(tree):
                 process_code(item['value'], env)
             elif item['type'] == TYPES['JSX_START_TAG']:
                 add_import("Component")
+                process_code(item['attributes'], env)
             elif item['type'] == TYPES['RETURN']:
                 process_code(item['value'], env)
             elif item['type'] == TYPES["VARIABLE_CHAIN"]:
                 # should only be possible to have an import at the first level
                 add_import(item['chain'][0])
+            elif item['type'] == TYPES['JSX_ATTRIBUTE']:
+                process_code(item['right_hand'], env)
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")

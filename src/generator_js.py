@@ -1123,6 +1123,7 @@ def generate_code(tree, context = None):
             code += "]);"
             add_code(code)
         elif statement['type'] == TYPES['JSX_ATTRIBUTE']:
+            print(statement)
             right_hand_code = generate_code(statement['right_hand'], context)['code']
             right_hand_code = remove_spaces(right_hand_code)
             add_code("\"" + statement['name'] + "\": " + right_hand_code)

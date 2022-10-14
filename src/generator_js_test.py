@@ -602,7 +602,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("new Component(\"input\", {\n    onChange: async (event) => {\n        await foo();\n    },\n    value: \"bar\",\n\n}, []);\n"))
+        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"input\", {\n    \"onChange\": async (event) => {\n        await foo();\n    },\n    \"value\": \"bar\"\n}, []);", "label"))
 
         tree = parse_statement("foo = {\n\tonChange: function(event)\n\t\tfoo()\n\tvalue: \"bar\"\n")
         processed = process_tree(tree)

@@ -437,5 +437,12 @@ class TestPreprocessor(unittest.TestCase):
 
         self.assertEqual(preprocessed['custom_imports_frontend'], {"foo": ["*"]})
 
+    def test_jsx_attribute_nesting(self):
+        tree = parse_statement("<input\n\tonChange={function(event)\n\t\tfoo()}\n\tvalue=\"bar\"\n/>")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        print(preprocessed['backend'])
+
 if __name__ == "__main__":
     unittest.main()

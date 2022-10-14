@@ -306,7 +306,7 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES['JSX_ATTRIBUTE'],
             "name": name,
-            "right_hand": values[1],
+            "right_hand": values[1:],
         }
 
     def TAG_NAME(self, value):
