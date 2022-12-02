@@ -398,7 +398,7 @@ class bar
                     statement({
                         "type": TYPES["JSX_ATTRIBUTE"],
                         "name": "foo",
-                        "right_hand": [statement("\"bar\"", 0)],
+                        "right_hand": statement("\"bar\"", 0),
                     }, 0),
                 ],
                 "children": [],
@@ -560,49 +560,6 @@ class bar
                 "type": TYPES["VARIABLE_ASSIGNMENT"],
                 "name": "foo",
                 "value": statement("true", 0),
-            }, 0),
-        ])
-
-    def test_jsx_attribute_nesting(self):
-        tree = parse_statement("<input\n\tonChange={function(event)\n\t\tfoo()}\n\tvalue=\"bar\"\n/>")
-        processed = process_tree(tree)
-        self.assertEqual(processed, [
-            statement({
-                "type": TYPES["JSX_START_TAG"],
-                "tag": "input",
-                "self_closes": True,
-                "attributes": [
-                    statement({
-                        "type": TYPES["JSX_ATTRIBUTE"],
-                        "name": "onChange",
-                        "right_hand": [
-                            statement({
-                                "type": TYPES["FUNCTION"],
-                                "name": None,
-                                "params": ["event"],
-                            }, 0),
-                            statement({
-                                "type": TYPES["CALL_FUNC"],
-                                "function": {
-                                    "type": TYPES["FUNCTION_NAME"],
-                                    "name": statement("foo", 8),
-                                },
-                                "parameters": {
-                                    "type": TYPES["FUNCTION_PARAMS"],
-                                    "params": [],
-                                },
-                            }, 8)
-                        ],
-                    }, 0),
-                    statement({
-                        "type": TYPES["JSX_ATTRIBUTE"],
-                        "name": "value",
-                        "right_hand": [
-                            statement('"bar"', 0),
-                        ],
-                    }, 0),
-                ],
-                "children": [],
             }, 0),
         ])
         
