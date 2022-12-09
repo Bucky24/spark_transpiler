@@ -227,22 +227,6 @@ def process_statement(statement):
     trees = build_tree(statements)
     return Tree("start", [Tree("statements", trees)])
 
-    """statements = []
-    
-    while len(tokens) > 0:
-        result = process_tokens(tokens)
-        tokens = result['tokens']
-        log("done processing statements! Tokens left? {}".format(tokens))
-        if result['statement'] is not None:
-            statements += result['statement']
-
-        if 'raw' in result.keys():
-            statements += result['raw']
-        
-    log(statements)
-    
-    return Tree("start", [Tree("statements", statements)])"""
-
 def process_tokens(tokens):
     context_stack = []
     current_context = {
@@ -690,8 +674,7 @@ def process_tokens(tokens):
                 current_context['children'] = []
                 continue
             elif token == "\n":
-                tokens.insert(0, token)
-                current_context = pop_context()
+                append_context_stack(True)
                 continue
             else:
                 tokens.insert(0, token)
@@ -1109,16 +1092,18 @@ def build_tree(statements):
             # if we got here it's clearly a variable
             add_result(statement, Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]))
         elif statement['type'] == FOR_STATEMENT:
+            nested = build_nested(statement)
             if "params" in statement:
                 all_params = []
                 for param in statement['params']:
                     all_params += build_tree(param)
                 all_params += build_tree(statement['children'])
 
-                add_result(statement, Tree('for_stat', [Tree('for_statement', all_params)]))
+                add_result(statement, Tree('for_stat', [Tree('for_statement', all_params), nested]))
             else:
                 children = build_tree(statement['children'])
                 children = unwrap_statements(children)
+                children.append(nested)
                 add_result(statement, Tree('for_stat', children))
         elif statement['type'] == FOR_AS:
             final_children = [
