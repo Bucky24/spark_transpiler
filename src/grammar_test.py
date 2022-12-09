@@ -1136,9 +1136,9 @@ if foo == \"bar\"
                             ]),
                         ]),
                     ]),
+                    Tree("nested", []),
                 ]),
             ]),
-            Token("NEWLINE", "\n"),
             Tree("statement", [
                 Tree("else_stat", []),
             ]),

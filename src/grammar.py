@@ -632,10 +632,10 @@ def process_tokens(tokens):
                 continue
         elif current_context['type'] == VARIABLE_ADD_OR_INCREMENT:
             if token == "+":
-                current_context = {
+                current_context = copy_context({
                     "type": VARIABLE_INCREMENT,
                     "variable": current_context['variable'],
-                }
+                })
                 current_context = pop_context()
                 continue
             else:
