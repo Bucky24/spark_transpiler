@@ -249,6 +249,7 @@ def process_tokens(tokens):
         "type": START,
         "spaces": 0,
         "tabs": 0,
+        "nested": 0,
     }
 
     statements = []
@@ -256,9 +257,11 @@ def process_tokens(tokens):
     line = 1
 
     def pop_context(newline=False):
+        nonlocal current_context, line
         # if we have no context, then nothing to do
         if current_context['type'] == START:
             if newline:
+                log("Appending a newline to statements")
                 # if we have a newline we still want to insert it
                 statements.append({"type": NEWLINE})
             if len(context_stack) > 0:
@@ -269,25 +272,52 @@ def process_tokens(tokens):
                 "type": START,
                 "spaces": 0,
                 "tabs": 0,
+                "nested": 0,
             }
 
         log("popping context " + str(len(context_stack)))
         # if we have no stack, then this is a top level statement so we just add
         # it to the list and reset the context
         if len(context_stack) == 0:
+            log("Adding {} to statements".format(current_context['type']))
             statements.append(current_context)
             if newline:
+                log("Appending a newline to statements")
                 # top level statements care about newlines
                 statements.append({"type": NEWLINE})
             return {
                 "type": START,
                 "spaces": 0,
                 "tabs": 0,
+                "nested": 0,
             }
+        ###### TODO #########
         parent = context_stack.pop()
-        if "children" not in parent:
-            parent["children"] = []
-        parent["children"].append(current_context)
+        if current_context['nested'] is not None:
+            # start always owns everything
+            parent_tabs = current_context['tabs'] > parent['tabs']
+            parent_spaces = current_context['spaces'] > parent['spaces']
+            if parent_tabs or parent_spaces or parent['type'] == START:
+                log("Adding to nested parent ({}) tabs {} parent {}".format(parent['type'], current_context['tabs'], parent['tabs']))
+                if "nested_children" not in parent:
+                    parent['nested_children'] = []
+                parent['nested_children'].append(current_context)
+            else:
+                log("Context is not nested tabs {} parent {} of type {}".format(current_context['tabs'], parent['tabs'], parent['type']))
+                # in this case we can assume the parent is done as well since we've found something not nested in it
+                backup_context = current_context
+                current_context = parent
+                new_parent = pop_context()
+                # this current context belongs on this parent as well. So push it back on the stack and re-pop our current context
+                # but only if it's not the start, if it's start, then don't append
+                if new_parent['type'] != START:
+                    context_stack.append(new_parent)
+                current_context = backup_context
+                return pop_context()
+        else:
+            if "children" not in parent:
+                parent["children"] = []
+            parent["children"].append(current_context)
         return parent
 
     def pop_all_contexts():
@@ -295,7 +325,8 @@ def process_tokens(tokens):
         if current_context['type'] == START:
             # the only place it can go to None
             current_context = {
-                "type": END
+                "type": END,
+                "nested": None,
             }
         while len(context_stack) > 0:
             current_context = pop_context()
@@ -306,6 +337,7 @@ def process_tokens(tokens):
         new_context.update({
             "spaces": current_context['spaces'],
             "tabs": current_context['tabs'],
+            "nested": current_context['nested'] if "nested" in current_context else False,
         })
         return new_context
 
@@ -315,14 +347,15 @@ def process_tokens(tokens):
         new_context['tabs'] = 0
         return new_context
 
-    def append_context_stack():
+    def append_context_stack(getting_nested = False):
         nonlocal current_context
-        log("Appending context " + current_context['type'])
+        log("Appending context " + current_context['type'] + " nested? " + str(getting_nested))
         context_stack.append(current_context)
         current_context = {
             "type": START,
             "spaces": 0,
             "tabs": 0,
+            "nested": current_context['tabs'] if getting_nested else None,
         }
 
     for token in tokens:
@@ -379,6 +412,7 @@ def process_tokens(tokens):
                 continue
             elif token == "\n":
                 if parent_state is None:
+                    log("Adding a newline from state machine")
                     statements.append({
                         "type": NEWLINE,
                     })
@@ -553,7 +587,8 @@ def process_tokens(tokens):
             if token == " ":
                 continue
             elif token in END_STATS:
-                current_context = pop_context(True)
+                tokens.insert(0, token)
+                current_context = pop_context()
                 continue
             elif token == "=":
                 current_context = copy_context({
@@ -625,8 +660,7 @@ def process_tokens(tokens):
             if token == " ":
                 continue
             elif token in END_STATS:
-                tokens.insert(0, token)
-                current_context = pop_context()
+                append_context_stack(True)
                 continue
             else:
                 # handle condition, pushing token back onto the stack
@@ -829,6 +863,7 @@ def process_tokens(tokens):
                         "tabs": 0,
                         "have_colon": False,
                         "processed": False,
+                        "nested": None,
                     }
                     continue
         elif state == MAP_LINE:
@@ -1018,6 +1053,15 @@ def build_tree(statements):
     def add_result(statement, result):
         tree_children.append(wrap_statement(statement, result))
 
+    def build_nested(statement):
+        nested_children = []
+
+        if "nested_children" in statement:
+            for child in statement['nested_children']:
+                nested_children.append(build_tree([child])[0])
+
+        return Tree("nested", nested_children)
+
     for statement in statements:
         if statement['type'] == END:
             # noop
@@ -1052,7 +1096,9 @@ def build_tree(statements):
             condition_children = unwrap_statement(condition)
             condition = condition_children[0]
 
-            add_result(statement, Tree('if_stat', [condition]))
+            nested = build_nested(statement)
+
+            add_result(statement, Tree('if_stat', [condition, nested]))
         elif statement['type'] == VARIABLE_EQUALITY:
             left_hand_trees = build_tree(statement['left_hand'])
             children = build_tree(statement['children'])

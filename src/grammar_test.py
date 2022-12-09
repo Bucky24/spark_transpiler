@@ -155,6 +155,7 @@ class TestGrammar(unittest.TestCase):
                                 Tree("variable", [Token('VARIABLE_NAME', 'bar')]),
                             ]),
                         ]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -184,6 +185,44 @@ class TestGrammar(unittest.TestCase):
             result.children[0].children[0].children[0].children[0].children[1],
             Token('EQUALITY', '!='),
         )
+
+        result = parse_statement("if foo == \"bar\"\n\tbar = foo\nfoo = bar")
+        self.assertEqual(result, Tree('start', [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("if_stat", [
+                        Tree("condition", [
+                            Tree("statement", [
+                                Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                            ]),
+                            Token("EQUALITY", "=="),
+                            Tree("statement", [
+                                Tree("string", [Token("STRING_CONTENTS_DOUBLE", "bar")]),
+                            ]),
+                        ]),
+                        Tree("nested", [
+                            Tree("statement", [
+                                Tree("spaces", [Token("TAB", "\t")]),
+                                Tree("variable_assignment", [
+                                    Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                                    Tree("statement", [
+                                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
 
         # fixing a complex little bug where the system was treating "if" as a variable name
         # only if there were statements before it
@@ -217,26 +256,26 @@ if foo == \"bar\"
                                 Tree("string", [Token('STRING_CONTENTS_DOUBLE', 'bar')]),
                             ]),
                         ]),
-                    ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("SPACE", " ")]),
-                    Tree("spaces", [Token("SPACE", " ")]),
-                    Tree("spaces", [Token("SPACE", " ")]),
-                    Tree("spaces", [Token("SPACE", " ")]),
-                    Tree("variable_assignment", [
-                        Tree("variable", [
-                            Token("VARIABLE_NAME", "bar"),
-                        ]),
-                        Tree("statement", [
-                            Tree("variable", [
-                                Token("VARIABLE_NAME", "foo"),
+                        Tree("nested", [
+                            Tree("statement", [
+                                Tree("spaces", [Token("SPACE", " ")]),
+                                Tree("spaces", [Token("SPACE", " ")]),
+                                Tree("spaces", [Token("SPACE", " ")]),
+                                Tree("spaces", [Token("SPACE", " ")]),
+                                Tree("variable_assignment", [
+                                    Tree("variable", [
+                                        Token("VARIABLE_NAME", "bar"),
+                                    ]),
+                                    Tree("statement", [
+                                        Tree("variable", [
+                                            Token("VARIABLE_NAME", "foo"),
+                                        ]),
+                                    ]),
+                                ]),
                             ]),
-                        ]),
+                        ])
                     ]),
                 ]),
-                Token("NEWLINE", "\n"),
             ]),
         ]))
 
