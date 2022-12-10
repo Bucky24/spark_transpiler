@@ -120,34 +120,30 @@ class TestPreprocessor(unittest.TestCase):
         preprocessed = preprocess(processed)
 
         self.assertEqual(preprocessed['backend'], [
-            block(
-                statement({
-                    "type": TYPES['FOR_OF'],
-                    "variable": "a",
-                    "value": "b",
-                }, 0),
-                [
-                    block(
-                        statement({
-                            "type": TYPES['FOR_OF'],
-                            "variable": "b",
-                            "value": "a",
-                        }, 4),
-                        [
+            statement({
+                "type": TYPES['FOR_OF'],
+                "variable": "a",
+                "value": "b",
+                "nested": [
+                    statement({
+                        "type": TYPES['FOR_OF'],
+                        "variable": "b",
+                        "value": "a",
+                        "nested": [
                             statement({
                                 "type": TYPES['VARIABLE_ASSIGNMENT'],
                                 "name": "foo",
                                 "value": statement("bar", 0),
                             }, 8)
                         ],
-                    ),
+                    }, 4),
                     statement({
                         "type": TYPES['VARIABLE_ASSIGNMENT'],
                         "name": "bar",
                         "value": statement("baz", 0),
                     }, 4)
-                ]
-            ),
+                ],
+            }, 0),
             statement({
                 "type": TYPES['VARIABLE_ASSIGNMENT'],
                 "name": "a",
@@ -237,17 +233,12 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
 
-        print(preprocessed['backend'])
-
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES['BLOCK'],
-                "statement": statement({
-                    "type": TYPES['CLASS'],
-                    "name": "Foo",
-                    "extends": None,
-                }, 0),
-                "children": [
+            statement({
+                "type": TYPES['CLASS'],
+                "name": "Foo",
+                "extends": None,
+                "nested": [
                     statement({
                         "type": TYPES['FUNCTION'],
                         "name": "Foo",
@@ -258,8 +249,8 @@ class TestPreprocessor(unittest.TestCase):
                             "value": statement("bar", 0)
                         }, 8)]
                     }, 4),
-                ]
-            },
+                ],
+            }, 0),
         ])
 
     def test_backend_import_function(self):
@@ -336,45 +327,36 @@ class TestPreprocessor(unittest.TestCase):
         preprocessed = preprocess(processed)
         
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES["BLOCK"],
-                "statement": statement({
-                    "type": TYPES["CLASS"],
-                    "name": "Foo",
-                    "extends": None,
-                }, 0),
-                "children": [
-                    {
-                        "type": TYPES["BLOCK"],
-                        "statement": statement({
-                            "type": TYPES["FUNCTION"],
-                            "name": "bar",
-                            "params": [],
-                        }, 4),
-                        "children": [
-                            {
-                                "type": TYPES["BLOCK"],
-                                "statement": statement({
-                                    "type": TYPES['IF'],
-                                    "condition": {
-                                        "type": TYPES["CONDITION"],
-                                        "left_hand": statement("foo", 0),
-                                        "condition": "==",
-                                        "right_hand": statement("bar", 0),
-                                    },
-                                }, 8),
-                                "children": [
+            statement({
+                "type": TYPES["CLASS"],
+                "name": "Foo",
+                "extends": None,
+                "nested": [
+                    statement({
+                        "type": TYPES["FUNCTION"],
+                        "name": "bar",
+                        "params": [],
+                        "nested": [
+                            statement({
+                                "type": TYPES['IF'],
+                                "condition": {
+                                    "type": TYPES["CONDITION"],
+                                    "left_hand": statement("foo", 0),
+                                    "condition": "==",
+                                    "right_hand": statement("bar", 0),
+                                },
+                                "nested": [
                                     statement({
                                         "type": TYPES["VARIABLE_ASSIGNMENT"],
                                         "name": "foo",
                                         "value": statement("bar", 0),
                                     }, 12),
                                 ],
-                            },
+                            }, 8),
                         ],
-                    },
+                    }, 4),
                 ],
-            },
+            }, 0),
             statement({
                 "type": TYPES["CALL_FUNC"],
                 "function": {
