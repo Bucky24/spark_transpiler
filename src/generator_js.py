@@ -791,28 +791,28 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
         for import_type in function_imports:
             import_values = function_imports[import_type]
             file = build_import_filename(import_files[import_type])
-            import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
+            import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = require(\"./" + file + "\");\n\n"
             code = import_code + code
 
         for import_type in class_imports:
             import_values = class_imports[import_type]
             file = build_import_filename(import_files[import_type])
-            import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"./" + file + "\");\n\n"
+            import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = require(\"./" + file + "\");\n\n"
             code = import_code + code
 
         for import_type in custom_imports:
             import_values = custom_imports[import_type]
             if len(import_values) == 1 and import_values[0] == "*":
-                import_code = "const " + import_type + " = require(\"" + import_type + ".js\");\n\n"
+                import_code = "    const " + import_type + " = require(\"" + import_type + ".js\");\n\n"
             else:
-                import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = require(\"" + import_type + ".js\");\n\n"
+                import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = require(\"" + import_type + ".js\");\n\n"
             code = import_code + code
 
         if len(result['exports']) > 0:
             if len(result['exports']) == 1:
-                code += "\n\nmodule.exports = {\n\t" + result['exports'][0] + "\n};\n"
+                code += "\n\n    module.exports = {\n        " + result['exports'][0] + "\n    };\n"
             else:
-                code += "\n\nmodule.exports = {\n\t" + ",\n\t".join(result['exports']) + "\n};\n"
+                code += "\n\n    module.exports = {\n        " + ",\n        ".join(result['exports']) + "\n    };\n"
         code = wrap_backend(code)
     elif env == "frontend":
         code = result['code']
@@ -820,17 +820,17 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
         for import_type in custom_imports:
             import_values = custom_imports[import_type]
             if len(import_values) == 1 and import_values[0] == "*":
-                import_code = "const " + import_type + " = await getModule(\"" + import_type + "\");\n\n"
+                import_code = "    const " + import_type + " = await getModule(\"" + import_type + "\");\n\n"
             else:
-                import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = await getModule(\"" + import_type + "\");\n\n"
+                import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = await getModule(\"" + import_type + "\");\n\n"
             code = import_code + code
 
         if len(result['exports']) > 0:
-            code += "\n\nreturn {\n"
+            code += "\n\n    return {\n"
             if len(result['exports']) == 1:
-                code += "\t" + result['exports'][0] + "\n};\n"
+                code += "        " + result['exports'][0] + "\n    };\n"
             else:
-                code += "\t" + ",\n\t".join(result['exports']) + "\n};\n"
+                code += "        " + ",\n        ".join(result['exports']) + "\n    };\n"
         code = wrap_frontend(code, label)
 
         for import_type in function_imports:
@@ -872,29 +872,14 @@ def generate_code(tree, context = None):
             "generated_classes": [],
         }
 
-    def add_code(code, additional_spaces = 0, add_spaces = True):
-        spaces = context['spaces'] if 'spaces' in context else 0
-        spaces += additional_spaces
-        # apply spaces to all lines equally
-        lines = code.split("\n")
-        new_lines = []
-        for line in lines:
-            if add_spaces:
-                log("Adding {} spaces ({} add) for {}".format(spaces, additional_spaces, line))
-                new_lines.append(" " * spaces + line)
-            else:
-                new_lines.append(line)
-        code = "\n".join(new_lines)
+    def add_code(code, additional_spaces = 0, do_add_spaces = True):
+        if do_add_spaces:
+            code = add_spaces(code, additional_spaces)
         code_lines.append(code)
 
     def remove_spaces(code):
         lines = code.split("\n")
-        min_spaces = 0
-        for char in lines[0]:
-            if char == " ":
-                min_spaces += 1
-            else:
-                break
+        min_spaces = count_spaces(lines[0])
         new_lines = []
         for line in lines:
             new_lines.append(line[min_spaces:])
@@ -904,6 +889,7 @@ def generate_code(tree, context = None):
         lines = code.split("\n")
         new_lines = []
         for line in lines:
+            #log("Adding {} spaces to {}".format(spaces, line))
             new_lines.append(" " * spaces + line)
         return "\n".join(new_lines)
 
@@ -914,11 +900,7 @@ def generate_code(tree, context = None):
         new_classes.append(class_name)
 
     def indent_code(code, indent):
-        lines = code.split("\n")
-        new_lines = []
-        for line in lines:
-            new_lines.append(" "*indent + line)
-        return "\n".join(new_lines)
+        return add_spaces(code, indent)
 
     def count_spaces(code):
         spaces = 0
@@ -942,17 +924,13 @@ def generate_code(tree, context = None):
     parent_context_type = context['parent_type'] if "parent_type" in context else None
 
     for statement in tree:
-        log("Generating for " + statement['type'])
+        log("Generating for " + statement['type'] + " parent context: {}".format(parent_context_type))
         if statement['type'] == TYPES['STATEMENT']:
             if isinstance(statement['statement'], str) or isinstance(statement['statement'], float) or isinstance(statement['statement'], int):
                 add_code(str(statement['statement']))
                 continue
-            new_context = context.copy()
-            context_spaces = context['spaces'] if "spaces" in context else 0
-            new_context['spaces'] = statement['spaces'] - context_spaces
-            log("Got {} spaces from context and {} from statement resulting in {}".format(context_spaces, statement['spaces'], new_context['spaces']))
-            result = generate_code(statement['statement'], new_context)
-            add_code(result['code'], 0, False)
+            result = generate_code(statement['statement'], context)
+            add_code(result['code'], 4)
             passthrough_context(result)
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
@@ -1021,6 +999,7 @@ def generate_code(tree, context = None):
         elif statement['type'] == TYPES['FUNCTION']:
             start = "async "
             children = generate_code(statement['nested'], context)['code']
+            log("parent context is {}".format(parent_context_type))
             if parent_context_type != "class":
                 start += "function "
             if statement['name'] == 'constructor':
@@ -1079,7 +1058,9 @@ def generate_code(tree, context = None):
             add_code("}", 8)
             add_code("return instance;", 8)
             add_code("}", 4)
-            children = generate_code(statement['nested'], context)["code"]
+            new_context = context.copy()
+            new_context['parent_type'] = 'class'
+            children = generate_code(statement['nested'], new_context)["code"]
             if children != "":
                 add_code(children)
             add_code("}")
@@ -1160,6 +1141,7 @@ def generate_code(tree, context = None):
                     result_code = result['code']
                     if result_code[-1] == ";":
                         result_code = result_code[:-1]
+                    result_code = remove_spaces(result_code)
                     value_code.append(result_code)
             add_code(" ".join(value_code) + ";")
         elif statement['type'] == TYPES["ELSE"]:

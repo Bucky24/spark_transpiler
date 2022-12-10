@@ -12,7 +12,26 @@ from utils import print_tree
 from generator_js import wrap_frontend
         
 def _wrap_back(code):
+    lines = code.split("\n")
+    new_lines = []
+    for line in lines:
+        if line.strip() == "":
+            new_lines.append(line)
+            continue
+        new_lines.append(" " * 4 + line)
+    code = "\n".join(new_lines)
     return "(async () => {\n" + code + "\n})();\n"
+
+def _wrap_frontend(code, label):
+    lines = code.split("\n")
+    new_lines = []
+    for line in lines:
+        if line.strip() == "":
+            new_lines.append(line)
+            continue
+        new_lines.append(" " * 4 + line)
+    code = "\n".join(new_lines)
+    return wrap_frontend(code, label)
 
 def _get_class_new(class_name):
     code = """    static async __new() {
@@ -359,14 +378,14 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    return bar;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    return bar;\n}\n\nmodule.exports = {\n    foo\n};\n"))
         
         tree = parse_statement("#frontend\nfunction foo()\n\treturn <div\n\t\tstyle={style}\n\t>\n\t</div>\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("async function foo() {\n    return new Component(\"div\", {\n        \"style\": style\n    }, []);\n}\n\nreturn {\n\tfoo\n};\n", "label"))
+        self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("async function foo() {\n    return new Component(\"div\", {\n        \"style\": style\n    }, []);\n}\n\nreturn {\n    foo\n};\n", "label"))
         
     def test_multiple_block_closures(self):
         tree = parse_statement("class Foo\n    function bar()\n        if foo == bar\n            foo = bar\n\nfoo(\n    foo\n)\n")
@@ -374,8 +393,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        print(result['backend'])
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n        if (foo == bar) {\n            let foo = bar;\n        }\n    }\n}\nawait foo(\n    foo\n);\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n        if (foo == bar) {\n            let foo = bar;\n        }\n    }\n}\nawait foo(\n    foo\n);\n\nmodule.exports = {\n    Foo\n};\n"))
 
     def test_value_manipulation(self):
         tree = parse_statement("bar + baz")
@@ -446,6 +464,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
+        print(result['backend'])
         self.assertEqual(result["backend"], _wrap_back("const {\n    bar\n} = require(\"foo.js\");\n\nlet foo = bar;"))
 
         tree = parse_statement("#foo\nfoo = bar")
@@ -461,14 +480,14 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("const {\n    bar\n} = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("const {\n    bar\n} = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
 
         tree = parse_statement("#frontend\n#foo\nfoo = bar")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("const foo = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("const foo = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
 
     def test_map_one_line(self):
         tree = parse_statement("{}")
