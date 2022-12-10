@@ -872,14 +872,18 @@ def generate_code(tree, context = None):
             "generated_classes": [],
         }
 
-    def add_code(code, additional_spaces = 0):
+    def add_code(code, additional_spaces = 0, add_spaces = True):
         spaces = context['spaces'] if 'spaces' in context else 0
         spaces += additional_spaces
         # apply spaces to all lines equally
         lines = code.split("\n")
         new_lines = []
         for line in lines:
-            new_lines.append(" " * spaces + line)
+            if add_spaces:
+                log("Adding {} spaces ({} add) for {}".format(spaces, additional_spaces, line))
+                new_lines.append(" " * spaces + line)
+            else:
+                new_lines.append(line)
         code = "\n".join(new_lines)
         code_lines.append(code)
 
@@ -944,9 +948,11 @@ def generate_code(tree, context = None):
                 add_code(str(statement['statement']))
                 continue
             new_context = context.copy()
-            new_context['spaces'] = statement['spaces'] + (context['spaces'] if "spaces" in context else 0)
+            context_spaces = context['spaces'] if "spaces" in context else 0
+            new_context['spaces'] = statement['spaces'] - context_spaces
+            log("Got {} spaces from context and {} from statement resulting in {}".format(context_spaces, statement['spaces'], new_context['spaces']))
             result = generate_code(statement['statement'], new_context)
-            add_code(result['code'])
+            add_code(result['code'], 0, False)
             passthrough_context(result)
         elif statement['type'] == TYPES['VARIABLE_ASSIGNMENT']:
             value = generate_code(statement['value'], context)['code']
@@ -986,7 +992,8 @@ def generate_code(tree, context = None):
             passthrough_context(opening_statement_result)
         elif statement['type'] == TYPES['IF']:
             condition_code = generate_code(statement['condition'], context)['code'].lstrip()
-            add_code("if (" + condition_code + ") {")
+            children = generate_code(statement['nested'], context)['code']
+            add_code("if (" + condition_code + ") {\n" + children + "\n}")
         elif statement['type'] == TYPES['CONDITION']:
             left_hand = generate_code(statement['left_hand'], context)['code'].lstrip()
             right_hand = generate_code(statement['right_hand'], context)['code'].lstrip()
@@ -1009,9 +1016,11 @@ def generate_code(tree, context = None):
             add_code("for (" + conditions + ") {")
         elif statement['type'] == TYPES['WHILE']:
             condition_code = generate_code(statement['condition'], context)['code']
-            add_code("while (" + condition_code + ") {")
+            children = generate_code(statement['nested'], context)['code']
+            add_code("while (" + condition_code + ") {\n" + children + "\n}")
         elif statement['type'] == TYPES['FUNCTION']:
             start = "async "
+            children = generate_code(statement['nested'], context)['code']
             if parent_context_type != "class":
                 start += "function "
             if statement['name'] == 'constructor':
@@ -1024,6 +1033,7 @@ def generate_code(tree, context = None):
                 add_export(statement['name'])
             else:
                 add_code("async (" + ",".join(statement['params']) + ") => {")
+            add_code(children + "\n}")
         elif statement['type'] == TYPES['CALL_FUNC']:
             new_context = context.copy()
             new_context['spaces'] = 0
@@ -1069,6 +1079,10 @@ def generate_code(tree, context = None):
             add_code("}", 8)
             add_code("return instance;", 8)
             add_code("}", 4)
+            children = generate_code(statement['nested'], context)["code"]
+            if children != "":
+                add_code(children)
+            add_code("}")
             add_export(statement['name'])
             add_new_class(statement['name'])
             context['generated_classes'].append(statement['name'])

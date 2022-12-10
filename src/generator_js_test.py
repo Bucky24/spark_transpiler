@@ -374,6 +374,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
+        print(result['backend'])
         self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n        if (foo == bar) {\n            let foo = bar;\n        }\n    }\n}\nawait foo(\n    foo\n);\n\nmodule.exports = {\n\tFoo\n};\n"))
 
     def test_value_manipulation(self):
