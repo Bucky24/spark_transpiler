@@ -97,19 +97,16 @@ class TestPreprocessor(unittest.TestCase):
         preprocessed = preprocess(processed)
 
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES['BLOCK'],
-                "statement": statement({
-                    "type": TYPES['FOR_OF'],
-                    "variable": "a",
-                    "value": "b",
-                }, 0),
-                "children": [statement({
+            statement({
+                "type": TYPES['FOR_OF'],
+                "variable": "a",
+                "value": "b",
+                "nested": [statement({
                     "type": TYPES['VARIABLE_ASSIGNMENT'],
                     "name": "foo",
                     "value": statement("bar", 0),
                 }, 4)]
-            },
+            }, 0),
             statement({
                 "type": TYPES['VARIABLE_ASSIGNMENT'],
                 "name": "bar",
@@ -164,23 +161,20 @@ class TestPreprocessor(unittest.TestCase):
         preprocessed = preprocess(processed)
 
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES['BLOCK'],
-                "statement": statement({
-                    "type": TYPES['IF'],
-                    "condition": {
-                        "type": TYPES['CONDITION'],
-                        "left_hand": statement("a", 0),
-                        "right_hand": statement("b", 0),
-                        "condition": "==",
-                    },
-                }, 0),
-                "children": [statement({
+            statement({
+                "type": TYPES['IF'],
+                "condition": {
+                    "type": TYPES['CONDITION'],
+                    "left_hand": statement("a", 0),
+                    "right_hand": statement("b", 0),
+                    "condition": "==",
+                },
+                "nested": [statement({
                     "type": TYPES['VARIABLE_ASSIGNMENT'],
                     "name": "foo",
                     "value": statement("bar", 0),
                 }, 4)]
-            },
+            }, 0),
             statement({
                 "type": TYPES['VARIABLE_ASSIGNMENT'],
                 "name": "bar",
@@ -194,23 +188,20 @@ class TestPreprocessor(unittest.TestCase):
         preprocessed = preprocess(processed)
 
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES['BLOCK'],
-                "statement": statement({
-                    "type": TYPES['WHILE'],
-                    "condition": {
-                        "type": TYPES['CONDITION'],
-                        "left_hand": statement("a", 0),
-                        "right_hand": statement("b", 0),
-                        "condition": "==",
-                    },
-                }, 0),
-                "children": [statement({
+            statement({
+                "type": TYPES['WHILE'],
+                "condition": {
+                    "type": TYPES['CONDITION'],
+                    "left_hand": statement("a", 0),
+                    "right_hand": statement("b", 0),
+                    "condition": "==",
+                },
+                "nested": [statement({
                     "type": TYPES['VARIABLE_ASSIGNMENT'],
                     "name": "foo",
                     "value": statement("bar", 0),
                 }, 4)]
-            },
+            }, 0),
             statement({
                 "type": TYPES['VARIABLE_ASSIGNMENT'],
                 "name": "bar",
@@ -224,19 +215,16 @@ class TestPreprocessor(unittest.TestCase):
         preprocessed = preprocess(processed)
 
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES['BLOCK'],
-                "statement": statement({
+            statement({
                     "type": TYPES['FUNCTION'],
                     "name": None,
                     "params": ["a", "b"],
-                }, 0),
-                "children": [statement({
-                    "type": TYPES['VARIABLE_ASSIGNMENT'],
-                    "name": "foo",
-                    "value": statement("bar", 0),
-                }, 4)]
-            },
+                    "nested": [statement({
+                        "type": TYPES['VARIABLE_ASSIGNMENT'],
+                        "name": "foo",
+                        "value": statement("bar", 0),
+                    }, 4)]
+            }, 0),
             statement({
                 "type": TYPES['VARIABLE_ASSIGNMENT'],
                 "name": "bar",
@@ -249,6 +237,8 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
 
+        print(preprocessed['backend'])
+
         self.assertEqual(preprocessed['backend'], [
             {
                 "type": TYPES['BLOCK'],
@@ -257,19 +247,18 @@ class TestPreprocessor(unittest.TestCase):
                     "name": "Foo",
                     "extends": None,
                 }, 0),
-                "children": [{
-                    "type": TYPES['BLOCK'],
-                    "statement": statement({
+                "children": [
+                    statement({
                         "type": TYPES['FUNCTION'],
                         "name": "Foo",
                         "params": [],
+                        "nested": [statement({
+                            "type": TYPES['VARIABLE_ASSIGNMENT'],
+                            "name": "foo",
+                            "value": statement("bar", 0)
+                        }, 8)]
                     }, 4),
-                    "children": [statement({
-                        "type": TYPES['VARIABLE_ASSIGNMENT'],
-                        "name": "foo",
-                        "value": statement("bar", 0)
-                    }, 8)],
-                }]
+                ]
             },
         ])
 
@@ -292,39 +281,33 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         self.assertEqual(preprocessed['backend'], [
-            {
-                "type": TYPES["BLOCK"],
-                "statement": statement({
-                    "type": TYPES["IF"],
-                    "condition": {
-                        "type": TYPES["CONDITION"],
-                        "left_hand": statement('foo', 0),
-                        "condition": "==",
-                        "right_hand": statement('bar', 0),
-                    },
-                }, 0),
-                "children": [
-                    {
-                        "type": TYPES["BLOCK"],
-                        "statement": statement({
-                            "type": TYPES["IF"],
-                            "condition": {
-                                "type": TYPES["CONDITION"],
-                                "left_hand": statement("bar", 0),
-                                "condition": "==",
-                                "right_hand": statement('baz', 0),
-                            },
-                        }, 4),
-                        "children": [
+            statement({
+                "type": TYPES["IF"],
+                "condition": {
+                    "type": TYPES["CONDITION"],
+                    "left_hand": statement('foo', 0),
+                    "condition": "==",
+                    "right_hand": statement('bar', 0),
+                },
+                "nested": [
+                    statement({
+                        "type": TYPES["IF"],
+                        "condition": {
+                            "type": TYPES["CONDITION"],
+                            "left_hand": statement("bar", 0),
+                            "condition": "==",
+                            "right_hand": statement('baz', 0),
+                        },
+                        "nested": [
                             statement({
                                 "type": TYPES["VARIABLE_ASSIGNMENT"],
                                 "name": "foo",
                                 "value": statement("bar", 0),
                             }, 8),
                         ],
-                    }
+                    }, 4),
                 ],
-            },
+            }, 0),
         ])
 
         self.assertEqual(preprocessed['frontend'], [statement({

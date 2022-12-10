@@ -114,8 +114,6 @@ def preprocess(tree):
                     add_custom_import(unwrapped_statement['pragma'], unwrapped_statement['value'])
                 else:
                     add_custom_import(unwrapped_statement['pragma'], "*")
-        elif unwrapped_statement['type'] in (TYPES['FOR'], TYPES['FOR_OF'], TYPES['IF'], TYPES['WHILE'], TYPES['FUNCTION'], TYPES['CLASS'], TYPES["ELSE"]):
-            append_context(statement)
         else:
             append_statement(statement)
     pop_all_context()
