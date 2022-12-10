@@ -186,6 +186,8 @@ def preprocess(tree):
             elif item['type'] == TYPES["VARIABLE_CHAIN"]:
                 # should only be possible to have an import at the first level
                 add_import(item['chain'][0])
+            elif "nested" in item:
+                process_code(item['nested'], env)
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")

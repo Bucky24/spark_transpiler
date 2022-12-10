@@ -402,5 +402,12 @@ class TestPreprocessor(unittest.TestCase):
 
         self.assertEqual(preprocessed['custom_imports_frontend'], {"foo": ["*"]})
 
+    def test_nested_import(self):
+        tree = parse_statement("function foo()\n\tApi.post()")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+
+        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Api']})
+
 if __name__ == "__main__":
     unittest.main()
