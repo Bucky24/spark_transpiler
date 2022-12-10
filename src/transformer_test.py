@@ -58,20 +58,22 @@ if foo == "string"
                     "condition": "==",
                     "right_hand": statement("\"string\"", 0),
                 },
-            }, 0),
-            statement({
-                "type": TYPES["CALL_FUNC"],
-                "function": {
-                    "type": TYPES["FUNCTION_NAME"],
-                    "name": statement("print", 4),
-                },
-                "parameters": {
-                    'type': TYPES['FUNCTION_PARAMS'],
-                    'params': [
-                        statement("foo", 0),
-                    ],
-                },
-            }, 4),
+                "nested": [
+                    statement({
+                        "type": TYPES["CALL_FUNC"],
+                        "function": {
+                            "type": TYPES["FUNCTION_NAME"],
+                            "name": statement("print", 4),
+                        },
+                        "parameters": {
+                            'type': TYPES['FUNCTION_PARAMS'],
+                            'params': [
+                                statement("foo", 0),
+                            ],
+                        },
+                    }, 4),
+                ],
+            }, 0)
         ])
 
     def test_loops(self):
@@ -90,23 +92,27 @@ while foo == bar
                 "type": TYPES["FOR_OF"],
                 "variable": "foo",
                 "value": "bar",
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0),
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0),
-            }, 4),
             statement({
                 "type": TYPES["FOR_OF"],
                 "variable": "foo",
                 "key": "bar",
                 "value": "baz",
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0),
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0),
-            }, 4),
             statement({
                 "type": TYPES["FOR"],
                 "conditions": [
@@ -126,12 +132,14 @@ while foo == bar
                         "variable": "i",
                     }, 0),
                 ],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("i", 0),
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("i", 0),
-            }, 4),
             statement({
                 "type": TYPES["WHILE"],
                 "condition": {
@@ -140,12 +148,14 @@ while foo == bar
                     "condition": "==",
                     "right_hand": statement("bar", 0),
                 },
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0),
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0),
-            }, 4),
         ])
 
     def test_functions(self):
@@ -164,42 +174,50 @@ function()
                 "type": TYPES["FUNCTION"],
                 "name": "abba",
                 "params": ["a", "b", "c"],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0), 
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0), 
-            }, 4),
             statement({
                 "type": TYPES["FUNCTION"],
                 "name": None,
                 "params": ["a", "b", "c"],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0), 
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0), 
-            }, 4),
             statement({
                 "type": TYPES["FUNCTION"],
                 "name": "abba",
                 "params": [],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0), 
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0), 
-            }, 4), 
             statement({
                 "type": TYPES["FUNCTION"],
                 "name": None,
                 "params": [],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0), 
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0), 
-            }, 4),
         ])
 
         tree = parse_statement("bar = foo(\n)\n")
@@ -242,12 +260,12 @@ class bar
                 "type": TYPES["FUNCTION"],
                 "name": "abba",
                 "params": [],
+                "nested": [statement({
+                    "type": TYPES["VARIABLE_ASSIGNMENT"],
+                    "name": "foo",
+                    "value": statement("bar", 0), 
+                }, 8)]
             }, 4),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0), 
-            }, 8),
             statement({
                 "type": TYPES["CLASS"],
                 "name": "bar",
@@ -257,12 +275,12 @@ class bar
                 "type": TYPES["FUNCTION"],
                 "name": "abba",
                 "params": [],
+                "nested": [statement({
+                    "type": TYPES["VARIABLE_ASSIGNMENT"],
+                    "name": "foo",
+                    "value": statement("bar", 0), 
+                }, 8)],
             }, 4),
-            statement({
-                "type": TYPES["VARIABLE_ASSIGNMENT"],
-                "name": "foo",
-                "value": statement("bar", 0), 
-            }, 8),
         ])
 
         tree = parse_statement("foo.bar.baz(\n)\n")
@@ -443,11 +461,13 @@ class bar
                 "type": TYPES["FUNCTION"],
                 "params": [],
                 "name": "foo",
+                "nested": [
+                    statement({
+                        "type": TYPES["RETURN"],
+                        "value": statement("bar", 0),
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["RETURN"],
-                "value": statement("bar", 0),
-            }, 4),
         ])
 
     def test_value_manipulation(self):
@@ -526,7 +546,8 @@ class bar
                     "right_hand": statement("true", 0),
                     "left_hand": statement("foo", 0),
                     "condition": "==",
-                }
+                },
+                "nested": [],
             }, 0),
             statement({
                 "type": TYPES["ELSE"],

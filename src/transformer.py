@@ -41,6 +41,7 @@ TYPES = {
     "JSX_ATTRIBUTE": "types/jsx_attribute",
     # used in preprocessor
     "BLOCK": "types/block",
+    "NESTED": "types/nested",
 }
 
 # turn to true for debug logs
@@ -160,6 +161,7 @@ class SparkTransformer(Transformer):
         return {
             "type": TYPES["IF"],
             "condition": values[0],
+            "nested": values[1]["nested"],
         }
 
     def call_function(self, name):
@@ -182,7 +184,12 @@ class SparkTransformer(Transformer):
         }
 
     def for_stat(self, children):
-        return children[0]
+        loop = children[0]
+        nested = children[1]
+
+        loop["nested"] = nested["nested"]
+
+        return loop
 
     def for_object(self, values):
         return {
@@ -204,10 +211,11 @@ class SparkTransformer(Transformer):
             "variable": variable[0],
         }
 
-    def while_stat(self, condition):
+    def while_stat(self, stats):
         return {
             "type": TYPES["WHILE"],
-            "condition": condition[0],
+            "condition": stats[0],
+            "nested": stats[1]["nested"],
         }
 
     def function_name(self, name):
@@ -231,10 +239,13 @@ class SparkTransformer(Transformer):
     def function_definition(self, values):
         name = None
         params = []
+        nested = []
 
         for value in values:
             if value["type"] == TYPES["FUNCTION_NAME"]:
                 name = value["name"]
+            elif value['type'] == TYPES['NESTED']:
+                nested = value['nested']
             else:
                 params.append(value["param"])
 
@@ -242,6 +253,7 @@ class SparkTransformer(Transformer):
             "type": TYPES["FUNCTION"],
             "name": name,
             "params": params,
+            "nested": nested,
         }
 
     def class_stat(self, values):
@@ -405,6 +417,12 @@ class SparkTransformer(Transformer):
     def jsx_tag_end(self, _):
         return {
             "type": TYPES["JSX_TAG_END"],
+        }
+
+    def nested(self, items):
+        return {
+            "type": TYPES["NESTED"],
+            "nested": items,
         }
 
 _spark_transformer = SparkTransformer()
