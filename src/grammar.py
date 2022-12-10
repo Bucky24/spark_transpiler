@@ -704,8 +704,7 @@ def process_tokens(tokens):
             if token == " ":
                 continue
             elif token == "\n":
-                tokens.insert(0, token)
-                current_context = pop_context()
+                append_context_stack(True)
                 continue
             else:
                 tokens.insert(0, token)
@@ -1121,6 +1120,7 @@ def build_tree(statements):
         elif statement['type'] == WHILE_STATEMENT:
             children = build_tree(statement['children'])
             children = unwrap_statements(children)
+            children.append(build_nested(statement))
             add_result(statement, Tree('while_stat', children))
         elif statement['type'] == CLASS_STATEMENT:
             children = [Tree("variable", [Token('VARIABLE_NAME', statement['class'])])]

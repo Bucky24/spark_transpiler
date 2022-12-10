@@ -393,6 +393,7 @@ if foo == \"bar\"
                                 Tree("variable", [Token('VARIABLE_NAME', 'bar')]),
                             ]),
                         ]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -1275,7 +1276,7 @@ if foo == \"bar\"
         ]))
 
     def test_nesting(self):
-        tree = parse_statement("for foo as bar\n\tfoo = bar")
+        """tree = parse_statement("for foo as bar\n\tfoo = bar")
 
         self.assertEqual(tree, Tree("start", [
             Tree("statements", [
@@ -1326,6 +1327,45 @@ if foo == \"bar\"
                                 Tree("return_stmt", [
                                     Tree("statement", [
                                         Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))"""
+
+        tree = parse_statement("while foo > bar\n\tfoo = bar")
+
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("while_stat", [
+                    Tree("condition", [
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "foo"),
+                            ]),
+                        ]),
+                        Token("EQUALITY", ">"),
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "bar"),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("nested", [
+                        Tree("statement", [
+                            Tree("spaces", [
+                                Token("TAB", "	"),
+                            ]),
+                            Tree("variable_assignment", [
+                                Tree("variable", [
+                                    Token("VARIABLE_NAME", "foo"),
+                                ]),
+                                Tree("statement", [
+                                    Tree("variable", [
+                                        Token("VARIABLE_NAME", "bar"),
                                     ]),
                                 ]),
                             ]),
