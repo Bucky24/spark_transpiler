@@ -714,8 +714,7 @@ def process_tokens(tokens):
             if token == " ":
                 continue
             elif token == "\n":
-                tokens.insert(0, token)
-                current_context = pop_context()
+                append_context_stack(True)
                 continue
             else:
                 if current_context['class'] is None:
@@ -1125,6 +1124,7 @@ def build_tree(statements):
             children = [Tree("variable", [Token('VARIABLE_NAME', statement['class'])])]
             if statement['extends'] is not None:
                 children.append(Tree("variable", [Token("VARIABLE_NAME", statement['extends'])]))
+            children.append(build_nested(statement))
             add_result(statement, Tree('class_stat', children))
         elif statement['type'] == VARIABLE_CHAIN:
             chain = []

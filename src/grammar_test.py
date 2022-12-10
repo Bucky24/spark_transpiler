@@ -406,6 +406,7 @@ if foo == \"bar\"
                 Tree('statement', [
                     Tree('class_stat', [
                         Tree("variable", [Token('VARIABLE_NAME', 'Foo')]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -418,6 +419,7 @@ if foo == \"bar\"
                     Tree('class_stat', [
                         Tree("variable", [Token('VARIABLE_NAME', 'Foo')]),
                         Tree("variable", [Token("VARIABLE_NAME", "Bar")]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -1417,6 +1419,50 @@ if foo == \"bar\"
                                 Tree("statement", [
                                     Tree("variable", [
                                         Token("VARIABLE_NAME", "foo"),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        tree = parse_statement("class Foo\n\tfunction bar()\n\t\tfoo = bar")
+
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("class_stat", [
+                    Tree("variable", [
+                        Token("VARIABLE_NAME", "Foo"),
+                    ]),
+                    Tree("nested", [
+                        Tree("statement", [
+                            Tree("spaces", [
+                                Token("TAB", "	"),
+                            ]),
+                            Tree("function_definition", [
+                                Tree("function_name", [
+                                    Tree("variable", [Token("VARIABLE_NAME", "bar")]),
+                                ]),
+                                Tree("nested", [
+                                     Tree("statement", [
+                                        Tree("spaces", [
+                                            Token("TAB", "	"),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("TAB", "	"),
+                                        ]),
+                                        Tree("variable_assignment", [
+                                            Tree("variable", [
+                                                Token("VARIABLE_NAME", "foo"),
+                                            ]),
+                                            Tree("statement", [
+                                                Tree("variable", [
+                                                    Token("VARIABLE_NAME", "bar"),
+                                                ]),
+                                            ]),
+                                        ]),
                                     ]),
                                 ]),
                             ]),

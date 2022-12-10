@@ -258,12 +258,19 @@ class SparkTransformer(Transformer):
 
     def class_stat(self, values):
         name = values[0]
-        extends = values[1] if len(values) > 1 else None
+        extends = None
+        nested = None
+        if len(values) == 2:
+            nested = values[1]
+        elif len(values) == 3:
+            extends = values[1]
+            nested = values[2]
 
         return {
             "type": TYPES["CLASS"],
             "name": name,
             "extends": extends,
+            "nested": nested["nested"] if nested else [],
         }
 
     def instance_variable_chain(self, variables):

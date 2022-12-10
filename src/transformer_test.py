@@ -255,32 +255,37 @@ class bar
                 "type": TYPES["CLASS"],
                 "name": "foo",
                 "extends": "bar",
+                "nested": [
+                    statement({
+                        "type": TYPES["FUNCTION"],
+                        "name": "abba",
+                        "params": [],
+                        "nested": [statement({
+                            "type": TYPES["VARIABLE_ASSIGNMENT"],
+                            "name": "foo",
+                            "value": statement("bar", 0), 
+                        }, 8)]
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["FUNCTION"],
-                "name": "abba",
-                "params": [],
-                "nested": [statement({
-                    "type": TYPES["VARIABLE_ASSIGNMENT"],
-                    "name": "foo",
-                    "value": statement("bar", 0), 
-                }, 8)]
-            }, 4),
+            
             statement({
                 "type": TYPES["CLASS"],
                 "name": "bar",
                 "extends": None,
+                "nested": [
+                    statement({
+                        "type": TYPES["FUNCTION"],
+                        "name": "abba",
+                        "params": [],
+                        "nested": [statement({
+                            "type": TYPES["VARIABLE_ASSIGNMENT"],
+                            "name": "foo",
+                            "value": statement("bar", 0), 
+                        }, 8)],
+                    }, 4),
+                ],
             }, 0),
-            statement({
-                "type": TYPES["FUNCTION"],
-                "name": "abba",
-                "params": [],
-                "nested": [statement({
-                    "type": TYPES["VARIABLE_ASSIGNMENT"],
-                    "name": "foo",
-                    "value": statement("bar", 0), 
-                }, 8)],
-            }, 4),
         ])
 
         tree = parse_statement("foo.bar.baz(\n)\n")
