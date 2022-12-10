@@ -386,9 +386,10 @@ class SparkTransformer(Transformer):
             "values": values,
         }
 
-    def else_stat(self, _):
+    def else_stat(self, nested):
         return {
             "type": TYPES["ELSE"],
+            "nested": nested[0]["nested"],
         }
         
     def PRAGMA_VALUE(self, value):

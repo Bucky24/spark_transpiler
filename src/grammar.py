@@ -981,8 +981,7 @@ def process_tokens(tokens):
             current_context = pop_context()
             continue
         elif state == ELSE_STATEMENT:
-            tokens.insert(0, token)
-            current_context = pop_context()
+            append_context_stack(True)
             continue
 
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
@@ -1234,7 +1233,7 @@ def build_tree(statements):
                 Token(statement['boolean'].upper(), statement['boolean']),
             ]))
         elif statement['type'] == ELSE_STATEMENT:
-            add_result(statement, Tree("else_stat", []))
+            add_result(statement, Tree("else_stat", [build_nested(statement)]))
         elif statement['type'] == JSX_TAG_END:
             add_result(statement, Tree("jsx_tag_end", []))
         else:

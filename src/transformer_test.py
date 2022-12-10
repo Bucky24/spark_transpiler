@@ -536,7 +536,7 @@ class bar
         ])
         
     def test_else(self):
-        tree = parse_statement("if foo == true\nelse\n")
+        tree = parse_statement("if foo == true\n\tbar = foo\nelse\n\tfoo = bar\n")
         processed = process_tree(tree)
         self.assertEqual(processed, [
             statement({
@@ -547,10 +547,23 @@ class bar
                     "left_hand": statement("foo", 0),
                     "condition": "==",
                 },
-                "nested": [],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "bar",
+                        "value": statement("foo", 0),
+                    }, 4),
+                ],
             }, 0),
             statement({
                 "type": TYPES["ELSE"],
+                "nested": [
+                    statement({
+                        "type": TYPES["VARIABLE_ASSIGNMENT"],
+                        "name": "foo",
+                        "value": statement("bar", 0),
+                    }, 4),
+                ],
             }, 0),
         ])
 
