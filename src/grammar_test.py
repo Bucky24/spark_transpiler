@@ -505,6 +505,7 @@ if foo == \"bar\"
                         Tree('function_name', [
                             Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                         ]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -529,6 +530,7 @@ if foo == \"bar\"
                         Tree("param", [
                             Tree("variable", [Token("VARIABLE_NAME", "c")]),
                         ]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -975,20 +977,20 @@ if foo == \"bar\"
                         Tree("function_name", [
                             Tree("variable", [Token("VARIABLE_NAME", "foo")]),
                         ]),
-                    ]),
-                ]),
-                Token("NEWLINE", "\n"),
-                Tree("statement", [
-                    Tree("spaces", [Token("TAB", "\t")]),
-                    Tree("return_stmt", [
-                        Tree("statement", [
-                            Tree("variable", [
-                                Token("VARIABLE_NAME", "bar"),
+                        Tree("nested", [
+                            Tree("statement", [
+                                Tree("spaces", [Token("TAB", "\t")]),
+                                Tree("return_stmt", [
+                                    Tree("statement", [
+                                        Tree("variable", [
+                                            Token("VARIABLE_NAME", "bar"),
+                                        ]),
+                                    ]),
+                                ]),
                             ]),
                         ]),
                     ]),
                 ]),
-                Token("NEWLINE", "\n"),
             ]),
         ]))
         
@@ -1213,6 +1215,7 @@ if foo == \"bar\"
             Tree("statement", [
                 Tree("function_definition", [
                     Tree("function_name", [Tree("variable", [Token("VARIABLE_NAME", "bar")])]),
+                    Tree("nested", []),
                 ]),
             ]),
         ]))
@@ -1232,20 +1235,22 @@ if foo == \"bar\"
                                     Tree("param", [
                                         Tree("variable", [Token("VARIABLE_NAME", "event")]),
                                     ]),
-                                ]),
-                            ]),
-                            Tree("statement", [
-                                Tree("spaces", [Token("TAB", "\t")]),
-                                Tree("spaces", [Token("TAB", "\t")]),
-                                Tree("call_function", [
-                                    Tree("function_name", [
+                                    Tree("nested", [
                                         Tree("statement", [
                                             Tree("spaces", [Token("TAB", "\t")]),
                                             Tree("spaces", [Token("TAB", "\t")]),
-                                            Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                                            Tree("call_function", [
+                                                Tree("function_name", [
+                                                    Tree("statement", [
+                                                        Tree("spaces", [Token("TAB", "\t")]),
+                                                        Tree("spaces", [Token("TAB", "\t")]),
+                                                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                                                    ]),
+                                                ]),
+                                                Tree("function_params", [])
+                                            ]),
                                         ]),
                                     ]),
-                                    Tree("function_params", [])
                                 ]),
                             ]),
                         ]),
@@ -1294,6 +1299,30 @@ if foo == \"bar\"
                                         Tree("variable", [
                                             Token("VARIABLE_NAME", "bar"),
                                         ]),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+        tree = parse_statement("function foo()\n\treturn bar")
+
+        self.assertEqual(tree, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("function_definition", [
+                        Tree("function_name", [
+                            Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        ]),
+                        Tree("nested", [
+                            Tree("statement", [
+                                Tree("spaces", [Token("TAB", "\t")]),
+                                Tree("return_stmt", [
+                                    Tree("statement", [
+                                        Tree("variable", [Token("VARIABLE_NAME", "bar")]),
                                     ]),
                                 ]),
                             ]),

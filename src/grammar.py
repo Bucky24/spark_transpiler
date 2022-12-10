@@ -772,8 +772,7 @@ def process_tokens(tokens):
                         current_context['function_name'] = token
                         continue
             elif token == "\n":
-                tokens.insert(0, token)
-                current_context = pop_context()
+                append_context_stack(True)
                 continue
         elif state == FUNCTION_CALL:
             if token == '\n':
@@ -1140,6 +1139,7 @@ def build_tree(statements):
                 params.insert(0, Tree('function_name', [
                     Tree("variable", [Token("VARIABLE_NAME", statement['function_name'])]),
                 ]))
+                params.append(build_nested(statement))
             add_result(statement, Tree("function_definition", params))
         elif statement['type'] == FUNCTION_CALL:
             children = [Token("NEWLINE", "\n")]
