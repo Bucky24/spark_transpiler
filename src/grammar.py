@@ -360,9 +360,9 @@ def process_tokens(tokens):
             current_context = pop_context()
             continue
         elif token == "}" and parent_state == JSX_ATTRIBUTE:
-            tokens.insert(0, token)
-            current_context = pop_context()
-            continue
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
 
         if current_context['type'] == START:
             if token == " ":
@@ -487,6 +487,10 @@ def process_tokens(tokens):
                     "variable": token,
                     "has_data": False,
                 })
+                continue
+            elif token == "}":
+                tokens.insert(0, token)
+                current_context = pop_context()
                 continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
             if token == " ":
@@ -1139,7 +1143,7 @@ def build_tree(statements):
                 params.insert(0, Tree('function_name', [
                     Tree("variable", [Token("VARIABLE_NAME", statement['function_name'])]),
                 ]))
-                params.append(build_nested(statement))
+            params.append(build_nested(statement))
             add_result(statement, Tree("function_definition", params))
         elif statement['type'] == FUNCTION_CALL:
             children = [Token("NEWLINE", "\n")]

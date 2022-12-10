@@ -481,6 +481,7 @@ if foo == \"bar\"
                         Tree("param", [
                             Tree("variable", [Token("VARIABLE_NAME", "c")]),
                         ]),
+                        Tree("nested", []),
                     ]),
                 ]),
             ]),
@@ -492,7 +493,9 @@ if foo == \"bar\"
         self.assertEqual(result, Tree("start", [
             Tree("statements", [
                 Tree("statement", [
-                    Tree("function_definition", []),
+                    Tree("function_definition", [
+                        Tree("nested", []),
+                    ]),
                 ]),
             ]),
         ]))
@@ -1221,7 +1224,7 @@ if foo == \"bar\"
         ]))
 
     def test_function_and_jsx(self):
-        tree = parse_statement("<input\n\tonChange={function(event)\n\t\tfoo()}\n\tvalue=\"bar\"\n/>")
+        tree = parse_statement("<input\n\tonChange={function(event)\n\t\tfoo()\n\t}\n\tvalue=\"bar\"\n/>")
 
         self.assertEqual(tree, _get_start([
             Tree("statement", [
