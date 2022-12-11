@@ -9,7 +9,9 @@ sys.path.append(file_dir)
 
 import grammar 
 from transformer import process_tree
+from preprocessor import preprocess
 from generator_js import generate_js#, generate_external_exports
+
 
 _COMMON_CODE = {
     "}": [grammar.Tree('map_end', [])],
@@ -52,51 +54,9 @@ def generate(transformed, lang, label="label"):
         }
         return result
 
-def generate_from_code(code, lang, label, import_data):
-    lines = code.split("\n")
-
-    # So what are we doing here?
-    # Lark apparently has a hard time with whitespace. Like a really hard time.
-    # But only when generating the parse tree. So this code gathers info on the spaces,
-    # generates the parse tree per line with no whitespace, and then adds them back
-    # in manually. This takes a 16 second compile down to 2.5. For some reason.
-    statements = []
-    for line in lines:
-        spaces = []
-        for char in line:
-            if char == " ":
-                spaces.append(grammar.Token("SPACE", " "))
-            elif char == "\t":
-                spaces.append(grammar.Token("TAB", "\t"))
-            else:
-                break
-
-        line_no_space = line.strip()
-
-        if line_no_space == '':
-            continue
-        statement = _COMMON_CODE.get(line_no_space, None)
-        if statement is None:
-            start = time.time()
-            tree = grammar.parse_statement(line_no_space + "\n")
-            end = time.time()
-            
-            statement = tree.children[0].children[0]
-            #print(line_no_space, (end - start))
-        else:
-            # we may manipulate the statement further on with spaces, so we need to make sure children
-            # is a clean copy
-            statement = grammar.Tree('statement', [] + statement)
-
-        if isinstance(statement, grammar.Tree) and spaces:
-            spaces.reverse()
-            for space in spaces:
-                statement.children.insert(0, grammar.Tree("spaces", [space]))
-        statements.append(statement)
-        
-    tree = grammar.Tree("start", [
-        grammar.Tree("statements", statements)
-    ])
+def generate_from_code(code, lang, label):
+    tree = grammar.parse_statement(code)
     processed = process_tree(tree)
+    preprocessed = preprocess(processed)
 
-    return generate(processed, lang, label, import_data)
+    return generate(preprocessed, lang, label)
