@@ -724,6 +724,18 @@ if foo == \"bar\"
                 Token("NEWLINE", "\n"),
             ]),
         ]))
+
+        result = parse_statement("foo = []")
+        self.assertEqual(result, _get_start([
+            Tree("statement", [
+                Tree("variable_assignment", [
+                    Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                    Tree("statement", [
+                        Tree("array", []),
+                    ]),
+                ]),
+            ]),
+        ]))
         
     def test_maps(self):
         result = parse_statement("foo = {\n\tabcd: 'foo'\n}\n")
@@ -1464,6 +1476,166 @@ if foo == \"bar\"
                                             ]),
                                         ]),
                                     ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+    def test_variable_chain_as_function_param(self):
+        tree = parse_statement("foo(\n\tbar.baz\n)")
+
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("call_function", [
+                    Tree("function_name", [
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "foo"),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("function_params", [
+                        Token("NEWLINE", "\n"),
+                        Tree("statement", [
+                            Tree("spaces", [
+                                Token("TAB", "\t"),
+                            ]),
+                            Tree("variable", [
+                                Tree("instance_variable_chain", [
+                                    Token("VARIABLE_NAME", "bar"),
+                                    Token("VARIABLE_NAME", "baz"),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ])
+        ]))
+
+    def test_key_after_function_in_map(self):
+        tree = parse_statement("foo = {\n\tonChange: function(event)\n\t\tfoo()\n\tvalue: \"bar\"\n")
+
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("variable_assignment", [
+                    Tree("variable", [
+                        Token("VARIABLE_NAME", "foo"),
+                    ]),
+                    Tree("statement", [
+                        Tree("map", [
+                            Tree("statement", [
+                                Tree("map_row", [
+                                    Token("VARIABLE_NAME", "onChange"),
+                                    Tree("statement", [
+                                        Tree("function_definition", [
+                                            Tree("param", [
+                                                Tree("variable", [
+                                                    Token("VARIABLE_NAME", "event"),
+                                                ])
+                                            ]),
+                                            Tree("nested", [
+                                                Tree("statement", [
+                                                    Tree("spaces", [
+                                                        Token("TAB", "	"),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("TAB", "	"),
+                                                    ]),
+                                                    Tree("call_function", [
+                                                        Tree("function_name", [
+                                                            Tree("statement", [
+                                                                Tree("spaces", [
+                                                                    Token("TAB", "	"),
+                                                                ]),
+                                                                Tree("spaces", [
+                                                                    Token("TAB", "	"),
+                                                                ]),
+                                                                Tree("variable", [
+                                                                    Token("VARIABLE_NAME", "foo"),
+                                                                ]),
+                                                            ]),
+                                                        ]),
+                                                        Tree("function_params", []),
+                                                    ]),
+                                                ]),
+                                            ]),
+                                        ]),
+                                    ]),
+                                ]),
+                            ]),
+                            Tree("statement", [
+                                Tree("map_row", [
+                                    Token("VARIABLE_NAME", "value"),
+                                    Tree("statement", [
+                                        Tree("string", [
+                                            Token("STRING_CONTENTS_DOUBLE", "bar"),
+                                        ]),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]))
+
+    def test_value_after_function_in_array(self):
+        tree = parse_statement("foo = [\n\tfunction(event)\n\t\tfoo()\n\t\"bar\"\n]")
+        self.assertEqual(tree, _get_start([
+            Tree("statement", [
+                Tree("variable_assignment", [
+                    Tree("variable", [
+                        Token("VARIABLE_NAME", "foo"),
+                    ]),
+                    Tree("statement", [
+                        Tree("array", [
+                            Tree("statement", [
+                                Tree("spaces", [
+                                    Token("TAB", "	"),
+                                ]),
+                                Tree("function_definition", [
+                                    Tree("param", [
+                                        Tree("variable", [
+                                            Token("VARIABLE_NAME", "event"),
+                                        ]),
+                                    ]),
+                                    Tree("nested", [
+                                        Tree("statement", [
+                                            Tree("spaces", [
+                                                Token("TAB", "	"),
+                                            ]),
+                                            Tree("spaces", [
+                                                Token("TAB", "	"),
+                                            ]),
+                                            Tree("call_function", [
+                                                Tree("function_name", [
+                                                    Tree("statement", [
+                                                        Tree("spaces", [
+                                                            Token("TAB", "	"),
+                                                        ]),
+                                                        Tree("spaces", [
+                                                            Token("TAB", "	"),
+                                                        ]),
+                                                        Tree("variable", [
+                                                            Token("VARIABLE_NAME", "foo"),
+                                                        ]),
+                                                    ]),
+                                                ]),
+                                                Tree("function_params", []),
+                                            ]),
+                                        ]),
+                                    ]),
+                                ]),
+                            ]),
+                            Tree("statement", [
+                                Tree("spaces", [
+                                    Token("TAB", "	"),
+                                ]),
+                                Tree("string", [
+                                    Token("STRING_CONTENTS_DOUBLE", "bar"),
                                 ]),
                             ]),
                         ]),

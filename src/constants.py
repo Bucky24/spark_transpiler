@@ -5,4 +5,6 @@ FUNCTION_IMPORTS = {
 CLASS_IMPORTS = {
     "Component": "stdlib",
     "Api": "stdlib",
+    "Mysql": "stdlib",
+    "Table": "stdlib",
 }

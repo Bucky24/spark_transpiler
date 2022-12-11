@@ -150,6 +150,7 @@ def preprocess(tree):
 
         def add_class_import(class_name):
             if class_name not in CLASS_IMPORTS:
+                log("{} not in class imports, skipping".format(class_name))
                 return
             
             new_import = CLASS_IMPORTS[class_name]
@@ -188,6 +189,8 @@ def preprocess(tree):
                 add_import(item['chain'][0])
             elif "nested" in item:
                 process_code(item['nested'], env)
+            elif item['type'] == TYPES['FUNCTION_PARAMS']:
+                process_code(item['params'], env)
 
     process_code(frontend, "frontend")
     process_code(backend, "backend")

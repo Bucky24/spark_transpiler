@@ -409,5 +409,10 @@ class TestPreprocessor(unittest.TestCase):
 
         self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Api']})
 
+        tree = parse_statement("table = Table(\n\t\"table1\"\n\t[\n\t]\n\tTable.SOURCE_MYSQL\n)\n")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Table']})
+
 if __name__ == "__main__":
     unittest.main()

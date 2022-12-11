@@ -282,7 +282,7 @@ def process_tokens(tokens):
             parent_tabs = current_context['tabs'] > parent['tabs']
             parent_spaces = current_context['spaces'] > parent['spaces']
             if parent_tabs or parent_spaces or parent['type'] == START:
-                log("Adding to nested parent ({}) tabs {} parent {}".format(parent['type'], current_context['tabs'], parent['tabs']))
+                log("Adding {} to nested parent ({}) tabs {} parent {}".format(current_context['type'], parent['type'], current_context['tabs'], parent['tabs']))
                 if "nested_children" not in parent:
                     parent['nested_children'] = []
                 parent['nested_children'].append(current_context)
@@ -478,6 +478,10 @@ def process_tokens(tokens):
                     "condition": None,
                 })
                 continue
+            elif token == "}":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
             # should always be at the very end
             elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
                 # default if it's not an operator or keyword, then it's probably a variable
@@ -487,10 +491,6 @@ def process_tokens(tokens):
                     "variable": token,
                     "has_data": False,
                 })
-                continue
-            elif token == "}":
-                tokens.insert(0, token)
-                current_context = pop_context()
                 continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
             if token == " ":
@@ -567,9 +567,22 @@ def process_tokens(tokens):
                     "left_hand": [current_context],
                 })
                 continue
-            elif token == "\n":
+            elif token == ":":
+                # in this case we should only get here if the variable is a part of a map
+                # so we should pop context until we get to the map context
+                variable = current_context['variable']
+                # the first context we actually just want to remove, not pop, because this
+                # context should not be added to it. I'm sure this will make something go wrong later on
+                current_context = context_stack.pop()
+                while len(context_stack) > 0:
+                    current_context = pop_context()
+                    if current_context['type'] == MAP_START:
+                        break
+                # push variable and colon back onto the stack so we process them as part of the map
+                tokens.insert(0, variable)
                 tokens.insert(0, token)
-                current_context = pop_context()
+                # we need to set this so the map immediately goes to a new MAP_LINE
+                current_context['last_newline'] = True
                 continue
         elif current_context['type'] == VARIABLE_SET:
             if token == " ":
@@ -747,6 +760,9 @@ def process_tokens(tokens):
                     "params": [],
                     "in_params": True,
                 })
+                continue
+            elif token in END_STATS:
+                current_context = pop_context()
                 continue
         elif state == FUNCTION_DEFINITION:
             if token == ' ':
@@ -1091,6 +1107,7 @@ def build_tree(statements):
         elif statement['type'] == VARIABLE_OR_METHOD:
             # if we got here it's clearly a variable
             add_result(statement, Tree("variable", [Token('VARIABLE_NAME', statement['variable'])]))
+            continue
         elif statement['type'] == FOR_STATEMENT:
             nested = build_nested(statement)
             if "params" in statement:
@@ -1172,8 +1189,13 @@ def build_tree(statements):
                 children.append(Token("PRAGMA_VALUE", statement['pragma_value']))
             add_result(statement, Tree("pragma", children))
         elif statement['type'] == ARRAY_START:
-            children = build_tree(statement['children'])
-            children = strip_spaces(children)
+            children = []
+            if "children" in statement:
+                children = build_tree(statement['children'])
+                children = strip_spaces(children)
+            if "nested_children" in statement:
+                nested = build_tree(statement['nested_children'])
+                children += nested
             add_result(statement, Tree("array", children))
         elif statement['type'] == MAP_START:
             children = []

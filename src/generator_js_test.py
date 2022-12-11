@@ -123,7 +123,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result= generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    let bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    let bar = baz;\n}\n\nmodule.exports = {\n    foo\n};\n"))
         
         tree = parse_statement("function()\n    bar = baz\n")
         processed = process_tree(tree)
@@ -137,7 +137,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo(bar, baz) {\n    let bar = baz;\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo(bar, baz) {\n    let bar = baz;\n}\n\nmodule.exports = {\n    foo\n};\n"))
         
     def test_function_call(self):
         tree = parse_statement("func(\n    foo\n    bar\n    baz\n)\n")
@@ -169,7 +169,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    await printt();\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n    await printt();\n}\n\nmodule.exports = {\n    foo\n};\n"))
 
     def test_class_definition(self):
         tree = parse_statement("class Foo")
@@ -177,14 +177,14 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n}\n\nmodule.exports = {\n    Foo\n};\n"))
         
         tree = parse_statement("class Foo extends Bar")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo extends Bar {\n" + _get_class_new("Foo") + "\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo extends Bar {\n" + _get_class_new("Foo") + "\n}\n\nmodule.exports = {\n    Foo\n};\n"))
         
     def test_class_functions(self):
         tree = parse_statement("class Foo\n    function constructor(a, b, c)\n        printt(\n        )\n\n    function foo()\n")
@@ -192,7 +192,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n    async __construct(a, b, c) {\n        await printt();\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n    async __construct(a, b, c) {\n        await printt();\n    }\n    async foo() {\n    }\n}\n\nmodule.exports = {\n    Foo\n};\n"))
         
     def test_new_instance(self):
         tree = parse_statement("class Foo\nbar = Foo(\n)\n")
@@ -200,7 +200,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n}\nlet bar = await Foo::__new();\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + _get_class_new("Foo") + "\n}\nlet bar = await Foo::__new();\n\nmodule.exports = {\n    Foo\n};\n"))
         
     def test_class_variables(self):
         tree = parse_statement("foo = bar.baz.biz")
@@ -254,7 +254,7 @@ class TestGeneratorJs(unittest.TestCase):
             "lang": "js",
             "library": "stdlib",
         }])
-        self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib_js_frontend.js\";\n\n" + wrap_frontend("await print(\n    foo\n);", "label"))
+        self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("await print(\n    foo\n);", "label"))
         self.assertEqual(imports["frontend"], [{
             "extension": "js",
             "lang": "js",
@@ -269,7 +269,7 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("if (foo == bar) {\n    if (bar == baz) {\n        await baz(\n            bin\n        );\n    }\n}"))
-        self.assertEqual(result["frontend"], wrap_frontend("let foo = bar;", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("let foo = bar;", "label"))
         
     def test_platform_class_imports(self):
         tree = parse_statement("#frontend\nfoo = Component(\n\t\"div\"\n)\n")
@@ -278,7 +278,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n" + wrap_frontend("let foo = await Component::__new(\n    \"div\"\n);", "label"))
+        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("let foo = await Component::__new(\n    \"div\"\n);", "label"))
         self.assertEqual(imports["frontend"], [
             {
                 "lang": "js",
@@ -333,7 +333,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"div\", {}, []);", "label"))  
+        self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("new Component(\"div\", {}, []);", "label"))  
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<div/>\n")
@@ -342,7 +342,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"div\", {}, []);", "label"))
+        self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("new Component(\"div\", {}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<div\n\tfoo=\"bar\"\n>\n</div>\n")
@@ -351,8 +351,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        print(result['frontend'])
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"div\", {\n    \"foo\": \"bar\"\n}, []);", "label"))
+        self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("new Component(\"div\", {\n    \"foo\": \"bar\"\n}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
         
         tree = parse_statement("#frontend\n<input\n/>\n")
@@ -361,7 +360,7 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("new Component(\"input\", {}, []);", "label"))
+        self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("new Component(\"input\", {}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
         
     def test_jsx_component(self):
@@ -370,7 +369,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], component_import_code + wrap_frontend("class Foo extends Component {\n" + class_creation_code + "}\nnew Foo({}, []);\n\nreturn {\n\tFoo\n};\n", "label"))
+        self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("class Foo extends Component {\n" + class_creation_code + "}\nnew Foo({}, []);\n\nreturn {\n    Foo\n};\n", "label"))
         
     def test_return(self):
         tree = parse_statement("function foo()\n\treturn bar\n")
@@ -448,7 +447,7 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(preprocessed, "js")
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("await foo();"))
-        self.assertEqual(result["frontend"], wrap_frontend("await foo();", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("await foo();", "label"))
       
     def test_else(self):
         tree = parse_statement("if foo == true\nelse\n")
@@ -464,7 +463,6 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        print(result['backend'])
         self.assertEqual(result["backend"], _wrap_back("const {\n    bar\n} = require(\"foo.js\");\n\nlet foo = bar;"))
 
         tree = parse_statement("#foo\nfoo = bar")
@@ -503,7 +501,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n}\n\nmodule.exports = {\n\tfoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("async function foo() {\n}\n\nmodule.exports = {\n    foo\n};\n"))
 
         tree = parse_statement("function()")
         processed = process_tree(tree)
@@ -517,7 +515,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n    }\n}\n\nmodule.exports = {\n\tFoo\n};\n"))
+        self.assertEqual(result["backend"], _wrap_back("class Foo {\n" + class_creation_code + "    async bar() {\n    }\n}\n\nmodule.exports = {\n    Foo\n};\n"))
 
         tree = parse_statement("class Foo\nfunction bar()\n")
         processed = process_tree(tree)
@@ -525,7 +523,7 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(preprocessed, "js")
         code = result["code"]
         classes = result["classes"]
-        self.assertEqual(code["backend"], _wrap_back("class Foo {\n" + class_creation_code + "}\nasync function bar() {\n}\n\nmodule.exports = {\n\tFoo,\n\tbar\n};\n"))
+        self.assertEqual(code["backend"], _wrap_back("class Foo {\n" + class_creation_code + "}\nasync function bar() {\n}\n\nmodule.exports = {\n    Foo,\n    bar\n};\n"))
         self.assertEqual(classes["backend"], ["Foo"])
 
     def test_export_functions_classes_frontend(self):
@@ -534,21 +532,21 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("async function foo() {\n}\n\nreturn {\n\tfoo\n};\n", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("async function foo() {\n}\n\nreturn {\n    foo\n};\n", "label"))
 
         tree = parse_statement("#frontend\nfunction()\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("async () => {\n}", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("async () => {\n}", "label"))
 
         tree = parse_statement("#frontend\nclass Foo\n\tfunction bar()\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("class Foo {\n" + class_creation_code + "    async bar() {\n    }\n}\n\nreturn {\n\tFoo\n};\n", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("class Foo {\n" + class_creation_code + "    async bar() {\n    }\n}\n\nreturn {\n    Foo\n};\n", "label"))
 
         tree = parse_statement("#frontend\nclass Foo\nfunction bar()\n")
         processed = process_tree(tree)
@@ -556,7 +554,7 @@ class TestGeneratorJs(unittest.TestCase):
         result = generate(preprocessed, "js")
         code = result["code"]
         classes = result["classes"]
-        self.assertEqual(code["frontend"], wrap_frontend("class Foo {\n" + class_creation_code + "}\nasync function bar() {\n}\n\nreturn {\n\tFoo,\n\tbar\n};\n", "label"))
+        self.assertEqual(code["frontend"], _wrap_frontend("class Foo {\n" + class_creation_code + "}\nasync function bar() {\n}\n\nreturn {\n    Foo,\n    bar\n};\n", "label"))
         self.assertEqual(classes["frontend"], ["Foo"])
 
     def test_labels(self):
@@ -583,7 +581,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed['frontend_class_imports'] = {"bar": ["Bar"]}
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], "import {\n    Bar\n} from \"./bar_js_frontend.js\";\n\n" + wrap_frontend("let foo = await Bar::__new();", "label"))
+        self.assertEqual(result["frontend"], "import {\n    Bar\n} from \"./bar_js_frontend.js\";\n\n" + _wrap_frontend("let foo = await Bar::__new();", "label"))
         
     def test_boolean(self):
         tree = parse_statement("foo = false")
@@ -614,7 +612,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("class Foo {\n" + class_creation_code + "    async __construct() {\n        await bar();\n    }\n}\n\nreturn {\n\tFoo\n};\n", "label"))
+        self.assertEqual(result["frontend"], _wrap_frontend("class Foo {\n" + class_creation_code + "    async __construct() {\n        await bar();\n    }\n}\n\nreturn {\n    Foo\n};\n", "label"))
 
     def test_function_in_jsx_map_array(self):
         tree = parse_statement("#frontend\n<input\n\tonChange={function(event)\n\t\tfoo()}\n\tvalue=\"bar\"\n/>\n")
@@ -622,32 +620,21 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], wrap_frontend("new Component(\"input\", {\n    onChange: async (event) => {\n        await foo();\n    },\n    value: \"bar\",\n\n}, []);\n"))
+        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("new Component(\"input\", {\n    \"onChange\": async (event) => {\n        await foo();\n    },\n    \"value\": \"bar\"\n}, []);", "label"))
 
         tree = parse_statement("foo = {\n\tonChange: function(event)\n\t\tfoo()\n\tvalue: \"bar\"\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = {\n    \"onChange\": async (event) => {\n        await foo();\n    },\n    \"value\": \"bar\",\n}\n"))
+        self.assertEqual(result["backend"], _wrap_back("let foo = {\n    \"onChange\": async (event) => {\n        await foo();\n    },\n    \"value\": \"bar\"\n};"))
 
         tree = parse_statement("foo = [\n\tfunction(event)\n\t\tfoo()\n\t\"bar\"\n]\n")
         processed = process_tree(tree)
-        result = generate(processed, "js")
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("var foo = [\n    async (event) => {\n        await foo();\n    },\n    \"bar\",\n\n];\n"))
-        
-    def test_mysql(self):
-        tree = parse_statement("table = Table(\n\t\"table1\"\n\t[\n\t]\n\tTable.SOURCE_MYSQL\n)\n")
-        processed = process_tree(tree)
-        output = generate(processed, "js")
-        imports = output['external_imports']
-        self.assertEqual(imports, [{"module": "mysql", "version": "2.18.1"}])
-        
-        tree = parse_statement("table = Table(\n\t\"table1\"\n\t[\n\t]\n\tTable.SOURCE_FILE\n)\n")
-        processed = process_tree(tree)
-        output = generate(processed, "js")
-        imports = output['external_imports']
-        self.assertEqual(imports, [])
+        self.assertEqual(result["backend"], _wrap_back("let foo = [\n    async (event) => {\n        await foo();\n    },\n    \"bar\"\n];"))
 
 if __name__ == "__main__":
     unittest.main()
