@@ -811,12 +811,15 @@ def process_tokens(tokens):
                 tokens.insert(0, token)
                 current_context = pop_context()
                 continue
+            elif token == ",":
+                continue
             else:
                 if current_context['pragma_name'] is None:
                     current_context['pragma_name'] = token
+                    current_context['pragma_values'] = []
                     continue
                 else:
-                    current_context['pragma_value'] = token
+                    current_context['pragma_values'].append(token)
                     continue
         elif state == ARRAY_START:
             if token == "\n":
@@ -1185,8 +1188,9 @@ def build_tree(statements):
             pass
         elif statement['type'] == PRAGMA:
             children = [Token("PRAGMA_NAME", statement['pragma_name'])]
-            if statement['pragma_value'] is not None:
-                children.append(Token("PRAGMA_VALUE", statement['pragma_value']))
+            if statement['pragma_values'] is not None:
+                for value in statement['pragma_values']:
+                    children.append(Token("PRAGMA_VALUE", value))
             add_result(statement, Tree("pragma", children))
         elif statement['type'] == ARRAY_START:
             children = []

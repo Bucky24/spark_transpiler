@@ -323,7 +323,17 @@ class bar
             statement({
                 "type": TYPES["PRAGMA"],
                 "pragma": "foo",
-                "value": "bar",
+                "values": ["bar"],
+            }, 0),
+        ])
+
+        tree = parse_statement("#foo bar,baz")
+        processed = process_tree(tree)
+        self.assertEqual(processed, [
+            statement({
+                "type": TYPES["PRAGMA"],
+                "pragma": "foo",
+                "values": ["bar", "baz"],
             }, 0),
         ])
         

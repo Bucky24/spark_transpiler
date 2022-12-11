@@ -636,5 +636,18 @@ class TestGeneratorJs(unittest.TestCase):
         result = result["code"]
         self.assertEqual(result["backend"], _wrap_back("let foo = [\n    async (event) => {\n        await foo();\n    },\n    \"bar\"\n];"))
 
+    def test_custom_imports(self):
+        tree = parse_statement("#foo bar,baz\nfoo = bar")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
+        self.assertEqual(result['code']['backend'], _wrap_back("const {\n    bar,\n    baz\n} = require(\"<<<foo>>>\");\n\nlet foo = bar;"))
+
+        tree = parse_statement("#foo\nfoo = bar")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
+        self.assertEqual(result['code']['backend'], _wrap_back("const foo = require(\"<<<foo>>>\");\n\nlet foo = bar;"))
+
 if __name__ == "__main__":
     unittest.main()

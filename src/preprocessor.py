@@ -96,6 +96,10 @@ def preprocess(tree):
             log("Adding custom import {} => {}".format(class_name, value))
             existing_list[class_name].append(value)
 
+    def add_custom_imports(class_name, values):
+        for value in values:
+            add_custom_import(class_name, value)
+
     for statement in tree:
         unwrapped_statement = unwrap_statement(statement)
         log("Processing " + unwrapped_statement['type'] + " context? " + ("empty" if current_context is None else "set"))
@@ -110,8 +114,8 @@ def preprocess(tree):
             if pragma == 'frontend' or pragma == "backend":
                 switch_env(pragma)
             else:
-                if "value" in unwrapped_statement:
-                    add_custom_import(unwrapped_statement['pragma'], unwrapped_statement['value'])
+                if "values" in unwrapped_statement:
+                    add_custom_imports(unwrapped_statement['pragma'], unwrapped_statement['values'])
                 else:
                     add_custom_import(unwrapped_statement['pragma'], "*")
         else:

@@ -378,28 +378,24 @@ class TestPreprocessor(unittest.TestCase):
         self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Api']})
 
     def test_pragma_import(self):
-        tree = parse_statement("#foo bar\n")
+        tree = parse_statement("#foo bar,baz")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
-
-        self.assertEqual(preprocessed['custom_imports_backend'], {"foo": ["bar"]})
+        self.assertEqual(preprocessed['custom_imports_backend'], {"foo": ["bar", "baz"]})
 
         tree = parse_statement("#foo\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
-
         self.assertEqual(preprocessed['custom_imports_backend'], {"foo": ["*"]})
 
         tree = parse_statement("#frontend\n#foo bar\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
-
         self.assertEqual(preprocessed['custom_imports_frontend'], {"foo": ["bar"]})
 
         tree = parse_statement("#frontend\n#foo\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
-
         self.assertEqual(preprocessed['custom_imports_frontend'], {"foo": ["*"]})
 
     def test_nested_import(self):

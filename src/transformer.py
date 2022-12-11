@@ -292,7 +292,7 @@ class SparkTransformer(Transformer):
             return {
                 "type": TYPES["PRAGMA"],
                 "pragma": values[0],
-                "value": values[1],
+                "values": values[1:],
             }
         
     def array(self, values):

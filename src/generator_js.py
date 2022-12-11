@@ -95,9 +95,9 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
         for import_type in custom_imports:
             import_values = custom_imports[import_type]
             if len(import_values) == 1 and import_values[0] == "*":
-                import_code = "    const " + import_type + " = require(\"" + import_type + ".js\");\n\n"
+                import_code = "    const " + import_type + " = require(\"<<<BE_" + import_type + ">>>\");\n\n"
             else:
-                import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = require(\"" + import_type + ".js\");\n\n"
+                import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = require(\"<<<BE_" + import_type + ">>>\");\n\n"
             code = import_code + code
 
         if len(result['exports']) > 0:

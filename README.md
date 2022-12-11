@@ -200,7 +200,7 @@ Note that this is basically syntactic sugar that does the same thing as making a
 
 It is possible to include methods and classes from another file. Note that when doing so, you cannot define a backend function, then use it in frontend code in another file, or vice versa.
 
-`include.spark`:
+`utils.spark`:
 ```
 #backend
 
@@ -212,10 +212,20 @@ function bar()
 
 `main.spark`:
 ```
-#include Foo,bar from include.spark
+#utils Foo,bar
 
 inst = Foo()
 bar()
+```
+
+You can also import everything from a file simply by using its name with a hash
+
+`main.spark`:
+```
+#utils
+
+inst = utils.Foo()
+utils.bar()
 ```
 
 # Standard Library

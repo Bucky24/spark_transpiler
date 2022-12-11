@@ -658,6 +658,19 @@ if foo == \"bar\"
                 ]),
             ]),
         ]))
+
+        result = parse_statement("#foo bar,baz")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("pragma", [
+                        Token("PRAGMA_NAME", "foo"),
+                        Token("PRAGMA_VALUE", "bar"),
+                        Token("PRAGMA_VALUE", "baz"),
+                    ]),
+                ]),
+            ]),
+        ]))
         
     def test_tabs_and_spaces(self):
         result = parse_statement("foo = bar\n    foo = bar\n\tfoo = bar\n")
