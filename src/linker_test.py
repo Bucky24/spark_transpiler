@@ -26,8 +26,14 @@ class TestLinker(unittest.TestCase):
         FileMock.abspath_set("./base", "/User/foo/base")
         FileMock.abspath_set("./build", "/User/bar/build")
         FileMock.abspath_set("./src/sample.spark", "/User/foo/base/src/sample.spark")
+        FileMock.read_set("/User/foo/base/src/sample.spark", "#sample2\n#sample3\nfoo = bar")
+        FileMock.read_set("/User/foo/base/src/sample2.spark", "bar = baz")
+        FileMock.read_set("/User/foo/base/src/sample3.spark", "baz = bar")
 
         generate_and_link_inner(["./src/sample.spark"], "./build", "./base", "js", FileMock)
+
+        sampleContents = FileMock.get_write("/User/bar/build/src/sample.spark_backend.js")
+        print(sampleContents)
 
 if __name__ == "__main__":
     unittest.main()

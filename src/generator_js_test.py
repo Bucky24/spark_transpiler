@@ -238,6 +238,7 @@ class TestGeneratorJs(unittest.TestCase):
             "lang": "js",
             "library": "stdlib",
             "extension": "js",
+            "type": "internal",
         }])
 
     def test_platforms_and_imports(self):
@@ -253,6 +254,7 @@ class TestGeneratorJs(unittest.TestCase):
             "extension": "js",
             "lang": "js",
             "library": "stdlib",
+            "type": "internal",
         }])
         self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("await print(\n    foo\n);", "label"))
         self.assertEqual(imports["frontend"], [{
@@ -260,6 +262,7 @@ class TestGeneratorJs(unittest.TestCase):
             "lang": "js",
             "library": "stdlib",
             "env": "frontend",
+            "type": "internal",
         }])
 
     def test_platform_unwind_blocks(self):
@@ -285,6 +288,7 @@ class TestGeneratorJs(unittest.TestCase):
                 "env": "frontend",
                 "library": "stdlib",
                 "extension": "js",
+                "type": "internal",
             },
         ])
     
@@ -326,6 +330,7 @@ class TestGeneratorJs(unittest.TestCase):
             "extension": "js",
             "lang": "js",
             "library": "stdlib",
+            "type": "internal",
         }]
         tree = parse_statement("#frontend\n<div>\n</div>\n")
         processed = process_tree(tree)
@@ -463,14 +468,14 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    bar\n} = require(\"foo.js\");\n\nlet foo = bar;"))
+        self.assertEqual(result["backend"], _wrap_back("const {\n    bar\n} = require(\"<<<BE_foo>>>\");\n\nlet foo = bar;"))
 
         tree = parse_statement("#foo\nfoo = bar")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
         result = output["code"]
-        self.assertEqual(result["backend"], _wrap_back("const foo = require(\"foo.js\");\n\nlet foo = bar;"))
+        self.assertEqual(result["backend"], _wrap_back("const foo = require(\"<<<BE_foo>>>\");\n\nlet foo = bar;"))
 
     def test_pragma_frontend(self):
         tree = parse_statement("#frontend\n#foo bar\nfoo = bar")
@@ -641,13 +646,15 @@ class TestGeneratorJs(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
-        self.assertEqual(result['code']['backend'], _wrap_back("const {\n    bar,\n    baz\n} = require(\"<<<foo>>>\");\n\nlet foo = bar;"))
+        self.assertEqual(result['code']['backend'], _wrap_back("const {\n    bar,\n    baz\n} = require(\"<<<BE_foo>>>\");\n\nlet foo = bar;"))
+        self.assertEqual(result['imports']['backend'], [{'type': 'path', 'path': 'foo.spark'}])
 
-        tree = parse_statement("#foo\nfoo = bar")
+        tree = parse_statement("#frontend\n#foo\nfoo = bar")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
-        self.assertEqual(result['code']['backend'], _wrap_back("const foo = require(\"<<<foo>>>\");\n\nlet foo = bar;"))
+        self.assertEqual(result['code']['frontend'], _wrap_frontend("const foo = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
+        self.assertEqual(result['imports']['frontend'], [{'type': 'path', 'path': 'foo.spark'}])
 
 if __name__ == "__main__":
     unittest.main()
