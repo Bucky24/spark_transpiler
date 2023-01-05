@@ -81,8 +81,9 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
 
     for import_type in custom_imports:
         import_files[import_type] = {
-            "type": "path",
+            "type": "internal",
             "path": import_type + ".spark",
+            "link": ("FE" if env == "frontend" else "BE") + "_" + import_type,
         }
 
     if env == "backend":

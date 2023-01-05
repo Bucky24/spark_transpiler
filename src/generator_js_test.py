@@ -647,14 +647,14 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         self.assertEqual(result['code']['backend'], _wrap_back("const {\n    bar,\n    baz\n} = require(\"<<<BE_foo>>>\");\n\nlet foo = bar;"))
-        self.assertEqual(result['imports']['backend'], [{'type': 'path', 'path': 'foo.spark'}])
+        self.assertEqual(result['imports']['backend'], [{'type': 'internal', 'path': 'foo.spark', 'link': "BE_foo"}])
 
         tree = parse_statement("#frontend\n#foo\nfoo = bar")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         self.assertEqual(result['code']['frontend'], _wrap_frontend("const foo = await getModule(\"foo\");\n\nlet foo = bar;", "label"))
-        self.assertEqual(result['imports']['frontend'], [{'type': 'path', 'path': 'foo.spark'}])
+        self.assertEqual(result['imports']['frontend'], [{'type': 'internal', 'path': 'foo.spark', 'link': "FE_foo"}])
 
 if __name__ == "__main__":
     unittest.main()

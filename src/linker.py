@@ -46,26 +46,32 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
         result = generate(preprocessed, lang)
 
         for item in result['imports']['backend']:
-            if item['type'] == "path":
+            if item['type'] == "internal":
                 proper_path = files.abspath(file_directory + item['path'])
                 relative_file = proper_path.replace(full_base_directory, "")
                 queue.insert(0, relative_file)
                 
         backend_file = full_build_directory + file + "_backend." + _FILE_ENDINGS[lang]
         backend_code = result['code']['backend'] if result['code']['backend'] is not None else ""
-        be_map[backend_file] = backend_code
+        be_map[backend_file] = {
+            "code": backend_code,
+            "imports": result['imports']['backend'],
+        }
 
         frontend_file = full_build_directory + file + "_frontend." + _FILE_ENDINGS[lang]
         frontend_code = result['code']['frontend'] if result['code']['frontend'] is not None else ""
-        fe_map[frontend_file] = frontend_code
+        fe_map[frontend_file] = {
+            "code": frontend_code,
+            "imports": result['imports']['frontend'],
+        }
 
     for be_item in be_map.items():
         file = be_item[0]
-        content = be_item[1]
+        content = be_item[1]["code"]
         files.write(file, content)
 
     for fe_item in fe_map.items():
         file = fe_item[0]
-        content = fe_item[1]
+        content = fe_item[1]["code"]
         files.write(file, content)
 
