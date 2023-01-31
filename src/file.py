@@ -22,6 +22,10 @@ class File:
     def dirname(cls, file):
         return os.path(file)
 
+    @classmethod
+    def exists(cls, file):
+        return os.path.exists(file)
+
 class FileMock:
     @classmethod
     def reset(cls):
@@ -29,6 +33,7 @@ class FileMock:
             "paths": {},
             "data": {},
             "written": {},
+            "exists": [],
         }
 
     @classmethod
@@ -71,3 +76,11 @@ class FileMock:
         path_arr = filename.split("/")
         path_arr.pop()
         return "/".join(path_arr) + "/"
+
+    @classmethod
+    def exists_set(cls, file):
+        cls.mocks['exists'].add(file)
+
+    @classmethod
+    def exists(cls, file):
+        return file in cls.mocks['exists']

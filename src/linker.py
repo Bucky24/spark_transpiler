@@ -1,3 +1,5 @@
+import json
+
 from file import File
 from grammar import parse_statement
 from transformer import process_tree
@@ -104,6 +106,8 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
 
         file_data['real_path'] = backend_file.replace(full_build_directory, ".")
 
+        build_external_imports(result, build_directory, files)
+
     for be_item in be_map.items():
         file = be_item[0]
         content = be_item[1]["code"]
@@ -115,3 +119,35 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
         content = fe_item[1]["code"]
         files.write(file, content)
 
+def _script_dir(files):
+    return files.dirname(files.dirname(files.abspath(__file__)))
+
+def _get_library(libType, lang, env, library, files):
+    extension = _FILE_ENDINGS[lang]
+    libPath = files.abspath(_script_dir(files) + "/" + libType + "/" + lang + "/" + env + "/" + library + "." + extension)
+    return files.read(libPath)
+
+def _get_new_lib_path(libType, lang, category, library, buildDir, files):
+    extension = _FILE_ENDINGS[lang]
+    newLibFile = libType + "_" + lang + "_" + category + "_" + library + "." + extension
+    newLibPath = files.abspath(buildDir + "/" + newLibFile)
+    return newLibPath
+
+def _copy_library(libType, lang, env, library, build_dir, files):
+    data = _get_library(libType, lang, env, library, files)
+    new_path = _get_new_lib_path(libType, lang, env, build_dir, files)
+    files.write(new_path, data)
+
+def build_external_imports(result, build_dir, lang, files):
+    manifest_file = files.abspath(build_dir) + "/mainfest.json"
+    manifest = []
+    if files.exists(manifest_file):
+        manifest_data = files.read(manifest_file)
+        manifest = json.loads(manifest_data)
+
+    if result['code']['frontend']:
+        if "frontend_framework" not in manifest:
+            _copy_library('stdlib', lang, 'backend', 'webapp.tmpl', build_dir, files)
+            manifest.add('frontend_framework')
+
+    files.write(manifest_file, json.dumps(manifest))

@@ -10,7 +10,7 @@ import json
 import traceback
 
 from src import generator
-    
+"""
 # These util methods split out so they can be stubbed in tests
 def _script_dir():
     return path.dirname(path.realpath(__file__))
@@ -376,7 +376,7 @@ def build_external_exports(lang, external_exports, base_dir):
     child.communicate()
     chdir(cwd)
     if child.returncode != 0:
-        raise Error("Unable to build external exports")
+        raise Exception("Unable to build external exports")
 
 def main():
     parser = argparse.ArgumentParser(description='Spark CLI')
@@ -570,6 +570,12 @@ def process_files(base_dir, single_file, files):
     print(">>>{}".format(json.dumps(result)))
     sys.stdout.flush()
     time.sleep(0.01)
+"""
+
+
+
+def main():
+    pass
 
 if __name__ == "__main__":
     main()
