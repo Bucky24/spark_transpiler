@@ -18,7 +18,7 @@ class TestLinker(unittest.TestCase):
     def test_code_linking(self):
         result = link_code("before <<<bar/foo>>> after <<<bar/foo>>>", ["bar/foo"], {
             "bar/foo": "./src/bar/foo.js",
-        })
+        }, "base")
 
         self.assertEqual(result,"before ./src/bar/foo.js after ./src/bar/foo.js")
 
@@ -30,13 +30,39 @@ class TestLinker(unittest.TestCase):
         FileMock.read_set("/User/foo/base/src/sample2.spark", "bar = baz")
         FileMock.read_set("/User/foo/base/src/sample3.spark", "baz = bar")
 
-        generate_and_link_inner(["./src/sample.spark"], "./build", "./base", "js", FileMock)
+        generate_and_link_inner(["src/sample.spark"], "./build", "./base", "js", FileMock)
 
         sampleContents = FileMock.get_write("/User/bar/build/src/sample.spark_backend.js")
         self.assertEqual(sampleContents, "(async () => {\n    const sample3 = require(\"./src/sample3.spark_backend.js\");\n\n    const sample2 = require(\"./src/sample2.spark_backend.js\");\n\n    let foo = bar;\n})();\n")
 
     def test_several_files(self):
-        generate_and_link_inner(["./src/file1.spark", "./src/file2.spark"], "./build", "./base", "js", FileMock)
+        FileMock.abspath_set("./base", "/User/foo/base")
+        FileMock.abspath_set("./build", "/User/bar/build")
+        FileMock.abspath_set("./src/file1.spark", "/User/foo/base/src/file1.spark")
+        FileMock.abspath_set("./src/file2.spark", "/User/foo/base/src/file2.spark")
+        FileMock.read_set("/User/foo/base/src/file1.spark", "#file3\nfoo = bar")
+        FileMock.read_set("/User/foo/base/src/file2.spark", "bar = baz")
+        FileMock.read_set("/User/foo/base/src/file3.spark", "three = four")
+
+        generate_and_link_inner(["/src/file1.spark", "/src/file2.spark"], "./build", "./base", "js", FileMock)
+
+        sampleContents = FileMock.get_write("/User/bar/build/src/file1.spark_backend.js")
+        self.assertEqual(sampleContents, "(async () => {\n    const file3 = require(\"./src/file3.spark_backend.js\");\n\n    let foo = bar;\n})();\n")
+        sampleContents = FileMock.get_write("/User/bar/build/src/file2.spark_backend.js")
+        self.assertEqual(sampleContents, "(async () => {\n    let bar = baz;\n})();\n")
+        sampleContents = FileMock.get_write("/User/bar/build/src/file3.spark_backend.js")
+        self.assertEqual(sampleContents, "(async () => {\n    let three = four;\n})();\n")
+
+        dirs = FileMock.mkdir_get()
+        self.assertEqual(dirs, ["/User/bar/build"])
+    
+    def test_import(self):
+        FileMock.abspath_set("./base", "/User/foo/base")
+        FileMock.abspath_set("./build", "/User/bar/build")
+        FileMock.abspath_set("./src/file1.spark", "/User/foo/base/src/file1.spark")
+        FileMock.read_set("/User/foo/base/src/file1.spark", "print(\n    \"foo\"\n)")
+
+        generate_and_link_inner(["/src/file1.spark"], "./build", "./base", "js", FileMock)
 
 if __name__ == "__main__":
     unittest.main()

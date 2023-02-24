@@ -9,7 +9,7 @@ import threading
 import json
 import traceback
 
-from src import generator
+from src import generator, linker
 """
 # These util methods split out so they can be stubbed in tests
 def _script_dir():
@@ -575,6 +575,22 @@ def process_files(base_dir, single_file, files):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Spark CLI')
+    parser.add_argument('--base_directory', dest='base_dir', action='store', help='The base directory of the project')
+    parser.add_argument('--build_directory', dest='build_dir', action='store', help='The build directory of the project')
+    parser.add_argument('files', metavar='File', type=str, nargs='+', help='Files to process')
+    parser.add_argument('--lang', dest='lang', action='store', help='The language to transpile to')
+    parser.set_defaults(single_file=False)
+
+    args = parser.parse_args()
+
+    base_dir = args.base_dir        
+    files = [] + args.files
+    build_dir = args.build_dir
+    lang = args.lang
+
+    linker.generate_and_link(files, build_dir, base_dir, lang)
+
     pass
 
 if __name__ == "__main__":

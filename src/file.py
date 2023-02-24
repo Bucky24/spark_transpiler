@@ -1,4 +1,5 @@
 import os
+import shutil
 
 class File:
     @classmethod
@@ -20,11 +21,19 @@ class File:
 
     @classmethod
     def dirname(cls, file):
-        return os.path(file)
+        return os.path.dirname(file)
 
     @classmethod
     def exists(cls, file):
         return os.path.exists(file)
+
+    @classmethod
+    def mkdir(cls, dir):
+        return os.mkdir(dir)
+    
+    @classmethod
+    def copy(cls, src, to):
+        shutil.copyfile(src, to)
 
 class FileMock:
     @classmethod
@@ -34,6 +43,7 @@ class FileMock:
             "data": {},
             "written": {},
             "exists": [],
+            "mkdir": [],
         }
 
     @classmethod
@@ -84,3 +94,11 @@ class FileMock:
     @classmethod
     def exists(cls, file):
         return file in cls.mocks['exists']
+
+    @classmethod
+    def mkdir(cls, dir):
+        cls.mocks['mkdir'].append(dir)
+
+    @classmethod
+    def mkdir_get(cls):
+        return cls.mocks['mkdir']

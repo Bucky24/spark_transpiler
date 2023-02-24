@@ -9,17 +9,20 @@ from generator import generate
 # turn to true for debug logs
 LOG = False
 
+CURRENT_DIRECTORY = File.dirname(__file__)
+
 def log(str):
     if LOG:
         print(str)
 
 def link_code(code, be_imports, files_by_id, base_directory):
     for path in be_imports:
-        if path['link'] not in files_by_id:
-            raise Exception("Import {} not found in files list!".format(path['link']))
-        real_file_path = files_by_id[path['link']]["real_path"]
-        relative_path = real_file_path.replace(base_directory, ".")
-        code = code.replace("<<<{}>>>".format(path['link']), relative_path)
+        if path['type'] == "internal":
+            if path['link'] not in files_by_id:
+                raise Exception("Import {} not found in files list!".format(path['link']))
+            real_file_path = files_by_id[path['link']]["real_path"]
+            relative_path = real_file_path.replace(base_directory, ".")
+            code = code.replace("<<<{}>>>".format(path['link']), relative_path)
 
     return code
 
@@ -51,8 +54,13 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
 
     full_base_directory = files.abspath(base_directory)
     full_build_directory = files.abspath(build_directory)
+
+    if not files.exists(full_build_directory):
+        files.mkdir(full_build_directory)
     for file in starting_files:
-        full_file = files.abspath(file)
+        if file[0] != "/":
+            file = "/" + file
+        full_file = files.abspath(full_base_directory + file)
         relative_file = full_file.replace(full_base_directory, "")
         queue.insert(0, relative_file)
 
@@ -106,13 +114,27 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
 
         file_data['real_path'] = backend_file.replace(full_build_directory, ".")
 
-        build_external_imports(result, build_directory, files)
+        build_external_imports(result, build_directory, lang, files)
 
     for be_item in be_map.items():
         file = be_item[0]
         content = be_item[1]["code"]
         content = link_code(content, be_item[1]['imports'], files_by_id, full_base_directory)
         files.write(file, content)
+
+        for path in be_item[1]['imports']:
+            if path['type'] == 'external':
+                lib_list = path['library'].split("/")
+                library_path = CURRENT_DIRECTORY + "/../" + lib_list[0] + "/" + path['lang'] + "/" + path['env'] + "/" + lib_list[1] + "." + path['extension']
+                full_library_path = files.abspath(library_path)
+
+                build_lib_dir = full_build_directory + "/" + lib_list[0]
+                if not files.exists(build_lib_dir):
+                    files.mkdir(build_lib_dir)
+
+                result_path = "/" + lib_list[0] + "/" + lib_list[1] + "_" + path['lang'] + "_" + path['env'] + "." + path['extension']
+                full_result_path = full_build_directory + result_path
+                files.copy(full_library_path, full_result_path)
 
     for fe_item in fe_map.items():
         file = fe_item[0]

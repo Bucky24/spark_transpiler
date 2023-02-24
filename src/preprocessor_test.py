@@ -258,14 +258,14 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         
-        self.assertEqual(preprocessed['backend_function_imports'], {'stdlib': ['print']})
+        self.assertEqual(preprocessed['backend_function_imports'], {'stdlib/common': ['print']})
 
     def test_frontend_import_function(self):
         tree = parse_statement("#frontend\nprint(\n    'foo'\n)")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         
-        self.assertEqual(preprocessed['frontend_function_imports'], {'stdlib': ['print']})
+        self.assertEqual(preprocessed['frontend_function_imports'], {'stdlib/common': ['print']})
 
     def test_backend_blocks_then_frontend(self):
         tree = parse_statement("if foo == bar\n    if bar == baz\n        foo = bar\n#frontend\nfoo = bar\n")
@@ -312,14 +312,14 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         
-        self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib': ['Component']})
+        self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib/frontend': ['Component']})
 
     def test_jsx_import_class(self):
         tree = parse_statement("#frontend\n<div/>")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         
-        self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib': ['Component']})
+        self.assertEqual(preprocessed['frontend_class_imports'], {'stdlib/frontend': ['Component']})
 
     def test_multiple_block_closures(self):
         tree = parse_statement("class Foo\n    function bar()\n        if foo == bar\n            foo = bar\n\nfoo(\n    foo\n)\n")
@@ -375,7 +375,7 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
 
-        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Api']})
+        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib/common': ['Api']})
 
     def test_pragma_import(self):
         tree = parse_statement("#foo bar,baz")
@@ -403,12 +403,12 @@ class TestPreprocessor(unittest.TestCase):
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
 
-        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Api']})
+        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib/common': ['Api']})
 
         tree = parse_statement("table = Table(\n\t\"table1\"\n\t[\n\t]\n\tTable.SOURCE_MYSQL\n)\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
-        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib': ['Table']})
+        self.assertEqual(preprocessed['backend_class_imports'], {'stdlib/backend': ['Table']})
 
 if __name__ == "__main__":
     unittest.main()

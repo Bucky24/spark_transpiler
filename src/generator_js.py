@@ -3,38 +3,6 @@ import json
 from transformer import TYPES
 from utils import build_import_filename
 
-_DEFAULT_SPACES = 4
-
-_COMMON_FUNCS = [
-    "print",
-]
-
-_COMMON_CLASSES = [
-    "Api",
-]
-
-_FRONTEND_CLASSES = [
-    "Component",
-    "Style",
-    "Variable",
-]
-
-_FRONTEND_FUNCS = [
-    "render",
-]
-
-_BACKEND_CLASSES = [
-    "Table",
-]
-
-_BACKEND_FUNCS = [
-
-]
-_PLATFORMS = [
-    "backend",
-    "frontend",
-]
-
 # turn to true for debug logs
 LOG = False
 
@@ -63,7 +31,7 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
 
     for import_type in function_imports:
         import_files[import_type] = {
-            "type": "internal",
+            "type": "external",
             "env": env,
             "lang": "js",
             "library": import_type,
@@ -72,7 +40,7 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
 
     for import_type in class_imports:
         import_files[import_type] = {
-            "type": "internal",
+            "type": "external",
             "env": env,
             "lang": "js",
             "library": import_type,

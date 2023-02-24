@@ -238,7 +238,7 @@ class TestGeneratorJs(unittest.TestCase):
             "lang": "js",
             "library": "stdlib",
             "extension": "js",
-            "type": "internal",
+            "type": "external",
         }])
 
     def test_platforms_and_imports(self):
@@ -254,7 +254,7 @@ class TestGeneratorJs(unittest.TestCase):
             "extension": "js",
             "lang": "js",
             "library": "stdlib",
-            "type": "internal",
+            "type": "external",
         }])
         self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("await print(\n    foo\n);", "label"))
         self.assertEqual(imports["frontend"], [{
@@ -262,7 +262,7 @@ class TestGeneratorJs(unittest.TestCase):
             "lang": "js",
             "library": "stdlib",
             "env": "frontend",
-            "type": "internal",
+            "type": "external",
         }])
 
     def test_platform_unwind_blocks(self):
@@ -288,7 +288,7 @@ class TestGeneratorJs(unittest.TestCase):
                 "env": "frontend",
                 "library": "stdlib",
                 "extension": "js",
-                "type": "internal",
+                "type": "external",
             },
         ])
     
@@ -330,7 +330,7 @@ class TestGeneratorJs(unittest.TestCase):
             "extension": "js",
             "lang": "js",
             "library": "stdlib",
-            "type": "internal",
+            "type": "external",
         }]
         tree = parse_statement("#frontend\n<div>\n</div>\n")
         processed = process_tree(tree)
