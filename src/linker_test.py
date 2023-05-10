@@ -16,8 +16,11 @@ class TestLinker(unittest.TestCase):
         FileMock.reset()
 
     def test_code_linking(self):
-        result = link_code("before <<<bar/foo>>> after <<<bar/foo>>>", ["bar/foo"], {
-            "bar/foo": "./src/bar/foo.js",
+        result = link_code("before <<<bar/foo>>> after <<<bar/foo>>>", [{
+            "type": "internal",
+            "link": "bar/foo"
+        }], {
+            "bar/foo": { "real_path": "./src/bar/foo.js" },
         }, "base")
 
         self.assertEqual(result,"before ./src/bar/foo.js after ./src/bar/foo.js")
@@ -63,6 +66,11 @@ class TestLinker(unittest.TestCase):
         FileMock.read_set("/User/foo/base/src/file1.spark", "print(\n    \"foo\"\n)")
 
         generate_and_link_inner(["/src/file1.spark"], "./build", "./base", "js", FileMock)
+
+        copys = FileMock.copy_get()
+        self.assertEqual(len(copys), 1)
+        self.assertIn('../stdlib/js/backend/common.js', copys[0]['from'])
+        self.assertEqual(copys[0]['to'], '/User/bar/build/stdlib/common_js_backend.js')
 
 if __name__ == "__main__":
     unittest.main()

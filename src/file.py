@@ -44,6 +44,7 @@ class FileMock:
             "written": {},
             "exists": [],
             "mkdir": [],
+            "copied": [],
         }
 
     @classmethod
@@ -102,3 +103,14 @@ class FileMock:
     @classmethod
     def mkdir_get(cls):
         return cls.mocks['mkdir']
+    
+    @classmethod
+    def copy(cls, src, to):
+        cls.mocks['copied'].append({
+            "from": src,
+            "to": to,
+        })
+
+    @classmethod
+    def copy_get(cls):
+        return cls.mocks['copied']
