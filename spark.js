@@ -11,31 +11,55 @@ if (args.length === 0) {
     process.exit(1);
 }
 
-const baseDirectory = process.cwd();
+const processedArgs = {};
+let flag = null;
+for (const arg of args) {
+	if (arg.startsWith("--")) {
+		if (flag) {
+			processedArgs[flag] = true;
+		}
+		flag = arg.substring(2);
+	} else if (arg.startsWith("-")) {
+		if (flag) {
+			processedArgs[flag] = true;
+		}
+		flag = arg.substring(1);
+	} else {
+		if (flag) {
+			processedArgs[flag] = arg;
+			flag = null;
+		} else {
+			processedArgs.files = [
+				...processedArgs.files || [],
+				arg,
+			];
+		}
+	}
+}
 
-function compileFiles(file) {
+function compileFiles(files, pythonPath) {
 	return new Promise((resolve, reject) => {
 		let compileArgs = [];
 		try {
-			let preserveCache = true;
-			if (!file) {
-				file = args[0];
-				preserveCache = false;
-			}
+			//let preserveCache = true;
 			compileArgs = [
 				path.resolve(__dirname, "./spark.py"),
 				"--base_directory",
-				baseDirectory,
+				path.resolve(processedArgs.base_directory),
+				"--build_directory",
+				path.resolve(processedArgs.build_directory),
+				"--lang",
+				processedArgs.lang,
 			];
-			if (preserveCache) {
-				compileArgs.push("--single_file");
-			}
-			compileArgs.push(file);
+			//if (preserveCache) {
+			//	compileArgs.push("--single_file");
+			//}
+			compileArgs = compileArgs.concat(files);
 		} catch (error) {
 			reject(error);
 		}
 
-		proc = spawn("python", compileArgs);
+		proc = spawn(pythonPath, compileArgs);
 		proc.stdout.on("data", (data) => {
 		    const str = data.toString();
 		    if (str.startsWith(">>>")) {
@@ -112,13 +136,13 @@ function createWatchers(files) {
 	});
 }
 
-function doCompile(file) {
+function doCompile(pythonPath) {
 	if (activeProc) {
 		activeProc.kill();
 		activeProc = null;
 	}
 	doingCompile = true;
-	return compileFiles(file).then(({ outFile, all_files }) => {
+	return compileFiles(processedArgs.files, pythonPath).then(({ outFile, all_files }) => {
 		doingCompile = false;
 		return new Promise((resolve, reject) => {
 			if (outFile) {
@@ -147,6 +171,59 @@ function doCompile(file) {
 	});
 }
 
-doCompile().catch((error) => {
-    console.log(error);
+async function checkPython() {
+	let pythonCommand = "python";
+
+	let checkPython = new Promise((resolve, reject) => {
+		proc = spawn(pythonCommand, ['--version']);
+		proc.on('error', (err) => {
+			if (err.message.startsWith("Error: spawn python ENOENT")) {
+				resolve(false);
+			}
+		});
+
+		proc.on('exit', (code) => {
+			resolve(code == 0);
+		});
+
+		proc.on('close', (code) => {
+			resolve(code == 0);
+		});
+	});
+	let exists = await checkPython;
+
+	if (!exists) {
+		pythonCommand = "python3";
+
+		checkPython = new Promise((resolve, reject) => {
+			proc = spawn(pythonCommand, ['--version']);
+			proc.on('error', (err) => {
+				if (err.message.startsWith("Error: spawn python ENOENT")) {
+					resolve(false);
+				}
+			});
+	
+			proc.on('exit', (code) => {
+				resolve(code == 0);
+			});
+	
+			proc.on('close', (code) => {
+				resolve(code == 0);
+			});
+		});
+		exists = await checkPython;
+	}
+
+	if (!exists) {
+		console.log("Could not find python!");
+		process.exit(1);
+	}
+
+	return pythonCommand;
+}
+
+checkPython().then((pythonPath) => {
+	return doCompile(pythonPath)
+}).catch((error) => {
+	console.log(error);
 });
