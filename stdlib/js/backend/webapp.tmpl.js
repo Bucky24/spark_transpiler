@@ -4,21 +4,29 @@ const fs = require("fs");
 // required because we use Api below
 const { Api } = require('./stdlib_js_backend_common.js');
 
-//<BACKEND_IMPORTS>
-
 const frontendFiles = {};
 
 function processDir(dir) {
     const paths = fs.readdirSync(__dirname);
 
     for (const path of paths) {
+        if (path === "stdlib_js_backend_webapp.tmpl.js") {
+            // don't need to import ourselves
+            continue;
+        }
         const fullPath = path.join(dir, path);
         const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {
             processDir(fullPath);
         } else {
-            const tempPath = fullPath.replace(__dirname__, "./");
-            frontendFiles[tempPath] = fullPath;
+            const isBackend = path.includes("backend");
+            const isFrontend = path.includes("frontend");
+            if (isFrontend) {
+                const tempPath = fullPath.replace(__dirname__, "./");
+                frontendFiles[tempPath] = fullPath;
+            } else if (isBackend) {
+                require(fullPath);
+            }
         }
     }
 }
