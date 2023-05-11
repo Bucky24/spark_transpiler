@@ -140,13 +140,29 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
         file = fe_item[0]
         content = fe_item[1]["code"]
         files.write(file, content)
+        content = link_code(content, fe_item[1]['imports'], files_by_id, full_base_directory)
+        files.write(file, content)
+
+        for path in fe_item[1]['imports']:
+            if path['type'] == 'external':
+                lib_list = path['library'].split("/")
+                library_path = CURRENT_DIRECTORY + "/../" + lib_list[0] + "/" + path['lang'] + "/" + path['env'] + "/" + lib_list[1] + "." + path['extension']
+                full_library_path = files.abspath(library_path)
+
+                build_lib_dir = full_build_directory + "/" + lib_list[0]
+                if not files.exists(build_lib_dir):
+                    files.mkdir(build_lib_dir)
+
+                result_path = "/" + lib_list[0] + "/" + lib_list[1] + "_" + path['lang'] + "_" + path['env'] + "." + path['extension']
+                full_result_path = full_build_directory + result_path
+                files.copy(full_library_path, full_result_path)
 
 def _script_dir(files):
-    return files.dirname(files.dirname(files.abspath(__file__)))
+    return files.dirname(files.dirname(files.transpilerPath()))
 
 def _get_library(libType, lang, env, library, files):
     extension = _FILE_ENDINGS[lang]
-    libPath = files.abspath(_script_dir(files) + "/" + libType + "/" + lang + "/" + env + "/" + library + "." + extension)
+    libPath = files.abspath(_script_dir(files) + libType + "/" + lang + "/" + env + "/" + library + "." + extension)
     return files.read(libPath)
 
 def _get_new_lib_path(libType, lang, category, library, buildDir, files):
@@ -157,11 +173,11 @@ def _get_new_lib_path(libType, lang, category, library, buildDir, files):
 
 def _copy_library(libType, lang, env, library, build_dir, files):
     data = _get_library(libType, lang, env, library, files)
-    new_path = _get_new_lib_path(libType, lang, env, build_dir, files)
+    new_path = _get_new_lib_path(libType, lang, env, library, build_dir, files)
     files.write(new_path, data)
 
 def build_external_imports(result, build_dir, lang, files):
-    manifest_file = files.abspath(build_dir) + "/mainfest.json"
+    manifest_file = files.abspath(build_dir) + "/manifest.json"
     manifest = []
     if files.exists(manifest_file):
         manifest_data = files.read(manifest_file)
@@ -170,6 +186,6 @@ def build_external_imports(result, build_dir, lang, files):
     if result['code']['frontend']:
         if "frontend_framework" not in manifest:
             _copy_library('stdlib', lang, 'backend', 'webapp.tmpl', build_dir, files)
-            manifest.add('frontend_framework')
+            manifest.append('frontend_framework')
 
     files.write(manifest_file, json.dumps(manifest))

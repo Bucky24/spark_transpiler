@@ -6,9 +6,24 @@ const { Api } = require('./stdlib_js_backend_common.js');
 
 //<BACKEND_IMPORTS>
 
-const frontendFiles = {
-//<FRONTEND_IMPORTS>
-};
+const frontendFiles = {};
+
+function processDir(dir) {
+    const paths = fs.readdirSync(__dirname);
+
+    for (const path of paths) {
+        const fullPath = path.join(dir, path);
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+            processDir(fullPath);
+        } else {
+            const tempPath = fullPath.replace(__dirname__, "./");
+            frontendFiles[tempPath] = fullPath;
+        }
+    }
+}
+
+processDir(__dirname__);
 
 const frontendFileKeys = Object.keys(frontendFiles);
 

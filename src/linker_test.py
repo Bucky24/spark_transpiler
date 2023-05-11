@@ -72,5 +72,22 @@ class TestLinker(unittest.TestCase):
         self.assertIn('../stdlib/js/backend/common.js', copys[0]['from'])
         self.assertEqual(copys[0]['to'], '/User/bar/build/stdlib/common_js_backend.js')
 
+    def test_frontend_import(self):
+        FileMock.abspath_set("./base", "/User/foo/base")
+        FileMock.abspath_set("./build", "/User/bar/build")
+        FileMock.abspath_set("./src/file1.spark", "/User/foo/base/src/file1.spark")
+        FileMock.abspath_set("/User/foo/base/src/file1.spark", "/User/foo/base/src/file1.spark")
+        FileMock.read_set("/User/foo/base/src/file1.spark", "#frontend\nrender(\n\t<div>foo</div>\n)")
+        FileMock.transpilerPath_set("/User/transpiler")
+        FileMock.read_set("/User/stdlib/js/backend/webapp.tmpl.js", "stub")
+        FileMock.abspath_set("./build/stdlib_js_backend_webapp.tmpl.js", "/User/bar/build/stdlib_js_backend_webapp.tmlp.js")
+
+        generate_and_link_inner(["/src/file1.spark"], "./build", "./base", "js", FileMock)
+
+        copys = FileMock.copy_get()
+        self.assertEqual(len(copys), 1)
+        self.assertIn('../stdlib/js/frontend/frontend.js', copys[0]['from'])
+        self.assertEqual(copys[0]['to'], '/User/bar/build/stdlib/frontend_js_frontend.js')
+
 if __name__ == "__main__":
     unittest.main()

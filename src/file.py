@@ -35,6 +35,10 @@ class File:
     def copy(cls, src, to):
         shutil.copyfile(src, to)
 
+    @classmethod
+    def transpilerPath(cls):
+        return os.path.dirname(__file__)
+
 class FileMock:
     @classmethod
     def reset(cls):
@@ -45,6 +49,7 @@ class FileMock:
             "exists": [],
             "mkdir": [],
             "copied": [],
+            "transpilerPath": None,
         }
 
     @classmethod
@@ -78,6 +83,7 @@ class FileMock:
 
     @classmethod
     def get_write(cls, filename):
+        print(cls.mocks['written'])
         if filename in cls.mocks["written"]:
             return cls.mocks["written"][filename]
         return None
@@ -114,3 +120,11 @@ class FileMock:
     @classmethod
     def copy_get(cls):
         return cls.mocks['copied']
+    
+    @classmethod
+    def transpilerPath(cls):
+        return cls.mocks['transpilerPath']
+    
+    @classmethod
+    def transpilerPath_set(cls, path):
+        cls.mocks['transpilerPath'] = path
