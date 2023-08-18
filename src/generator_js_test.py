@@ -44,7 +44,7 @@ def _get_class_new(class_name):
 
     return code.replace("{name}", class_name)
 
-component_import_code = "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n"
+component_import_code = "import {\n    Component\n} from \"./stdlib/frontend_js_frontend.js\";\n\n"
 class_creation_code = "    static async __new() {\n        const instance = new Foo();\n        if (typeof instance.__construct !== 'undefined') {\n            await instance.__construct.apply(instance, arguments);\n        }\n        return instance;\n    }\n"
 
 class TestGeneratorJs(unittest.TestCase):
@@ -232,11 +232,11 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib_js_backend.js\");\n\nawait print(\n    foo\n);"))
+        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib/common_js_backend.js\");\n\nawait print(\n    foo\n);"))
         self.assertEqual(imports["backend"], [{
             "env": "backend",
             "lang": "js",
-            "library": "stdlib",
+            "library": "stdlib/common",
             "extension": "js",
             "type": "external",
         }])
@@ -248,19 +248,19 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib_js_backend.js\");\n\nawait print(\n    foo\n);"))
+        self.assertEqual(result["backend"], _wrap_back("const {\n    print\n} = require(\"./stdlib/common_js_backend.js\");\n\nawait print(\n    foo\n);"))
         self.assertEqual(imports["backend"], [{
             "env": "backend",
             "extension": "js",
             "lang": "js",
-            "library": "stdlib",
+            "library": "stdlib/common",
             "type": "external",
         }])
-        self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("await print(\n    foo\n);", "label"))
+        self.assertEqual(result["frontend"], "import {\n    print\n} from \"./stdlib/common_js_frontend.js\";\n\n" + _wrap_frontend("await print(\n    foo\n);", "label"))
         self.assertEqual(imports["frontend"], [{
             "extension": "js",
             "lang": "js",
-            "library": "stdlib",
+            "library": "stdlib/common",
             "env": "frontend",
             "type": "external",
         }])
@@ -281,12 +281,12 @@ class TestGeneratorJs(unittest.TestCase):
         output = generate(preprocessed, "js")
         result = output["code"]
         imports = output["imports"]
-        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("let foo = await Component::__new(\n    \"div\"\n);", "label"))
+        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib/frontend_js_frontend.js\";\n\n" + _wrap_frontend("let foo = await Component::__new(\n    \"div\"\n);", "label"))
         self.assertEqual(imports["frontend"], [
             {
                 "lang": "js",
                 "env": "frontend",
-                "library": "stdlib",
+                "library": "stdlib/frontend",
                 "extension": "js",
                 "type": "external",
             },
@@ -329,7 +329,7 @@ class TestGeneratorJs(unittest.TestCase):
             "env": "frontend",
             "extension": "js",
             "lang": "js",
-            "library": "stdlib",
+            "library": "stdlib/frontend",
             "type": "external",
         }]
         tree = parse_statement("#frontend\n<div>\n</div>\n")
@@ -443,7 +443,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["backend"], _wrap_back("const {\n    Api\n} = require(\"./stdlib_js_backend.js\");\n\nawait Api.post();"))
+        self.assertEqual(result["backend"], _wrap_back("const {\n    Api\n} = require(\"./stdlib/common_js_backend.js\");\n\nawait Api.post();"))
 
     def test_function_call_and_platform(self):
         tree = parse_statement("foo()\n#frontend\nfoo()\n")
@@ -625,7 +625,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib_js_frontend.js\";\n\n" + _wrap_frontend("new Component(\"input\", {\n    \"onChange\": async (event) => {\n        await foo();\n    },\n    \"value\": \"bar\"\n}, []);", "label"))
+        self.assertEqual(result["frontend"], "import {\n    Component\n} from \"./stdlib/frontend_js_frontend.js\";\n\n" + _wrap_frontend("new Component(\"input\", {\n    \"onChange\": async (event) => {\n        await foo();\n    },\n    \"value\": \"bar\"\n}, []);", "label"))
 
         tree = parse_statement("foo = {\n\tonChange: function(event)\n\t\tfoo()\n\tvalue: \"bar\"\n")
         processed = process_tree(tree)
