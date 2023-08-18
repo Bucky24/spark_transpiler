@@ -92,7 +92,7 @@ class FileMock:
     def dirname(cls, filename):
         path_arr = filename.split("/")
         path_arr.pop()
-        return "/".join(path_arr) + "/"
+        return "/".join(path_arr)
 
     @classmethod
     def exists_set(cls, file):

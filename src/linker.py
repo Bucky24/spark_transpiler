@@ -104,7 +104,10 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
 
         for item in result['imports']['backend']:
             if item['type'] == "internal":
-                proper_path = files.abspath(file_directory + item['path'])
+                item_path = item['path']
+                if item_path[0] != "/":
+                    item_path = "/" + item_path
+                proper_path = files.abspath(file_directory + item_path)
                 import_id = _get_id_for_file(proper_path)
                 be_map[backend_file]["code"] = be_map[backend_file]["code"].replace(item['link'], import_id)
                 item['link'] = import_id
@@ -158,11 +161,11 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
                 files.copy(full_library_path, full_result_path)
 
 def _script_dir(files):
-    return files.dirname(files.dirname(files.transpilerPath()))
+    return files.dirname(files.transpilerPath())
 
 def _get_library(libType, lang, env, library, files):
     extension = _FILE_ENDINGS[lang]
-    libPath = files.abspath(_script_dir(files) + libType + "/" + lang + "/" + env + "/" + library + "." + extension)
+    libPath = files.abspath(_script_dir(files) + "/" + libType + "/" + lang + "/" + env + "/" + library + "." + extension)
     return files.read(libPath)
 
 def _get_new_lib_path(libType, lang, category, library, buildDir, files):
