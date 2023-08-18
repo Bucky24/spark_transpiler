@@ -190,5 +190,9 @@ def build_external_imports(result, build_dir, lang, files):
         if "frontend_framework" not in manifest:
             _copy_library('stdlib', lang, 'backend', 'webapp.tmpl', build_dir, files)
             manifest.append('frontend_framework')
+        # also need common backend
+        if "stdlib_common_backend" not in manifest:
+            _copy_library('stdlib', lang, 'backend', 'common', build_dir, files)
+            manifest.append('stdlib_common_backend')
 
     files.write(manifest_file, json.dumps(manifest))

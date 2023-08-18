@@ -81,6 +81,8 @@ class TestLinker(unittest.TestCase):
         FileMock.transpilerPath_set("/User/transpiler")
         FileMock.read_set("/User/stdlib/js/backend/webapp.tmpl.js", "stub")
         FileMock.abspath_set("./build/stdlib_js_backend_webapp.tmpl.js", "/User/bar/build/stdlib_js_backend_webapp.tmlp.js")
+        FileMock.abspath_set("./build/stdlib_js_backend_common.js", "/User/bar/build/stdlib_js_backend_common.js")
+        FileMock.read_set("/User/stdlib/js/backend/common.js", "stub")
 
         generate_and_link_inner(["/src/file1.spark"], "./build", "./base", "js", FileMock)
 
