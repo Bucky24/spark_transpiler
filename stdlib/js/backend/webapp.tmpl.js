@@ -115,10 +115,17 @@ const server = http.createServer((req, res) => {
         } else if (frontendFileKeys.includes(req.url)) {
             serveFile(res, frontendFiles[req.url]);
         } else if (req.url === "updateTime") {
-            const updateTime = fs.readFileSync(path.join(__dirname, "__update_time__"));
-            res.writeHead(200);
-            res.write(updateTime);
-            res.end();
+            const updatePath = path.join(__dirname, "__update_time__");
+            if (!fs.existsSync(updatePath)) {
+                res.writeHead(200);
+                res.write('0');
+                res.end();
+            } else {
+                const updateTime = fs.readFileSync(path.join(__dirname, "__update_time__"));
+                res.writeHead(200);
+                res.write(updateTime);
+                res.end();
+            }
         } else if (req.url.startsWith("api/")) {
             const headers = parseHeaders(req.rawHeaders);
             const cookieObj = parseCookies(headers['Cookie']);
@@ -167,6 +174,20 @@ const server = http.createServer((req, res) => {
                 console.log(error.stack);
             }
             res.end();
+        } else if (req.url.endsWith(".js")) {
+            const filePath = path.resolve(__dirname, req.url);
+            if (!fs.existsSync(filePath)) {
+                console.error("Couldn't find JS file", req.url);
+                res.writeHead(404);
+                res.end();
+            } else {
+                const content = fs.readFileSync(filePath);
+                res.writeHead(200, {
+                    'Content-Type': 'text/javascript',
+                });
+                res.write(content);
+                res.end();
+            }
         } else {
             console.error("Unexpected:", req.url)
             res.writeHead(404);

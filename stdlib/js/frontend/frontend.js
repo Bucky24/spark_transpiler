@@ -38,7 +38,8 @@ async function renderChild(child) {
 	return child;
 }
 
-class Component {
+let mainComponent = null;
+export class Component {
 	constructor(...args) {
 		if (args.length === 3) {
 			const [ tag, attrs, children ] = args;
@@ -55,6 +56,21 @@ class Component {
 
 	setElem(newElem) {
 		this.elem = newElem;
+	}
+
+	// top level renders
+	static async render(component) {
+		mainComponent = component;
+		const holder = document.getElementById("app");
+		const element = await renderChild(component);
+		holder.innerHTML = "";
+		holder.appendChild(element);
+	}
+	
+	static async rerender() {
+		if (mainComponent) {
+			await render(mainComponent);
+		}
 	}
 
 	async rerender() {
@@ -167,21 +183,5 @@ class State {
 				rerender();
 			}, 1);
 		}
-	}
-}
-
-let mainComponent = null;
-
-async function render(component) {
-	mainComponent = component;
-	const holder = document.getElementById("app");
-	const element = await renderChild(component);
-	holder.innerHTML = "";
-	holder.appendChild(element);
-}
-
-async function rerender() {
-	if (mainComponent) {
-		await render(mainComponent);
 	}
 }

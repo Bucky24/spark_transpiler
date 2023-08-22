@@ -83,6 +83,7 @@ class TestLinker(unittest.TestCase):
         FileMock.abspath_set("./build/stdlib_js_backend_webapp.tmpl.js", "/User/bar/build/stdlib_js_backend_webapp.tmlp.js")
         FileMock.abspath_set("./build/stdlib_js_backend_common.js", "/User/bar/build/stdlib_js_backend_common.js")
         FileMock.read_set("/User/stdlib/js/backend/common.js", "stub")
+        FileMock.read_set("/User/stdlib/js/frontend/index.tmpl.html", "template_stub  <!-- FRONTEND_SCRIPTS -->")
 
         generate_and_link_inner(["/src/file1.spark"], "./build", "./base", "js", FileMock)
 
@@ -90,6 +91,9 @@ class TestLinker(unittest.TestCase):
         self.assertEqual(len(copys), 1)
         self.assertIn('../stdlib/js/frontend/frontend.js', copys[0]['from'])
         self.assertEqual(copys[0]['to'], '/User/bar/build/stdlib/frontend_js_frontend.js')
+
+        frontend_template = FileMock.get_write('/User/bar/build/stdlib_js_frontend_index.html')
+        self.assertEqual(frontend_template, "template_stub  <script src=\"/src/file1.spark_frontend.js\" type=\"module\"></script>")
 
 if __name__ == "__main__":
     unittest.main()

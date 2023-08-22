@@ -244,7 +244,7 @@ These methods are available to the frontend code:
 
 | Method | Description | Signature |
 | --- | --- | --- |
-| render | Renders a Component to the page | Takes in a single instance of a Component, or JSX tag |
+| Component.render | Renders a Component to the page | Takes in a single instance of a Component, or JSX tag |
 
 ### Component class
 

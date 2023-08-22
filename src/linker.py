@@ -91,6 +91,7 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
         be_map[backend_file] = {
             "code": backend_code,
             "imports": result['imports']['backend'],
+            "id": file_id,
         }
 
         file_data['real_path'] = backend_file
@@ -100,6 +101,7 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
         fe_map[frontend_file] = {
             "code": frontend_code,
             "imports": result['imports']['frontend'],
+            "id": file_id,
         }
 
         for item in result['imports']['backend']:
@@ -116,8 +118,6 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
                 queue.insert(0, relative_file)
 
         file_data['real_path'] = backend_file.replace(full_build_directory, ".")
-
-        build_external_imports(result, build_directory, lang, files)
 
     for be_item in be_map.items():
         file = be_item[0]
@@ -139,7 +139,10 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
                 full_result_path = full_build_directory + result_path
                 files.copy(full_library_path, full_result_path)
 
+    has_fe = False
     for fe_item in fe_map.items():
+        if fe_item[1]['code'] != '':
+            has_fe = True
         file = fe_item[0]
         content = fe_item[1]["code"]
         files.write(file, content)
@@ -160,6 +163,14 @@ def generate_and_link_inner(starting_files, build_directory, base_directory, lan
                 full_result_path = full_build_directory + result_path
                 files.copy(full_library_path, full_result_path)
 
+    # now build the frontend framework if we need to
+    frontend_scripts = []
+    for fe_item in fe_map.items():
+        full_file = fe_item[0]
+        partial_file = full_file.replace(full_build_directory, "")
+        frontend_scripts.append(partial_file)
+    build_external_imports(has_fe, build_directory, lang, files, frontend_scripts)
+
 def _script_dir(files):
     return files.dirname(files.transpilerPath())
 
@@ -179,17 +190,23 @@ def _copy_library(libType, lang, env, library, build_dir, files):
     new_path = _get_new_lib_path(libType, lang, env, library, build_dir, files)
     files.write(new_path, data)
 
-def build_external_imports(result, build_dir, lang, files):
+def build_external_imports(frontend, build_dir, lang, files, frontend_scripts):
     manifest_file = files.abspath(build_dir) + "/manifest.json"
     manifest = []
     if files.exists(manifest_file):
         manifest_data = files.read(manifest_file)
         manifest = json.loads(manifest_data)
 
-    if result['code']['frontend']:
-        if "frontend_framework" not in manifest:
-            _copy_library('stdlib', lang, 'backend', 'webapp.tmpl', build_dir, files)
-            manifest.append('frontend_framework')
+    if frontend:
+        _copy_library('stdlib', lang, 'backend', 'webapp.tmpl', build_dir, files)
+        path = files.abspath(_script_dir(files) + "/stdlib/" + lang + "/frontend/index.tmpl.html")
+        content = files.read(path)
+        files_as_scripts = []
+        for script in frontend_scripts:
+            files_as_scripts.append("<script src=\"{}\" type=\"module\"></script>".format(script))
+        content = content.replace("<!-- FRONTEND_SCRIPTS -->", "\n".join(files_as_scripts))
+        new_path = files.abspath(build_dir) + "/stdlib_js_frontend_index.html"
+        files.write(new_path, content)
         # also need common backend
         if "stdlib_common_backend" not in manifest:
             _copy_library('stdlib', lang, 'backend', 'common', build_dir, files)

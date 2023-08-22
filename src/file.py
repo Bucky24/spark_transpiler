@@ -83,7 +83,6 @@ class FileMock:
 
     @classmethod
     def get_write(cls, filename):
-        print(cls.mocks['written'])
         if filename in cls.mocks["written"]:
             return cls.mocks["written"][filename]
         return None
