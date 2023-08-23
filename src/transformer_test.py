@@ -463,7 +463,7 @@ class bar
                     "tag": "span",
                     "self_closes": False,
                     "attributes": [],
-                    "children": [statement("foo", 0)],
+                    "children": [statement("\"foo\"", 0)],
                 }, 0)],
             }, 0),
         ])

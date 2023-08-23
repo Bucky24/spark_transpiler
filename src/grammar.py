@@ -180,6 +180,7 @@ VARIABLE_MANIPULATE = "states/variable_manipulate"
 ARRAY_OBJECT_INDEXING = "states/array_object_indexing"
 BOOLEAN = "states/boolean"
 ELSE_STATEMENT = "states/else_statement"
+JSX_TEXT_CONTENT = "states/jsx_text_content"
 
 # sub-states for JSX parsing
 JSX_START = "jsx_states/start"
@@ -350,7 +351,7 @@ def process_tokens(tokens):
             parent = context_stack[-1]
             parent_state = parent['type']
 
-        log("handle token {}: \"{}\" ({}, {}) context stack: {}".format(state, token, current_context['spaces'], current_context['tabs'], len(context_stack)))
+        log("handle token {}: \"{}\" ({}, {}) context stack: {}. Parent: {}".format(state, token, current_context['spaces'], current_context['tabs'], len(context_stack), parent_state))
         if token == "\n":
             line += 1
 
@@ -484,14 +485,22 @@ def process_tokens(tokens):
                 continue
             # should always be at the very end
             elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
-                # default if it's not an operator or keyword, then it's probably a variable
-                # or a function name
-                current_context = copy_context({
-                    "type": VARIABLE_OR_METHOD,
-                    "variable": token,
-                    "has_data": False,
-                })
-                continue
+                if parent_state == JSX:
+                    # this is going to be regular text inside a JSX tag
+                    current_context = copy_context({
+                        "type": JSX_TEXT_CONTENT,
+                        "text": token,
+                    })
+                    continue
+                else:
+                    # default if it's not an operator or keyword, then it's probably a variable
+                    # or a function name
+                    current_context = copy_context({
+                        "type": VARIABLE_OR_METHOD,
+                        "variable": token,
+                        "has_data": False,
+                    })
+                    continue
         elif current_context['type'] == VARIABLE_OR_METHOD:
             if token == " ":
                 continue
@@ -1001,6 +1010,14 @@ def process_tokens(tokens):
         elif state == ELSE_STATEMENT:
             append_context_stack(True)
             continue
+        elif state == JSX_TEXT_CONTENT:
+            if token == "<":
+                tokens.insert(0, token)
+                current_context = pop_context()
+                continue
+            else:
+                current_context['text'] += token
+                continue
 
         raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state)
 
@@ -1262,6 +1279,10 @@ def build_tree(statements):
             add_result(statement, Tree("else_stat", [build_nested(statement)]))
         elif statement['type'] == JSX_TAG_END:
             add_result(statement, Tree("jsx_tag_end", []))
+        elif statement['type'] == JSX_TEXT_CONTENT:
+            add_result(statement, Tree("string", [
+                Token("STRING_CONTENTS_DOUBLE", statement['text']),
+            ]))
         else:
             raise Exception("build_tree: Unknown type " + statement['type'])
 

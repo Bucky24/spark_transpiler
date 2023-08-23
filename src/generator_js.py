@@ -401,6 +401,16 @@ def generate_code(tree, context = None):
 
             code += "}, ["
 
+            all_children = []
+            for child in statement['children']:
+                child_code = generate_code(child, context)['code']
+                child_code = remove_spaces(child_code)
+                child_code = indent_code(child_code, 4)
+                all_children.append(child_code)
+
+            if len(all_children) > 0:
+                code += "\n" + ",\n".join(all_children) + "\n"
+
             code += "]);"
             add_code(code)
         elif statement['type'] == TYPES['JSX_ATTRIBUTE']:

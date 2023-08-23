@@ -954,7 +954,7 @@ if foo == \"bar\"
             ]),
         ]))
 
-        tree = parse_statement("<div>\n    <span>foo</span>\n</div>")
+        tree = parse_statement("<div>\n    <span>foo bar</span>\n</div>")
         self.assertEqual(tree, _get_start([
             Tree("statement", [
                 Tree("jsx_tag_start", [
@@ -979,8 +979,8 @@ if foo == \"bar\"
                                 Tree("jsx_tag_end", []),
                             ]),
                             Tree("statement", [
-                                Tree("variable", [
-                                    Token("VARIABLE_NAME", "foo"),
+                                Tree("string", [
+                                    Token("STRING_CONTENTS_DOUBLE", "foo bar"),
                                 ]),
                             ]),
                             Tree("statement", [

@@ -359,6 +359,13 @@ class TestGeneratorJs(unittest.TestCase):
         imports = output["imports"]
         self.assertEqual(result["frontend"], component_import_code + _wrap_frontend("new Component(\"input\", {}, []);", "label"))
         self.assertEqual(imports["frontend"], expected_imports)
+
+        tree = parse_statement("#frontend\n<div>hi</div>\n")
+        processed = process_tree(tree)
+        preprocessed = preprocess(processed)
+        result = generate(preprocessed, "js")
+        result = result["code"]
+        self.assertEqual(result['frontend'], component_import_code + _wrap_frontend("new Component(\"div\", {}, [\n    \"hi\"\n]);", "label"))
         
     def test_jsx_component(self):
         tree = parse_statement("#frontend\nclass Foo extends Component\n<Foo>\n</Foo>\n")
