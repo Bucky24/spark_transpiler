@@ -198,7 +198,11 @@ def build_external_imports(frontend, build_dir, lang, files, frontend_scripts):
         manifest = json.loads(manifest_data)
 
     if frontend:
-        _copy_library('stdlib', lang, 'backend', 'webapp.tmpl', build_dir, files)
+        path = files.abspath(_script_dir(files) + "/stdlib/" + lang + "/backend/webapp.tmpl.js")
+        content = files.read(path)
+        new_path = files.abspath(build_dir) + "/index.js"
+        files.write(new_path, content)
+
         path = files.abspath(_script_dir(files) + "/stdlib/" + lang + "/frontend/index.tmpl.html")
         content = files.read(path)
         files_as_scripts = []

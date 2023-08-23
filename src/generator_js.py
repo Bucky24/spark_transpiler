@@ -1,4 +1,5 @@
 import json
+import traceback
 
 from transformer import TYPES
 from utils import build_import_filename
@@ -85,21 +86,23 @@ def generate_js(tree, function_imports, class_imports, custom_imports, label, en
         code = wrap_backend(code)
     elif env == "frontend":
         code = result['code']
+        # statement added 4 spaces to all lines. We should remove it here
+        code = remove_spaces(code)
 
         for import_type in custom_imports:
             import_values = custom_imports[import_type]
             if len(import_values) == 1 and import_values[0] == "*":
-                import_code = "    const " + import_type + " = await getModule(\"" + import_type + "\");\n\n"
+                import_code = "const " + import_type + " = await getModule(\"" + import_type + "\");\n\n"
             else:
-                import_code = "    const {\n        " + ",\n        ".join(import_values) + "\n    } = await getModule(\"" + import_type + "\");\n\n"
+                import_code = "const {\n    " + ",\n    ".join(import_values) + "\n} = await getModule(\"" + import_type + "\");\n\n"
             code = import_code + code
 
         if len(result['exports']) > 0:
-            code += "\n\n    return {\n"
+            code += "\n\nreturn {\n"
             if len(result['exports']) == 1:
-                code += "        " + result['exports'][0] + "\n    };\n"
+                code += "    " + result['exports'][0] + "\n};\n"
             else:
-                code += "        " + ",\n        ".join(result['exports']) + "\n    };\n"
+                code += "    " + ",\n    ".join(result['exports']) + "\n};\n"
         code = wrap_frontend(code, label)
 
         for import_type in function_imports:
@@ -124,7 +127,25 @@ def wrap_backend(code):
     return "(async () => {\n" + code + "\n})();\n"
 
 def wrap_frontend(code, label):
-    return "Modules[\"" + label + "\"] = (async () => {\nawait new Promise((resolve) => {setTimeout(resolve, 10);});\n" + code + "\n})();\n"
+    # at this point we're loading modules which can await at top level
+    return code
+
+def remove_spaces(code):
+    lines = code.split("\n")
+    min_spaces = count_spaces(lines[0])
+    new_lines = []
+    for line in lines:
+        new_lines.append(line[min_spaces:])
+    return "\n".join(new_lines)
+
+def count_spaces(code):
+    spaces = 0
+    for char in code:
+        if char == " ":
+            spaces += 1
+        else:
+            return spaces
+    return spaces
 
 def generate_code(tree, context = None):
     if not isinstance(tree, list):
@@ -148,19 +169,11 @@ def generate_code(tree, context = None):
             code = add_spaces(code, additional_spaces)
         code_lines.append(code)
 
-    def remove_spaces(code):
-        lines = code.split("\n")
-        min_spaces = count_spaces(lines[0])
-        new_lines = []
-        for line in lines:
-            new_lines.append(line[min_spaces:])
-        return "\n".join(new_lines)
-
     def add_spaces(code, spaces):
         lines = code.split("\n")
         new_lines = []
         for line in lines:
-            #log("Adding {} spaces to {}".format(spaces, line))
+            log("Adding {} spaces to {}".format(spaces, line))
             new_lines.append(" " * spaces + line)
         return "\n".join(new_lines)
 
@@ -172,15 +185,6 @@ def generate_code(tree, context = None):
 
     def indent_code(code, indent):
         return add_spaces(code, indent)
-
-    def count_spaces(code):
-        spaces = 0
-        for char in code:
-            if char == " ":
-                spaces += 1
-            else:
-                return spaces
-        return spaces
 
     def passthrough_context(result):
         nonlocal set_context_type
