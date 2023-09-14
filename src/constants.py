@@ -7,4 +7,5 @@ CLASS_IMPORTS = {
     "Api": "stdlib/common",
     "Mysql": "stdlib/backend",
     "Table": "stdlib/backend",
+    "Style": "stdlib/frontend",
 }

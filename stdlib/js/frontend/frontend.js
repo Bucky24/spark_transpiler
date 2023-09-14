@@ -1,6 +1,20 @@
-class Style {
-	constructor(attrs) {
+export class Style {
+	constructor(attrs, className) {
 		this.attrs = attrs;
+		this.className = className;
+	}
+
+	static __new(attrs, className) {
+		const style = new Style(attrs, className);
+
+		// create a new style for this class
+		const holder = document.createElement("style");
+
+		holder.innerHTML = style.render();
+
+		document.head.appendChild(holder);
+
+		return className;
 	}
 	
 	render() {
@@ -9,7 +23,7 @@ class Style {
 			key = key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
 			return `${key}: ${value}`;
 		})
-		return attrList.join("; ");
+		return `.${this.className} {\n${attrList.join(";\n")}\n}`;
 	}
 }
 

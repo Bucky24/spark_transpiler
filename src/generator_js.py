@@ -309,7 +309,7 @@ def generate_code(tree, context = None):
             code = "await " + remove_spaces(func_name) + "("
             # have to handle class instance creation here
             if func_name in context['generated_classes']:
-                code = "await " + func_name + "::__new("
+                code = "await " + func_name + ".__new("
 
             if parameter_code != "":
                 code += "\n" + parameter_code + "\n"

@@ -469,6 +469,27 @@ if foo == \"bar\"
             ]),
         ]))
 
+        result = parse_statement("foo = Bar()")
+        self.assertEqual(result, Tree("start", [
+            Tree("statements", [
+                Tree("statement", [
+                    Tree("variable_assignment", [
+                        Tree("variable", [Token("VARIABLE_NAME", "foo")]),
+                        Tree("statement", [
+                            Tree("call_function", [
+                                Tree("function_name", [
+                                    Tree("statement", [
+                                        Tree("variable", [Token("VARIABLE_NAME", "Bar")])
+                                    ])
+                                ]),
+                                Tree("function_params", [])
+                            ])
+                        ])
+                    ])
+                ])
+            ])
+        ]))
+
     def test_function(self):
         result = parse_statement("function(a, b, c)")
         self.assertEqual(result, Tree("start", [
