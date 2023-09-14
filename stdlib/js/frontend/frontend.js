@@ -20,6 +20,9 @@ export class Style {
 	render() {
 		const attrList = Object.keys(this.attrs).map((key) => {
 			let value = this.attrs[key];
+			if (!isNaN(value)) {
+				value = `${value}px`;
+			}
 			key = key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
 			return `${key}: ${value}`;
 		})
