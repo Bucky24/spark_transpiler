@@ -324,7 +324,7 @@ class TestGeneratorJs(unittest.TestCase):
             "library": "stdlib/frontend",
             "type": "external",
         }]
-        """tree = parse_statement("#frontend\n<div>\n</div>\n")
+        tree = parse_statement("#frontend\n<div>\n</div>\n")
         processed = process_tree(tree)
         preprocessed = preprocess(processed)
         output = generate(preprocessed, "js")
@@ -365,7 +365,7 @@ class TestGeneratorJs(unittest.TestCase):
         preprocessed = preprocess(processed)
         result = generate(preprocessed, "js")
         result = result["code"]
-        self.assertEqual(result['frontend'], component_import_code + _wrap_frontend("new Component(\"div\", {}, [\n    \"hi\"\n]);", "label"))"""
+        self.assertEqual(result['frontend'], component_import_code + _wrap_frontend("new Component(\"div\", {}, [\n    \"hi\"\n]);", "label"))
 
         tree = parse_statement("#frontend\n<div>\n    <div>hi</div>\n</div>\n")
         processed = process_tree(tree)
