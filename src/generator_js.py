@@ -200,8 +200,10 @@ def generate_code(tree, context = None):
         log("Generating for " + statement['type'] + " parent context: {}".format(parent_context_type))
         if statement['type'] == TYPES['STATEMENT']:
             if isinstance(statement['statement'], str) or isinstance(statement['statement'], float) or isinstance(statement['statement'], int):
+                log("Statement is basic type")
                 add_code(str(statement['statement']))
                 continue
+            log("Statement recursing into generate_code")
             result = generate_code(statement['statement'], context)
             add_code(result['code'], 4)
             passthrough_context(result)
@@ -406,6 +408,8 @@ def generate_code(tree, context = None):
                 child_code = generate_code(child, context)['code']
                 child_code = remove_spaces(child_code)
                 child_code = indent_code(child_code, 4)
+                if child_code[-1] == ";":
+                    child_code = child_code[:-1]
                 all_children.append(child_code)
 
             if len(all_children) > 0:
