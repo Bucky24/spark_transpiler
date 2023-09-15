@@ -192,7 +192,7 @@ END_STATS = ["\n", ";"]
 VALID_VARIABLE_START = list(string.ascii_lowercase) + list(string.ascii_uppercase) + ["_"]
 
 # turn to true for debug logs
-LOG = True
+LOG = False
 
 def log(str):
     if LOG:
@@ -966,7 +966,12 @@ def process_tokens(tokens):
                 continue
             elif token == " ":
                 if not current_context['fetching_value']:
-                    continue
+                    if current_context['attr'] is not None:
+                        tokens.insert(0, token)
+                        current_context = pop_context()
+                        continue
+                    else:
+                        continue
             elif token == "\n":
                 if not current_context['bracket']:
                     current_context = pop_context()

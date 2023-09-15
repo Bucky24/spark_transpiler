@@ -1019,6 +1019,43 @@ if foo == \"bar\"
                 ]),
             ]),
         ]))
+
+        result = parse_statement("<input type=\"text\" id=\"username\" />")
+        self.assertEqual(result, _get_start([
+            Tree("statement", [
+                Tree("jsx_tag_start", [
+                    Token("TAG_NAME", "input"),
+                    Tree("statement", [
+                        Tree("jsx_attribute", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "type"),
+                            ]),
+                            Tree("statement", [
+                                Tree("string", [
+                                    Token("STRING_CONTENTS_DOUBLE", "text"),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("statement", [
+                        Tree("jsx_attribute", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "id"),
+                            ]),
+                            Tree("statement", [
+                                Tree("string", [
+                                    Token("STRING_CONTENTS_DOUBLE", "username"),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("statement", [
+                        Tree("jsx_tag_end", [])
+                    ]),
+                    Token("TAG_SELF_CLOSE", "/")
+                ])
+            ])
+        ]))
         
     def test_return(self):
         result = parse_statement("function foo()\n\treturn bar\n")
