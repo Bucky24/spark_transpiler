@@ -192,7 +192,7 @@ END_STATS = ["\n", ";"]
 VALID_VARIABLE_START = list(string.ascii_lowercase) + list(string.ascii_uppercase) + ["_"]
 
 # turn to true for debug logs
-LOG = False
+LOG = True
 
 def log(str):
     if LOG:
@@ -896,7 +896,7 @@ def process_tokens(tokens):
                     continue
         elif state == JSX:
             substate = current_context['substate']
-            log("handle token {}".format(substate))
+            log("handle jsx token {}".format(substate))
             if substate == JSX_START:
                 if token == "/":
                     current_context['end_tag'] = True
@@ -935,9 +935,14 @@ def process_tokens(tokens):
                     })
                     continue
             elif substate == JSX_CHILDREN:
-                tokens.insert(0, token)
-                append_context_stack()
-                continue
+                if token == ")":
+                    # this is likely the end of a function call
+                    current_context = pop_context()
+                    continue
+                else:
+                    tokens.insert(0, token)
+                    append_context_stack()
+                    continue
             
             raise Exception("Unexpected token at line " + str(line) + ": \"" + token + "\" " + state + " -> " + substate)
         elif state == JSX_ATTRIBUTE:
