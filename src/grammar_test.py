@@ -491,7 +491,7 @@ if foo == \"bar\"
         ]))
 
     def test_function(self):
-        result = parse_statement("function(a, b, c)")
+        """result = parse_statement("function(a, b, c)")
         self.assertEqual(result, Tree("start", [
             Tree("statements", [
                 Tree("statement", [
@@ -588,6 +588,106 @@ if foo == \"bar\"
                     ]),
                 ]),
                 Token("NEWLINE", "\n"),
+            ]),
+        ]))"""
+
+        result = parse_statement("Api.post(\n    \"login\"\n    function ()\n        print(\n            \"here\"\n        )\n)")
+        self.assertEqual(result, _get_start([
+            Tree("statement", [
+                Tree("call_function", [
+                    Tree("function_name", [
+                        Tree("statement", [
+                            Tree("variable", [
+                                Tree("instance_variable_chain", [
+                                    Token("VARIABLE_NAME", "Api"),
+                                    Token("VARIABLE_NAME", "post"),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("function_params", [
+                        Token("NEWLINE", "\n"),
+                        Tree("statement", [
+                            Tree("string", [
+                                Token("STRING_CONTENTS_DOUBLE", "login"),
+                            ]),
+                        ]),
+                        Token("NEWLINE", "\n"),
+                        Tree("statement", [
+                            Tree("function_definition", [
+                                Tree("nested", [
+                                    Tree("statement", [
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("spaces", [
+                                            Token("SPACE", " "),
+                                        ]),
+                                        Tree("call_function", [
+                                            Tree("function_name", [
+                                                Tree("statement", [
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("spaces", [
+                                                        Token("SPACE", " "),
+                                                    ]),
+                                                    Tree("variable", [
+                                                        Token("VARIABLE_NAME", "print"),
+                                                    ]),
+                                                ]),
+                                            ]),
+                                            Tree("function_params", [
+                                                Token("NEWLINE", "\n"),
+                                                Tree("statement", [
+                                                    Tree("string", [
+                                                        Token("STRING_CONTENTS_DOUBLE", "here"),
+                                                    ]),
+                                                ]),
+                                            ]),
+                                        ]),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
             ]),
         ]))
 

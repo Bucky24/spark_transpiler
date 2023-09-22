@@ -789,6 +789,11 @@ def process_tokens(tokens):
                 if not current_context['waiting_for_param'] and current_context['in_params']:
                     current_context['in_params'] = False
                     continue
+                else:
+                    # parent should deal with this since we're probably in a function call
+                    tokens.insert(0, token)
+                    current_context = pop_context()
+                    continue
             elif len(token) > 0 and token[0] in VALID_VARIABLE_START:
                 if current_context['in_params']:
                     current_context['params'].append(token)
