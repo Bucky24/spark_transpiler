@@ -907,7 +907,7 @@ def process_tokens(tokens):
                     continue
             elif substate == JSX_ATTRIBUTES:
                 if token == ">":
-                    if not current_context['end_tag']:
+                    if not current_context['end_tag'] and not current_context['self_close']:
                         # append a token so that we know we're at the end of the attributes
                         if "children" not in current_context:
                             current_context['children'] = []
@@ -917,8 +917,10 @@ def process_tokens(tokens):
                         current_context['substate'] = JSX_CHILDREN
                     else:
                         current_context = pop_context()
-                        # we also need to pop out of our previous jsx context since it's done
-                        current_context = pop_context()
+                        
+                        if current_context['type'] == JSX:
+                            # we also need to pop out of our previous jsx context since it's done
+                            current_context = pop_context()
                         continue
                     continue
                 elif token == "/":

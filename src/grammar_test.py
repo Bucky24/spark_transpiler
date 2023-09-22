@@ -692,6 +692,62 @@ if foo == \"bar\"
                 ]),
             ]),
         ]))
+
+        result = parse_statement("foo(\n    <tag bar={baz(\n        foo\n    )} />\n)\n#pragma")
+        self.assertEqual(result, _get_start([
+            Tree("statement", [
+                Tree("call_function", [
+                    Tree("function_name", [
+                        Tree("statement", [
+                            Tree("variable", [
+                                Token("VARIABLE_NAME", "foo"),
+                            ]),
+                        ]),
+                    ]),
+                    Tree("function_params", [
+                        Token("NEWLINE", "\n"),
+                        Tree("statement", [
+                            Tree("jsx_tag_start", [
+                                Token("TAG_NAME", "tag"),
+                                Tree("statement", [
+                                    Tree("jsx_attribute", [
+                                        Tree("variable", [
+                                            Token("VARIABLE_NAME", "bar"),
+                                        ]),
+                                        Tree("statement", [
+                                            Tree("call_function", [
+                                                Tree("function_name", [
+                                                    Tree("statement", [
+                                                        Tree("variable", [
+                                                            Token("VARIABLE_NAME", "baz"),
+                                                        ]),
+                                                    ]),
+                                                ]),
+                                                Tree("function_params", [
+                                                    Token("NEWLINE", "\n"),
+                                                    Tree("statement", [
+                                                        Tree("variable", [
+                                                            Token("VARIABLE_NAME", "foo"),
+                                                        ]),
+                                                    ]),
+                                                ]),
+                                            ]),
+                                        ]),
+                                    ]),
+                                ]),
+                                Token("TAG_SELF_CLOSE", "/"),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            Token("NEWLINE", "\n"),
+            Tree("statement", [
+                Tree("pragma", [
+                    Token("PRAGMA_NAME", "pragma"),
+                ]),
+            ]),
+        ]))
         
     def test_tabs_and_spaces(self):
         result = parse_statement("foo = bar\n    foo = bar\n\tfoo = bar\n")
@@ -865,7 +921,6 @@ if foo == \"bar\"
                 Tree("statement", [
                     Tree("jsx_tag_start", [
                         Token("TAG_NAME", "div"),
-                        Tree("statement", [Tree("jsx_tag_end", [])]),
                         Token("TAG_SELF_CLOSE", "/"),
                     ]),
                 ]),
@@ -920,10 +975,10 @@ if foo == \"bar\"
                                 ]),
                             ]),
                         ]),
-                        Tree("statement", [Tree("jsx_tag_end", [])]),
                         Token("TAG_SELF_CLOSE", "/")
                     ]),
                 ]),
+                Token("NEWLINE", "\n"),
             ]),
         ]))
 
@@ -957,10 +1012,10 @@ if foo == \"bar\"
                                 ]),
                             ]),
                         ]),
-                        Tree("statement", [Tree("jsx_tag_end", [])]),
                         Token("TAG_SELF_CLOSE", "/")
                     ]),
                 ]),
+                Token("NEWLINE", "\n"),
             ]),
         ]))
         
@@ -969,10 +1024,10 @@ if foo == \"bar\"
             Tree("statement", [
                 Tree("jsx_tag_start", [
                     Token("TAG_NAME", "input"),
-                    Tree("statement", [Tree("jsx_tag_end", [])]),
                     Token("TAG_SELF_CLOSE", "/"),
                 ]),
             ]),
+            Token("NEWLINE", "\n"),
         ]))
 
         tree = parse_statement("<div>\n    <span>foo bar</span>\n</div>")
@@ -1048,9 +1103,6 @@ if foo == \"bar\"
                                 ]),
                             ]),
                         ]),
-                    ]),
-                    Tree("statement", [
-                        Tree("jsx_tag_end", [])
                     ]),
                     Token("TAG_SELF_CLOSE", "/")
                 ])
@@ -1352,9 +1404,6 @@ if foo == \"bar\"
                                 Tree("string", [Token("STRING_CONTENTS_DOUBLE", "bar")]),
                             ]),
                         ]),
-                    ]),
-                    Tree("statement", [
-                        Tree("jsx_tag_end", []),
                     ]),
                     Token("TAG_SELF_CLOSE", "/"),
                 ]),
