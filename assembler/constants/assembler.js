@@ -8,4 +8,5 @@ module.exports = {
     PAGE_TEXT: "__TEXT",
     VM_PROD_READ: 1,
     VM_PROD_EXECUTE: 4,
+    S_FLAGS: "80000400",
 };

@@ -1,8 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { hexToBin, dec32, strToBin, empty } = require("./utils/binary");
-const { LC_SEGMENT_64, PAGE_ZERO_NAME, VM_PROD_READ, VM_PROD_EXECUTE } = require('./constants/assembler');
+const { VM_PROD_READ, VM_PROD_EXECUTE, S_FLAGS } = require('./constants/assembler');
 const { merge } = require("./utils/common");
 const { header, load } = require('./sections');
 const { LOAD_PAGE_ZERO, LOAD_TEXT, PAGE_ZERO_SIZE } = require("./constants/internal");
@@ -18,7 +17,13 @@ const sectionData = [
         start: PAGE_ZERO_SIZE,
         size: 0,
         protection: [VM_PROD_READ, VM_PROD_EXECUTE],
-        children: [],
+        children: [
+            {
+                name: '__text',
+                size: 22,
+                flags: S_FLAGS,
+            },
+        ],
     },
 ];
 
