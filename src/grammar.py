@@ -361,9 +361,9 @@ def process_tokens(tokens):
             current_context = pop_context()
             continue
         elif token == "}" and parent_state == JSX_ATTRIBUTE:
-                tokens.insert(0, token)
-                current_context = pop_context()
-                continue
+            tokens.insert(0, token)
+            current_context = pop_context()
+            continue
 
         if current_context['type'] == START:
             if token == " ":
